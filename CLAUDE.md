@@ -15,7 +15,7 @@ A Java code formatter library that produces beautiful, readable output with a sm
 
 - **Source code:** Java 21 (use modern language features)
 - **Target:** Compile to Java 17 bytecode (`--release 17`)
-- **Build tool:** Maven (multi-module)
+- **Build tool:** Gradle (multi-module)
 - **User codebases:** Accept any Java language level as a parameter (Java 8 through 25+)
 
 ## Architecture
@@ -23,7 +23,7 @@ A Java code formatter library that produces beautiful, readable output with a sm
 - **AST Parser:** JavaParser (`com.github.javaparser:javaparser-core`)
 - **Logging:** SLF4J API
 - **Entry point:** `Formatter.format(String sourceCode) -> String`
-- **Config:** `FormatterConfig` immutable value class with builder
+- **Config:** `FormatterConfig` record with builder (`io.princeofspace.model`)
 
 ## Modules
 

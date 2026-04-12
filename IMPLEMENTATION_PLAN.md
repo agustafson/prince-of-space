@@ -27,13 +27,13 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 ---
 
-## Phase 1: Configuration Model
+## Phase 1: Configuration Model ✓ COMPLETE
 
 **Goal:** Define the configuration data model used by the formatter.
 
 ### Tasks
 
-1. **Create `FormatterConfig.java`** in `core/src/main/java/io/github/princeofspace/`:
+1. **Create `FormatterConfig.java`** in `core/src/main/java/io/princeofspace/model/`:
    ```
    - Immutable value class (record or final class with builder)
    - Fields matching docs/02-formatting-decisions.md Part 2:
