@@ -207,9 +207,11 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 ---
 
-## Phase 5: Comment Preservation
+## Phase 5: Comment Preservation ✓ COMPLETE
 
 **Goal:** Ensure all comments survive formatting unchanged and remain associated with the correct code.
+
+**Status:** After parse, the compilation unit uses JavaParser `LexicalPreservingPrinter.setup` so AST transforms keep comments attached. The pretty-printer enables `PRINT_COMMENTS` and `PRINT_JAVADOC`. See `CommentPreservationTest` for line, block, Javadoc, end-of-line, inter-statement, and type-use-adjacent cases. Further edge cases (exhaustive orphan positions, block-comment reindent tuning) can be added incrementally.
 
 ### Tasks
 

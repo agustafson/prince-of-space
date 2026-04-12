@@ -42,6 +42,8 @@ final class PrettyPrinter {
         printerConfig.addOption(new DefaultConfigurationOption(ConfigOption.INDENTATION, indentation));
         printerConfig.addOption(new DefaultConfigurationOption(ConfigOption.END_OF_LINE_CHARACTER, "\n"));
         printerConfig.addOption(new DefaultConfigurationOption(ConfigOption.SPACE_AROUND_OPERATORS, true));
+        printerConfig.addOption(new DefaultConfigurationOption(ConfigOption.PRINT_COMMENTS, true));
+        printerConfig.addOption(new DefaultConfigurationOption(ConfigOption.PRINT_JAVADOC, true));
         return printerConfig;
     }
 }

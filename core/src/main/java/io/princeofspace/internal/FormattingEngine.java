@@ -5,6 +5,7 @@ import com.github.javaparser.ParseResult;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.Problem;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import io.princeofspace.FormatterException;
 import io.princeofspace.model.FormatterConfig;
 
@@ -17,7 +18,9 @@ import java.util.stream.Collectors;
  * be visible to {@link io.princeofspace.Formatter}. All other classes in this package are
  * package-private implementation details.
  *
- * <p>Pipeline: parse → transform (AST visitors) → print (pretty-print + blank-line normalization).
+ * <p>Pipeline: parse → {@link LexicalPreservingPrinter#setup} → transform (AST visitors) → print
+ * (pretty-print + blank-line normalization). Lexical preservation keeps comments and tokens
+ * coherent when the AST is modified before printing.
  */
 public final class FormattingEngine {
 
@@ -43,8 +46,9 @@ public final class FormattingEngine {
                     .collect(Collectors.joining("\n"));
             throw new FormatterException("Parse failed:\n" + problems);
         }
-        return result.getResult()
-                .orElseThrow(() -> new FormatterException("Parser returned no result"));
+        CompilationUnit cu =
+                result.getResult().orElseThrow(() -> new FormatterException("Parser returned no result"));
+        return LexicalPreservingPrinter.setup(cu);
     }
 
     private void transform(CompilationUnit cu) {
