@@ -1,0 +1,26 @@
+name: Release
+
+# Publishes a GitHub Release when a version tag is pushed (e.g. v1.2.3).
+# Maven Central publishing must be configured separately (signing + OSSRH credentials).
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  github-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
