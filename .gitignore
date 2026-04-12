@@ -1,0 +1,26 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+
+# Java
+*.class
+hs_err_pid*
+replay_pid*
+
+# Logs
+*.log
+
+# Claude Code
+.claude/settings.local.json
