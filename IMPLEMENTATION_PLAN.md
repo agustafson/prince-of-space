@@ -6,7 +6,7 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 ## Phase 0: Project Scaffolding
 
-**Goal:** Set up the multi-module Maven project structure with build tooling.
+**Goal:** Set up the multi-module Gradle project structure with build tooling.
 
 ### Tasks
 
@@ -29,7 +29,7 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 ## Phase 1: Configuration Model
 
-**Goal:** Define the configuration data model and loading mechanism.
+**Goal:** Define the configuration data model used by the formatter.
 
 ### Tasks
 
@@ -45,19 +45,13 @@ This plan is designed for AI agents or developers to pick up and execute sequent
      - wrapStyle: enum WrapStyle { WIDE, NARROW, BALANCED }
      - closingParenOnNewLine: boolean (default true)
      - trailingCommas: boolean (default false)
-     - javaLanguageLevel: passed to JavaParser (default JAVA_17)
+     - javaLanguageLevel: pass-through value forwarded to JavaParser (no formatter-side range validation)
    - Static method `defaults()` returning default config
    - Builder pattern for constructing custom configs
-   - Validation: maxLineLength >= preferredLineLength, indentSize > 0, etc.
+   - Validation: maxLineLength >= preferredLineLength, indentSize > 0, continuationIndentSize > 0, etc.
    ```
 
-2. **Create `FormatterConfigLoader.java`**:
-   - Load config from a `.princeofspace.toml` or `.princeofspace.yaml` file in the project root
-   - Fall back to defaults if no config file found
-   - Support environment variable overrides (e.g., `PRINCE_OF_SPACE_MAX_LINE_LENGTH`)
-   - Use a lightweight TOML/YAML parser or simple key=value properties format
-
-3. **Write unit tests** for config defaults, builder, validation, and file loading.
+2. **Write unit tests** for config defaults, builder, and validation behavior.
 
 ---
 
@@ -99,9 +93,40 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 4. **Write integration tests** using the example input files from `examples/inputs/` and validating against `examples/outputs/`.
 
+### Acceptance Criteria (docs/02 non-configurable behaviors)
+
+- Forced braces are always added for `if`/`else`/`for`/`while`/`do` single-statement bodies.
+- Brace placement is K&R style for supported constructs.
+- Declaration annotations are one-per-line; parameter/type-use annotation placement is preserved.
+- Import organization remains out of scope for `core` (delegated to Spotless).
+
 ---
 
-## Phase 3: Formatting Rules — Wrapping & Line Breaking
+## Phase 3: Core-Bundled Packaging
+
+**Goal:** Ship a dependency-free bundled artifact for environments that cannot use transitive dependencies.
+
+### Tasks
+
+1. **Create `core-bundled` module build**:
+   - Depends on `core`
+   - Produces a shaded/relocated fat JAR with no transitive runtime requirements
+
+2. **Configure relocation and packaging rules**:
+   - Relocate third-party packages as needed to avoid classpath conflicts
+   - Preserve public formatter API entry points
+
+3. **Add verification tests**:
+   - Smoke test formatting through bundled artifact classpath
+   - Ensure output parity between `core` and `core-bundled` on golden samples
+
+4. **Document artifact usage**:
+   - Describe when to use `core` vs `core-bundled`
+   - Include minimal dependency examples
+
+---
+
+## Phase 4: Formatting Rules — Wrapping & Line Breaking
 
 **Goal:** Implement the line-breaking and wrapping logic, which is the most complex and critical part of the formatter.
 
@@ -154,7 +179,8 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
    h. **Implements/permits/extends clauses:**
       - Wrap like parameter lists per `wrapStyle`
-      - Apply `closingParenOnNewLine` (use `{` placement as the visual separator)
+      - Keep K&R brace placement semantics for the declaration body
+      - Do not apply `closingParenOnNewLine` (not applicable to type clauses)
 
    i. **Array initializers:**
       - Wrap per `wrapStyle`
@@ -170,9 +196,16 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 3. **Write comprehensive tests** for each construct, testing all 3 wrap styles and edge cases. Use the `examples/outputs/` files as golden-file tests.
 
+### Acceptance Criteria (docs/02 non-configurable behaviors)
+
+- Lambda argument handling keeps opening `(` inline (never moved to a separate line due to lambda presence).
+- Ternary and binary operator wrapping place operators at the start of continuation lines.
+- Method chaining uses continuation indentation from chain start (no dot-alignment drift).
+- Type clauses (`implements`/`permits`/`extends`) never reference `closingParenOnNewLine`.
+
 ---
 
-## Phase 4: Comment Preservation
+## Phase 5: Comment Preservation
 
 **Goal:** Ensure all comments survive formatting unchanged and remain associated with the correct code.
 
@@ -190,9 +223,14 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 6. **Write tests** for every comment placement scenario.
 
+### Acceptance Criteria (docs/02 non-configurable behaviors)
+
+- Line, block, Javadoc, and orphan comments are preserved with stable association.
+- Type-use annotations remain adjacent to the annotated type and are not moved across modifiers.
+
 ---
 
-## Phase 5: Idempotency & Determinism
+## Phase 6: Idempotency & Determinism
 
 **Goal:** Guarantee that formatting is stable and repeatable.
 
@@ -212,7 +250,7 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 ---
 
-## Phase 6: Spotless Integration
+## Phase 7: Spotless Integration
 
 **Goal:** Create a Spotless `FormatterStep` so users can integrate via Spotless's Maven/Gradle plugins.
 
@@ -245,7 +283,7 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 ---
 
-## Phase 7: CLI Tool
+## Phase 8: CLI Tool
 
 **Goal:** Standalone command-line tool for formatting files.
 
@@ -274,7 +312,7 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 ---
 
-## Phase 8: Testing Against Real-World Code
+## Phase 9: Testing Against Real-World Code
 
 **Goal:** Validate the formatter against large, real-world Java codebases.
 
@@ -297,7 +335,27 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 ---
 
-## Phase 9: IDE Plugins (Future)
+## Phase 10: Configuration Loading (Deferred)
+
+**Goal:** Add optional project-level config loading after formatter behavior is stable.
+
+### Tasks
+
+1. **Create `FormatterConfigLoader.java`**:
+   - Load config from `.princeofspace.toml` (and/or `.princeofspace.yaml`) in project root
+   - Fall back to `FormatterConfig.defaults()` when config file is absent
+   - Support optional environment variable overrides (e.g., `PRINCE_OF_SPACE_MAX_LINE_LENGTH`)
+   - Keep parser lightweight and startup overhead minimal
+
+2. **Integrate loader into CLI and Spotless entry points**:
+   - `core` API remains configuration-object driven (no hidden global state)
+   - Loader is an integration convenience layer
+
+3. **Write tests** for file discovery, parsing, defaults fallback, and env overrides.
+
+---
+
+## Phase 11: IDE Plugins (Future)
 
 **Goal:** IDE integration for IntelliJ IDEA and VS Code.
 
@@ -329,12 +387,25 @@ These are lower priority and can be tackled after the core formatter is stable.
 5. **Idempotency is non-negotiable.** Every test must verify `format(format(x)) == format(x)`.
 6. **Comments are sacred.** Never lose, reorder, or corrupt a comment.
 
+## Non-Configurable Rule Acceptance Criteria
+
+The following rules from `docs/02-formatting-decisions.md` must be asserted by tests and treated as release gates:
+
+1. **Forced braces:** always add braces for braceless control-flow bodies.
+2. **K&R braces:** opening brace stays on the same line for supported constructs.
+3. **Lambda behavior:** lambda argument formatting never pushes opening `(` to its own line.
+4. **Operator continuation style:** wrapped ternary (`?`, `:`) and binary operators lead continuation lines.
+5. **Method chains:** continuation indent from chain start; avoid dot-alignment drift.
+6. **Annotation safety:** preserve type-use annotation placement and keep declaration annotations one-per-line.
+7. **Imports out of scope:** import sorting/grouping/removal is delegated to Spotless.
+
 ## Execution Order
 
 ```
-Phase 0 (scaffolding) → Phase 1 (config) → Phase 2 (AST pipeline) → Phase 3 (wrapping) 
-→ Phase 4 (comments) → Phase 5 (idempotency) → Phase 6 (Spotless) → Phase 7 (CLI) 
-→ Phase 8 (real-world testing) → Phase 9 (IDE plugins)
+Phase 0 (scaffolding) → Phase 1 (config model) → Phase 2 (AST pipeline) → Phase 3 (core-bundled)
+→ Phase 4 (wrapping) → Phase 5 (comments) → Phase 6 (idempotency) → Phase 7 (Spotless)
+→ Phase 8 (CLI) → Phase 9 (real-world testing) → Phase 10 (config loading deferred)
+→ Phase 11 (IDE plugins)
 ```
 
-Phases 0-1 can be completed quickly. Phases 2-4 are the core work and will take the longest. Phase 5 runs continuously alongside 2-4. Phases 6-7 are integration work. Phase 8 is validation. Phase 9 is future work.
+Phases 0-1 can be completed quickly. Phases 2-5 are core formatter work and will take the longest. Phase 6 runs continuously alongside 2-5. Phases 7-8 are integration work. Phase 9 is validation. Phase 10 is intentionally deferred for operational convenience features. Phase 11 is future work.
