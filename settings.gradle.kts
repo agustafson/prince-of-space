@@ -18,4 +18,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "prince-of-space"
 
-include(":core", ":core-bundled")
+include(":core", ":core-bundled", ":spotless", ":cli")

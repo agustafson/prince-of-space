@@ -292,7 +292,7 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 1. **Create `Main.java`** in the `cli` module using Picocli:
    ```
    prince-of-space [OPTIONS] [FILES...]
-   
+
    Options:
      --check          Check if files are formatted (exit 1 if not)
      --config FILE    Path to config file

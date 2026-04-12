@@ -9,12 +9,6 @@ subprojects {
 }
 
 spotless {
-    java {
-        expandWildcardImports()
-        removeUnusedImports()
-
-        importOrder("", "java|javax", "\\#")
-    }
 
     kotlinGradle {
         target("*.gradle.kts", "settings.gradle.kts")

@@ -1,5 +1,7 @@
 [versions]
 javaparser = "3.28.0"
+picocli = "4.7.6"
+spotless-lib = "4.5.0"
 # Keep aligned with NullAway (0.13.x targets Error Prone ~2.45; 2.49+ breaks NullAway at runtime).
 errorprone = "2.45.0"
 errorprone-plugin = "5.1.0"
@@ -17,6 +19,9 @@ nyx = "3.1.8-alpha.1"
 
 [libraries]
 javaparser-core = { module = "com.github.javaparser:javaparser-core", version.ref = "javaparser" }
+picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
+slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
+spotless-lib = { module = "com.diffplug.spotless:spotless-lib", version.ref = "spotless-lib" }
 errorprone-core = { module = "com.google.errorprone:error_prone_core", version.ref = "errorprone" }
 nullaway = { module = "com.uber.nullaway:nullaway", version.ref = "nullaway" }
 jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
