@@ -17,6 +17,20 @@ tasks.withType<JavaCompile>().configureEach {
 
 dependencies {
     implementation(project(":core"))
+    testImplementation(platform(libs.junit.bom))
+    testImplementation("org.junit.jupiter:junit-jupiter-api")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation(libs.assertj.core)
+}
+
+tasks.test {
+    useJUnitPlatform()
+    dependsOn(tasks.shadowJar)
+    systemProperty(
+        "bundled.jar.path",
+        tasks.shadowJar.get().archiveFile.get().asFile.absolutePath,
+    )
 }
 
 tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
@@ -24,6 +38,8 @@ tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJ
     archiveClassifier.set("")
     mergeServiceFiles()
     relocate("com.github.javaparser", "io.princeofspace.shaded.com.github.javaparser")
+    relocate("org.slf4j", "io.princeofspace.shaded.org.slf4j")
+    relocate("org.jspecify", "io.princeofspace.shaded.org.jspecify")
     manifest {
         attributes["Implementation-Title"] = "prince-of-space-bundled"
         attributes["Implementation-Version"] = project.version.toString()

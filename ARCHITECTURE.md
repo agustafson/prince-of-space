@@ -47,6 +47,33 @@
 - `spotless` — Spotless FormatterStep integration
 - `cli` — Command-line tool (picocli)
 
+### `core` vs `core-bundled`
+
+| Artifact | When to use |
+|----------|-------------|
+| **`io.princeofspace:prince-of-space-core`** (normal POM) | Default for Gradle/Maven apps: small footprint; you resolve JavaParser and SLF4J alongside the formatter (or rely on your existing versions where compatible). |
+| **`io.princeofspace:prince-of-space-bundled`** (single JAR, classifier default) | Classloader-sensitive embeds, tools that must not pull transitives, or environments where pinning one fat JAR is simpler than managing dependency alignment. Third-party packages are relocated under `io.princeofspace.shaded.*` so they do not clash with host classpath versions. |
+
+**Gradle — `core`:**
+
+```kotlin
+dependencies {
+    implementation("io.princeofspace:prince-of-space-core:VERSION")
+}
+```
+
+**Gradle — `core-bundled` (fat JAR on classpath only):**
+
+```kotlin
+dependencies {
+    implementation(files("libs/prince-of-space-bundled-VERSION.jar"))
+    // or from a repository that publishes the shadow artifact:
+    // implementation("io.princeofspace:prince-of-space-bundled:VERSION")
+}
+```
+
+Behavior of `io.princeofspace.Formatter` and `FormatterConfig` is the same; only dependency packaging differs.
+
 ## Configuration Options (8 total)
 
 | Option | Default |

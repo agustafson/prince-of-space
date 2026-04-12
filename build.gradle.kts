@@ -6,10 +6,20 @@ plugins {
 subprojects {
     group = rootProject.group
     version = rootProject.version
+
+  pluginManager.withPlugin("java") {
+    apply(plugin = "com.diffplug.spotless")
+
+    spotless {
+        java {
+          removeUnusedImports()
+          importOrder("", "java|javax", "\\#")
+        }
+      }
+    }
 }
 
 spotless {
-
     kotlinGradle {
         target("*.gradle.kts", "settings.gradle.kts")
         trimTrailingWhitespace()

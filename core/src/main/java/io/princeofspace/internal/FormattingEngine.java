@@ -7,6 +7,7 @@ import com.github.javaparser.Problem;
 import com.github.javaparser.ast.CompilationUnit;
 import io.princeofspace.FormatterException;
 import io.princeofspace.model.FormatterConfig;
+
 import java.util.stream.Collectors;
 
 /**

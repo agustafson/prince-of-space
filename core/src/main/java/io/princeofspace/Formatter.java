@@ -1,10 +1,11 @@
 package io.princeofspace;
 
-import static java.util.Objects.requireNonNull;
-
 import io.princeofspace.internal.FormattingEngine;
 import io.princeofspace.model.FormatterConfig;
+
 import java.nio.file.Path;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Main entry point for the Prince of Space formatter.

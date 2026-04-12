@@ -6,7 +6,6 @@ plugins {
     checkstyle
     alias(libs.plugins.errorprone)
     alias(libs.plugins.spotbugs)
-    alias(libs.plugins.spotless)
     alias(libs.plugins.test.logger)
     `maven-publish`
     signing
@@ -94,13 +93,6 @@ checkstyle {
 
 spotbugs {
     ignoreFailures.set(false)
-}
-
-spotless {
-    java {
-        removeUnusedImports()
-        importOrder("", "java|javax", "\\#")
-    }
 }
 
 publishing {

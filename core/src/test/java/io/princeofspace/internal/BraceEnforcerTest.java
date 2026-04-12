@@ -1,13 +1,13 @@
 package io.princeofspace.internal;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.printer.DefaultPrettyPrinter;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class BraceEnforcerTest {
 

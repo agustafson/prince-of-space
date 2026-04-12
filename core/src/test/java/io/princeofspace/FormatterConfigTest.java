@@ -1,13 +1,13 @@
 package io.princeofspace;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.WrapStyle;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FormatterConfigTest {
 
