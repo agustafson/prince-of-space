@@ -13,9 +13,8 @@ import io.princeofspace.model.IndentStyle;
 /**
  * Prints a {@link CompilationUnit} to source text using the formatter configuration.
  *
- * <p>In Phase 2 this delegates to JavaParser's {@link DefaultPrettyPrinter}, then post-processes
- * the output through {@link BlankLineNormalizer}. The custom line-wrapping logic from Phase 4 will
- * replace the {@code DefaultPrettyPrinter} delegation.
+ * <p>Delegates to JavaParser's {@link DefaultPrettyPrinter} with a {@link PrincePrettyPrinterVisitor},
+ * then post-processes through {@link BlankLineNormalizer}.
  */
 final class PrettyPrinter {
 
@@ -27,7 +26,9 @@ final class PrettyPrinter {
 
     String print(CompilationUnit cu) {
         DefaultPrinterConfiguration printerConfig = buildPrinterConfig();
-        String raw = new DefaultPrettyPrinter(printerConfig).print(cu);
+        String raw = new DefaultPrettyPrinter(
+                        pc -> new PrincePrettyPrinterVisitor(pc, config), printerConfig)
+                .print(cu);
         return BlankLineNormalizer.normalize(raw);
     }
 
@@ -40,6 +41,7 @@ final class PrettyPrinter {
         DefaultPrinterConfiguration printerConfig = new DefaultPrinterConfiguration();
         printerConfig.addOption(new DefaultConfigurationOption(ConfigOption.INDENTATION, indentation));
         printerConfig.addOption(new DefaultConfigurationOption(ConfigOption.END_OF_LINE_CHARACTER, "\n"));
+        printerConfig.addOption(new DefaultConfigurationOption(ConfigOption.SPACE_AROUND_OPERATORS, true));
         return printerConfig;
     }
 }

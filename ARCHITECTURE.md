@@ -83,12 +83,15 @@ Behavior of `io.princeofspace.Formatter` and `FormatterConfig` is the same; only
 | `preferredLineLength` | `120` |
 | `maxLineLength` | `150` |
 | `continuationIndentSize` | `4` |
+
+For **`indentSize`** and **`continuationIndentSize`**, the numeric value is a count of **spaces** when using spaces, or a count of **tab characters** when using tabs (`docs/02-formatting-decisions.md`, §1 and §3).
 | `wrapStyle` | `balanced` |
 | `closingParenOnNewLine` | `true` |
 | `trailingCommas` | `false` |
 
 ## Testing
 
-- Golden file tests: `examples/inputs/` → format → compare with `examples/outputs/`
+- Golden file tests: `examples/inputs/` → format → compare with `examples/outputs/` (target parity; not all goldens asserted in CI yet)
+- Wrapping regressions: `WrappingFormattingTest` (method chains, logical AND, `implements` wrapping)
 - 3 Java levels (java8, java17, java21) × 12 config combinations = 36 golden files
 - Every test must verify idempotency: `format(format(x)) == format(x)`

@@ -7,6 +7,11 @@ import com.github.javaparser.ParserConfiguration.LanguageLevel;
  *
  * <p>Use {@link #defaults()} to get the default configuration, or {@link #builder()} to customize
  * individual options.
+ *
+ * <p><b>Indent units:</b> When {@link #indentStyle()} is {@link IndentStyle#SPACES}, {@link #indentSize()}
+ * and {@link #continuationIndentSize()} are counts of space characters. When it is {@link
+ * IndentStyle#TABS}, both are counts of tab characters for each indent step and for each continuation,
+ * respectively. See {@code docs/02-formatting-decisions.md} (sections 1 and 3).
  */
 public record FormatterConfig(
         IndentStyle indentStyle,

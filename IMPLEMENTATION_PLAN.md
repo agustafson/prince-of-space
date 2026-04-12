@@ -126,9 +126,11 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 ---
 
-## Phase 4: Formatting Rules — Wrapping & Line Breaking
+## Phase 4: Formatting Rules — Wrapping & Line Breaking (core done; showroom goldens pending)
 
 **Goal:** Implement the line-breaking and wrapping logic, which is the most complex and critical part of the formatter.
+
+**Status:** `PrincePrettyPrinterVisitor` implements width-aware layout (preferred/max, wrap styles, continuation indent) for method chains, parameter/argument lists, binary/`+`/`&&`/`||`, ternaries, `implements`/`permits` clauses, array initializers, and record headers. Try-with-resources column alignment and full byte-for-byte parity with every `examples/outputs/**/FormatterShowcase.java` golden remain follow-up work; see `WrappingFormattingTest` for targeted regressions.
 
 ### Tasks
 

@@ -17,6 +17,8 @@ This document lists the key formatting decision points for the Prince of Space f
 **Config:** `indentStyle: spaces|tabs`, `indentSize: <number>` (number of spaces or number of tabs per indent level)
 **Default:** `spaces`, `4`
 
+With **`spaces`**, `indentSize` is how many space characters make up one indent step. With **`tabs`**, `indentSize` is how many tab characters (`\t`) make up one indent step (often `1`).
+
 ---
 
 ### 2. Preferred Line Length & Maximum Line Length
@@ -64,6 +66,8 @@ When a statement wraps to the next line, how far should the continuation be inde
 
 **Config:** `continuationIndentSize: <number>`
 **Default:** `4` (same as default indent size)
+
+Units match **`indentSize`**: with **`spaces`**, this is the number of space characters inserted before a wrapped continuation line. With **`tabs`**, it is the number of **tab characters** inserted for that continuation (not derived by dividing by `indentSize`—both settings are direct character counts in their respective styles).
 
 ---
 
@@ -168,7 +172,7 @@ enum Status {
 | `indentSize` | integer | `4` | Number of spaces or tabs per indent level |
 | `preferredLineLength` | integer | `120` | Soft line width target; wrapping is triggered here |
 | `maxLineLength` | integer | `150` | Hard line width limit; never exceeded |
-| `continuationIndentSize` | integer | `4` | Indent for continuation lines |
+| `continuationIndentSize` | integer | `4` | Spaces or tabs for continuation lines (same unit convention as `indentSize`) |
 | `wrapStyle` | `wide` \| `narrow` \| `balanced` | `balanced` | How to handle line wrapping |
 | `closingParenOnNewLine` | boolean | `true` | Whether closing `)` goes on its own line in multi-line params/args |
 | `trailingCommas` | boolean | `false` | Add trailing commas in enum constants and array initializers |
