@@ -53,8 +53,23 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 tasks.test {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        // Showroom goldens under examples/outputs/ are hand-maintained; see FormatterShowcaseGoldenTest.
+        excludeTags("showroom-golden")
+    }
     finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.register<Test>("showroomGoldenTest") {
+    group = "verification"
+    description =
+        "Assert Formatter output matches authoritative examples/outputs/**/FormatterShowcase goldens (not generated)"
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    useJUnitPlatform {
+        includeTags("showroom-golden")
+    }
+    dependsOn(tasks.testClasses)
 }
 
 tasks.register<JavaExec>("writeGolden") {

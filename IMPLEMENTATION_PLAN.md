@@ -126,11 +126,11 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 ---
 
-## Phase 4: Formatting Rules — Wrapping & Line Breaking (core done; showroom goldens pending)
+## Phase 4: Formatting Rules — Wrapping & Line Breaking (core done; showroom parity vs goldens pending)
 
 **Goal:** Implement the line-breaking and wrapping logic, which is the most complex and critical part of the formatter.
 
-**Status:** `PrincePrettyPrinterVisitor` implements width-aware layout (preferred/max, wrap styles, continuation indent) for method chains, parameter/argument lists, binary/`+`/`&&`/`||`, ternaries, `implements`/`permits` clauses, array initializers, and record headers. Try-with-resources column alignment and full byte-for-byte parity with every `examples/outputs/**/FormatterShowcase.java` golden remain follow-up work; see `WrappingFormattingTest` for targeted regressions.
+**Status:** `PrincePrettyPrinterVisitor` implements width-aware layout (preferred/max, wrap styles, continuation indent) for method chains, parameter/argument lists, binary/`+`/`&&`/`||`, ternaries, `implements`/`permits` clauses, array initializers, and record headers. **Showroom:** files under `examples/outputs/<java8|java17|java21>/` are **authoritative golden outputs** (not regenerated from the formatter). `FormatterShowcaseGoldenTest` compares `Formatter.format` on `examples/inputs/.../FormatterShowcase.java` to those files; run `./gradlew :core:showroomGoldenTest`. Do not overwrite `examples/outputs/` to make tests pass — change the formatter until it matches. (These tests are tagged `showroom-golden` and excluded from the default `test` task until parity is reached; then remove the exclude in `core/build.gradle.kts` to enforce in CI.) Try-with-resources column alignment remains follow-up work; see `WrappingFormattingTest` for targeted regressions.
 
 ### Tasks
 
