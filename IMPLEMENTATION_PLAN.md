@@ -55,7 +55,7 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 ---
 
-## Phase 2: Core Formatting Engine — AST Pipeline
+## Phase 2: Core Formatting Engine — AST Pipeline ✓ COMPLETE
 
 **Goal:** Build the parse → transform → print pipeline.
 

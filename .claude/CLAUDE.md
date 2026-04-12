@@ -1,0 +1,30 @@
+# Prince of Space — AI Agent Instructions
+
+## What is this project?
+
+A configurable Java code formatter. See `README.md` for an overview and `IMPLEMENTATION_PLAN.md` for the phased task list.
+
+## Before writing any code, read
+
+| Document | What it covers |
+|----------|---------------|
+| `ARCHITECTURE.md` | Package layout, coding conventions, module structure, config options |
+| `CONTRIBUTING.md` | Commit conventions, build requirements, PR checks |
+| `IMPLEMENTATION_PLAN.md` | Phased tasks — always check current phase before starting |
+| `docs/02-formatting-decisions.md` | All formatting rules and the 8 config knobs |
+
+## Build commands
+
+```
+./gradlew :core:test          # run core tests (fast feedback loop)
+./gradlew build               # full build: compile, test, Spotless, Checkstyle, SpotBugs
+```
+
+Always run `:core:test` after any change to `core/`. A clean `./gradlew build` is required before a PR.
+
+## Key rules (detail in `ARCHITECTURE.md`)
+
+- Implementation goes in `io.princeofspace.internal`; classes there are **package-private** by default.
+- `Formatter` must not import JavaParser or any other third-party library directly.
+- Tests for package-private classes live in the same package as the class (`src/test/java/io/princeofspace/internal/`).
+- Every test touching `Formatter` must assert idempotency: `format(format(x)) == format(x)`.
