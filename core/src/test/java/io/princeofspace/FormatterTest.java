@@ -434,6 +434,65 @@ class FormatterTest {
         assertThat(f.format(out)).isEqualTo(out);
     }
 
+    // ── lambdas (standalone / non-chain) ───────────────────────────────────────
+
+    @Test
+    void standaloneBlockLambda_braceOnSameLineAsArrow_andIdempotent() {
+        String input = """
+                class T {
+                    void m() {
+                        Runnable r = () -> {
+                            a();
+                            b();
+                        };
+                    }
+
+                    void a() {}
+
+                    void b() {}
+                }
+                """;
+        String once = DEFAULT.format(input);
+        assertThat(once).contains("() -> {").contains("a();").contains("b();");
+        assertThat(DEFAULT.format(once)).isEqualTo(once);
+    }
+
+    @Test
+    void lambdaLastArgument_nonChainCall_keepsCallOpeningOnSameLine() {
+        String input = """
+                import java.util.Collections;
+                import java.util.List;
+
+                class T {
+                    void m(List<String> items) {
+                        Collections.sort(
+                                items, (String a, String b) -> {
+                                    return a.compareToIgnoreCase(b);
+                                });
+                    }
+                }
+                """;
+        String once = DEFAULT.format(input);
+        assertThat(once).contains("Collections.sort(").doesNotContain("Collections.sort\n");
+        assertThat(DEFAULT.format(once)).isEqualTo(once);
+    }
+
+    @Test
+    void expressionLambda_inMethodArgument_hasNoStatementTerminatorInsideParens() {
+        String input = """
+                import java.util.List;
+
+                class T {
+                    String m(List<String> items, String q) {
+                        return items.stream().filter(item -> item.contains(q)).findFirst().orElse(null);
+                    }
+                }
+                """;
+        String once = DEFAULT.format(input);
+        assertThat(once).doesNotContain("item.contains(q);");
+        assertThat(DEFAULT.format(once)).isEqualTo(once);
+    }
+
     // ── error handling ────────────────────────────────────────────────────────
 
     @Test
