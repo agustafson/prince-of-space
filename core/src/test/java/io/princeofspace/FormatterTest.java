@@ -746,6 +746,40 @@ class FormatterTest {
     }
 
     @Test
+    void idempotency_trailingCommentAfterSingleLambdaArgument_breaksToCommentLine() {
+        Formatter f = new Formatter(
+                FormatterConfig.builder()
+                        .preferredLineLength(80)
+                        .maxLineLength(100)
+                        .wrapStyle(WrapStyle.WIDE)
+                        .build());
+        String input = """
+                class T {
+                    void m(Client client) {
+                        client.accept("json")
+                                .cookies(cookies -> cookies.add("id", "123")) // keep trailing comment on lambda arg
+                                .done();
+                    }
+
+                    interface Client {
+                        Client accept(String value);
+
+                        Client cookies(java.util.function.Consumer<Cookies> consumer);
+
+                        Client done();
+                    }
+
+                    interface Cookies {
+                        void add(String name, String value);
+                    }
+                }
+                """;
+        String once = f.format(input);
+        assertThat(f.format(once)).isEqualTo(once);
+        assertThat(once).doesNotContain(".cookies(// keep trailing comment");
+    }
+
+    @Test
     void idempotency_lineCommentBeforeSingleExtendedType_breaksAfterExtendsKeyword() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()

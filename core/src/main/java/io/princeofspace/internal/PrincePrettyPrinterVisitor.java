@@ -136,6 +136,18 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         return comment.getRange().get().begin.line <= node.getRange().get().begin.line;
     }
 
+    private static boolean hasAnyLineOrBlockCommentOnLambda(Node node) {
+        if (!(node instanceof LambdaExpr)) {
+            return false;
+        }
+        Optional<Comment> c = node.getComment();
+        if (c.isEmpty()) {
+            return false;
+        }
+        Comment comment = c.get();
+        return comment instanceof LineComment || comment instanceof BlockComment;
+    }
+
     @Override
     public void visit(TryStmt n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -833,7 +845,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     private void printCommaSeparatedExprs(NodeList<? extends Expression> args, Void arg) {
-        if (args.size() == 1 && hasLeadingLineOrBlockComment(args.get(0))) {
+        if (args.size() == 1
+                && (hasLeadingLineOrBlockComment(args.get(0))
+                        || hasAnyLineOrBlockCommentOnLambda(args.get(0)))) {
             printer.println();
             printCont();
             args.get(0).accept(this, arg);
