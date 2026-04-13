@@ -658,4 +658,31 @@ class FormatterTest {
         assertThat(twice).isEqualTo(once);
         assertThat(twice).doesNotContain(".// keep comment");
     }
+
+    @Test
+    void idempotency_switchExpr_lineCommentAfterArrow_onOwnLine() {
+        Formatter f = new Formatter(
+                FormatterConfig.builder()
+                        .preferredLineLength(80)
+                        .maxLineLength(100)
+                        .wrapStyle(WrapStyle.WIDE)
+                        .build());
+        String input =
+                """
+                class T {
+                    int m(String path) {
+                        return switch (path) {
+                            case "a" -> 1;
+                            case "b" ->
+                                // keep this comment with the arm body
+                                java.util.Objects.hash(path);
+                            default -> 0;
+                        };
+                    }
+                }
+                """;
+        String once = f.format(input);
+        assertThat(f.format(once)).isEqualTo(once);
+        assertThat(once).doesNotContain("-> // keep");
+    }
 }

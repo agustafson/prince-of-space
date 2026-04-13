@@ -9,7 +9,9 @@ import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
+import com.github.javaparser.ast.comments.BlockComment;
 import com.github.javaparser.ast.comments.Comment;
+import com.github.javaparser.ast.comments.LineComment;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.BinaryExpr;
 import com.github.javaparser.ast.expr.ConditionalExpr;
@@ -1728,6 +1730,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     private void printSwitchEntry(SwitchEntry entry, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(entry);
+        printComment(entry.getComment(), arg);
         if (entry.getLabels().isEmpty()) {
             printer.print("default");
         } else {
@@ -1753,17 +1757,41 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.print(":");
             return;
         }
-        printer.print(" -> ");
-        if (entry.getStatements().size() == 1) {
-            entry.getStatements().get(0).accept(this, arg);
+        printer.print(" ->");
+        NodeList<Statement> stmts = entry.getStatements();
+        if (stmts.isEmpty()) {
             return;
         }
-        for (Iterator<Statement> i = entry.getStatements().iterator(); i.hasNext(); ) {
-            i.next().accept(this, arg);
-            if (i.hasNext()) {
-                printer.print(" ");
+        boolean multilineBody =
+                stmts.size() > 1
+                        || leadingCommentNeedsNewLineAfterArrow(stmts.get(0));
+        if (multilineBody) {
+            printer.println();
+            printer.indent();
+            for (Statement s : stmts) {
+                s.accept(this, arg);
+                printer.println();
             }
+            printer.unindent();
+        } else {
+            printer.print(" ");
+            stmts.get(0).accept(this, arg);
         }
+    }
+
+    /**
+     * If a line/block comment on the first statement is printed immediately after {@code ->} on the
+     * same line, a second parse/re-print cycle can re-attach the comment to the {@code case} label.
+     * Breaking before the body matches {@link DefaultPrettyPrinterVisitor}'s switch-entry layout and
+     * keeps comment placement stable.
+     */
+    private static boolean leadingCommentNeedsNewLineAfterArrow(Statement stmt) {
+        Optional<Comment> c = stmt.getComment();
+        if (c.isEmpty()) {
+            return false;
+        }
+        Comment comment = c.get();
+        return comment instanceof LineComment || comment instanceof BlockComment;
     }
 
 }
