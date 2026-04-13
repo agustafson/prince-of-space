@@ -117,6 +117,29 @@ enum/array `trailingCommas` and try-with-resources `closingParenOnNewLine`; `REA
 
 ---
 
+## Task 14 — Enhanced real-world evaluation harness
+
+**Priority:** Medium — validates all formatting logic against production-scale Java code
+**Detail:** See `docs/task-14-eval-harness.md` for the full specification.
+
+### Summary
+
+Replace `OptionalRealWorldCheckoutFormatTest` with a richer `RealWorldEvalTest` that:
+
+- Targets **Guava** (`google/guava`) and **Spring Framework** (`spring-projects/spring-framework`)
+- Runs **9 config permutations** per project (3 width bands × 3 wrap styles), with
+  `preferred=80/max=100` as the primary stress config (forces wrapping on Guava's already
+  100-char-limited code)
+- Hard-asserts **zero parse errors** and **zero idempotency failures** across all runs
+- Reports over-long non-comment lines as warnings (not failures — comments and string
+  literals can legitimately exceed `maxLineLength`)
+- Emits a structured Markdown report to `docs/eval-results/<date>.md`
+
+Enabled via `PRINCE_EVAL_ROOTS` env var; excluded from default `test` task via `@Tag("eval")`.
+Run with `./gradlew :core:evalTest`.
+
+---
+
 ## Reference: scenario map
 
 For debugging and golden test work, this maps showcase scenarios to visitor code areas.
