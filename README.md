@@ -13,7 +13,22 @@ A Java code formatter library that produces beautiful, readable output with a sm
 - `IMPLEMENTATION_PLAN.md` — Phased implementation plan with detailed tasks
 - `docs/01-project-priorities.md` — Project goals, architecture, module structure
 - `docs/02-formatting-decisions.md` — All formatting rules, 8 configuration options, and decided behaviors
+- `docs/03-roadmap.md` — Prioritized backlog and verification checklist
 - `docs/03-research-notes.md` — Research on other formatters, AST parsers, Spotless integration
+- `docs/benchmarks.md` — Throughput smoke tests and future JMH notes
+- `docs/robustness-harness.md` — Optional real-world directory formatting
+
+## CLI
+
+Build the shaded JAR, then run Picocli help:
+
+```bash
+./gradlew :cli:shadowJar
+java -jar cli/build/libs/prince-of-space-cli-*.jar --help
+```
+
+Common flags: `--check` (no writes, exit 1 if any file would change), `--stdin` / `--stdout`,
+`--java-version 8|11|17|21`, `-r` to recurse into directories, `-v` for stderr progress.
 
 ## Non-goals
 

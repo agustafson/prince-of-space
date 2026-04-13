@@ -332,7 +332,7 @@ try (var input  = new FileInputStream(src);
      var output = new FileOutputStream(dest)) {
 ```
 
-When multiple resources are declared, `var` (or type) declarations are aligned to the same column. The closing `)` follows `closingParenOnNewLine` setting.
+When multiple resources are declared, `var` (or type) declarations are aligned to the same column. The closing `)` follows `closingParenOnNewLine` setting (implemented in `PrincePrettyPrinterVisitor.visit(TryStmt)` when there is more than one resource).
 
 ---
 

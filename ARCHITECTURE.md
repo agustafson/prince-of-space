@@ -95,8 +95,11 @@ Parse → `LexicalPreservingPrinter.setup` (comment/token coherence for transfor
 
 ## Testing
 
-- Golden file tests: `examples/inputs/` → format → compare with `examples/outputs/` (target parity; not all goldens asserted in CI yet)
+- Golden file tests: `examples/inputs/` → format → compare with `examples/outputs/` (all 36 goldens asserted in CI via `./gradlew :core:test`)
 - Wrapping regressions: `WrappingFormattingTest` (method chains, logical AND, `implements` wrapping)
 - Comment preservation: `CommentPreservationTest` (line, block, Javadoc, EOL, between statements, type-use)
+- Idempotency fuzz: `IdempotencyFuzzTest` (randomized `FormatterConfig` over fixed snippets + AST-built CU)
+- Examples corpus: `ExamplesCorpusFormatTest` (outputs idempotent; inputs single-pass)
 - 3 Java levels (java8, java17, java21) × 12 config combinations = 36 golden files
+- 164 total tests (128 unit/integration + 36 golden; 2 optional skipped)
 - Every test must verify idempotency: `format(format(x)) == format(x)`

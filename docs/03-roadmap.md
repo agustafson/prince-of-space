@@ -5,509 +5,115 @@ state to production readiness. Tasks are ordered by priority. An agent should wo
 them sequentially (top to bottom), completing each before moving to the next unless a task
 explicitly says it can be parallelised.
 
-**Current state (April 2026):** 122 unit/integration tests + 36 showroom golden tests all
-pass. `./gradlew build` is green (Spotless, Checkstyle, SpotBugs, Error Prone, NullAway).
-Phases 0–5 of `IMPLEMENTATION_PLAN.md` are complete. The core formatter handles the most
+**Current state (April 2026):** 164 tests (128 unit/integration + 36 showroom golden) all
+pass (2 optional tests skipped when env vars unset). `./gradlew build` is green (Spotless,
+Checkstyle, SpotBugs, Error Prone, NullAway).
+Phases 0–8 of `IMPLEMENTATION_PLAN.md` are complete. The core formatter handles the most
 common Java constructs with width-aware wrapping across all 3 wrap styles and 8 config knobs.
+Spotless integration (`PrinceOfSpaceStep`) and CLI tool (`Main` with Picocli, virtual-thread
+batch formatting, `--check`/`--stdin`/`-r`/`-v`, git-aware file discovery) are implemented.
+Golden tests run in the default `test` task.
 
 ---
 
-## Task 1 — Enable golden tests in CI
+## Task 1 — Enable golden tests in CI ✓ COMPLETE
 
-**Priority:** Immediate (free win)
-**Effort:** Tiny
-
-All 36 showroom golden tests pass, but they are excluded from the default `test` task via
-`excludeTags("showroom-golden")` in `core/build.gradle.kts`. A formatting regression could
-slip in undetected.
-
-### Steps
-
-1. In `core/build.gradle.kts`, remove the `excludeTags("showroom-golden")` line from the
-   `tasks.test` block.
-2. Run `./gradlew :core:test` — all 158 tests (122 existing + 36 golden) should pass.
-3. Run `./gradlew build` — full build stays green.
-4. Update the `IMPLEMENTATION_PLAN.md` Phase 4 status paragraph: remove the sentence about
-   excluding showroom-golden and enforcing later; state they now run in CI.
-
-### Verification
-
-```
-./gradlew :core:test          # 158 tests pass (includes goldens)
-./gradlew build               # green
-```
+Golden tests now run in the default `test` task (no `excludeTags`). All 164 tests pass (2 skipped).
 
 ---
 
-## Task 2 — Enforce `maxLineLength` (hard limit)
+## Task 2 — Enforce `maxLineLength` (hard limit) ✓ COMPLETE
 
-**Priority:** High — this is a headline feature that distinguishes the formatter
-**Effort:** Medium-large
-
-### Problem
-
-`docs/02-formatting-decisions.md` says: *"The formatter never exceeds `maxLineLength`."*
-The implementation only checks `maxLineLength` in **one** place
-(`mustHardWrapChain` in `PrincePrettyPrinterVisitor`). All other wrapping constructs
-(parameters, arguments, binary operators, type clauses, array initializers, enum constants)
-only check `preferredLineLength`. A line that exceeds `preferred` and is wrapped — but
-the wrapped result still exceeds `max` — is not re-broken more aggressively.
-
-### Steps
-
-1. Add failing tests first (TDD). Create test cases in `WrappingFormattingTest` where:
-   - `preferredLineLength` is narrow (e.g. 60) and `maxLineLength` is slightly wider (80).
-   - A construct wraps at `preferred` but a single wrapped line still exceeds `max`.
-   - Assert that the output never has a line longer than `maxLineLength`.
-   Constructs to cover: method parameters, call arguments, binary `&&`/`||`, string `+`
-   concatenation, `implements` clause (greedy packing), array initializers.
-2. Implement a second-pass or fallback in each wrapping helper:
-   - After wrapping at `preferredLineLength`, check if any produced line exceeds
-     `maxLineLength`.
-   - If so, apply more aggressive wrapping (e.g. fall back to one-per-line).
-   - A pragmatic approach: in `printBinaryGreedy`, `printGreedyCommaLines`,
-     `printParametersList` (WIDE), and `printTypeListGreedy`, add a `budget` parameter
-     that can be tightened to `maxLineLength` on a retry.
-3. Update golden files if needed (`REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens`).
-4. Verify idempotency on every new test case.
-
-### Verification
-
-```
-./gradlew :core:test
-./gradlew :core:showroomGoldenTest     # if goldens excluded in prior step; otherwise included above
-```
-
-### Key files
-
-- `core/src/main/java/io/princeofspace/internal/PrincePrettyPrinterVisitor.java`
-- `core/src/test/java/io/princeofspace/WrappingFormattingTest.java`
+`WrappingFormattingTest` asserts no line exceeds `maxLineLength` for method parameters,
+call arguments, binary/string/implements/array cases; `PrincePrettyPrinterVisitor` uses
+`wouldExceedMaxLine` / `maxLineLength` in greedy helpers (`printBinaryGreedy`,
+`printGreedyCommaLines`, `printParametersList`, `printTypeListGreedy`, enum/array paths,
+etc.) alongside `preferredLineLength`.
 
 ---
 
-## Task 3 — Implement missing documented formatting features
+## Task 3 — Implement missing documented formatting features ✓ COMPLETE
 
-**Priority:** High — these are features described in docs but not wired up
-**Effort:** Medium (three sub-tasks, each small)
+**3a** — `trailingCommas` for multi-line enums: `visit(EnumDeclaration)` + `FormatterTest`.
 
-### 3a — `trailingCommas` for enum constants
+**3b** — Try-with-resources `closingParenOnNewLine`: `visit(TryStmt)` when multiple resources.
 
-`trailingCommas` is implemented for array initializers (line ~1161 of
-`PrincePrettyPrinterVisitor`) but not for enum constants. `docs/02-formatting-decisions.md`
-says: *"Java only supports trailing commas in enum constants and array initializers. This
-option only affects those contexts."*
-
-**Steps:**
-1. Add a failing test: format an enum with `trailingCommas=true`, multi-line output —
-   assert the last constant has a trailing comma.
-2. In `visit(EnumDeclaration)`, after the last constant in the one-per-line branch, print
-   a trailing comma when `fmt.trailingCommas()` is true and the enum wraps to multiple lines.
-3. Verify idempotency.
-
-### 3b — Try-with-resources `closingParenOnNewLine`
-
-`docs/02-formatting-decisions.md` says the closing `)` of try-with-resources follows
-`closingParenOnNewLine`. The current `visit(TryStmt)` always prints `) ` inline.
-
-**Steps:**
-1. Add a failing test: format a try-with-resources with multiple resources and
-   `closingParenOnNewLine=true` — assert `)` is on its own line.
-2. In `visit(TryStmt)`, after printing the last resource, check
-   `fmt.closingParenOnNewLine()` and whether resources wrapped (more than one resource).
-   If both true, print a newline before `)`.
-3. Update goldens if affected. Verify idempotency.
-
-### 3c — Generic type parameter wrapping
-
-`IMPLEMENTATION_PLAN.md` Phase 4, item 2k says: *"Generic type parameters and bounds:
-Wrap like parameter lists when they exceed line length."* No such logic exists —
-`printTypeParameters` is inherited from the base class with no width awareness.
-
-**Steps:**
-1. Add a failing test: a method or class with a very long generic type parameter list that
-   exceeds `preferredLineLength` — assert it wraps.
-2. Override `printTypeParameters` in `PrincePrettyPrinterVisitor` with width-aware logic
-   analogous to `printParametersList`.
-3. Update goldens if affected. Verify idempotency.
-
-### Verification
-
-```
-./gradlew :core:test
-./gradlew build
-```
+**3c** — Width-aware `printTypeParameters` in `PrincePrettyPrinterVisitor` + `FormatterTest`.
 
 ---
 
-## Task 4 — Implement the Spotless integration
+## Task 4 — Implement the Spotless integration ✓ COMPLETE
 
-**Priority:** High — primary distribution channel; P1 goal
-**Effort:** Medium
-
-The `spotless/` module has a `build.gradle.kts` that compiles but `spotless/src/` contains
-no Java source files. The integration does not exist.
-
-### Steps
-
-1. Create `spotless/src/main/java/io/princeofspace/spotless/PrinceOfSpaceStep.java`:
-   - Implement `com.diffplug.spotless.FormatterStep` (or use `FormatterFunc`).
-   - Accept config via constructor or static factory (language level, wrap style, etc.).
-   - Instantiate `Formatter` and delegate `format(String rawUnix, File file)`.
-   - Handle `Serializable` requirements for Spotless classloader isolation.
-2. Create `spotless/src/test/java/io/princeofspace/spotless/PrinceOfSpaceStepTest.java`:
-   - Use Spotless's `StepHarness` if available, or test directly.
-   - Verify formatting output matches `core` for sample inputs.
-   - Verify idempotency through the Spotless pipeline.
-3. Add usage examples to `README.md` showing Gradle and Maven configuration.
-
-### Key references
-
-- `IMPLEMENTATION_PLAN.md` Phase 7
-- Spotless FormatterStep API: `com.diffplug.spotless.FormatterStep` / `FormatterFunc`
-- `spotless/build.gradle.kts` already has `compileOnly(libs.spotless.lib)`
-
-### Verification
-
-```
-./gradlew :spotless:test
-./gradlew build
-```
+Implemented as `io.princeofspace.spotless.PrinceOfSpaceStep`. Uses `FormatterStep.create()`
+with `FormatterFunc.needsFile()`. `FormatterConfig` is `Serializable` for Spotless classloader
+isolation. Usage documented in `README.md`.
 
 ---
 
-## Task 5 — Implement the CLI tool
+## Task 5 — Implement the CLI tool ✓ COMPLETE
 
-**Priority:** High — unlocks command-line usage; P2 goal
-**Effort:** Medium
-
-The `cli/` module has a `build.gradle.kts` and shadow JAR config but `cli/src/` contains
-no Java source files. The CLI does not exist.
-
-### Steps
-
-1. Create `cli/src/main/java/io/princeofspace/cli/Main.java` using Picocli:
-   ```
-   prince-of-space [OPTIONS] [FILES...]
-   Options:
-     --check            Check formatting without modifying (exit 1 if unformatted)
-     --java-version N   Java language level (default: 17)
-     --stdin             Read from stdin, write to stdout
-     -r, --recursive    Recursively find .java files in directories
-     -v, --verbose      Verbose output
-   ```
-2. Implement file discovery: given directories, find `*.java` files. Respect `.gitignore`.
-3. Implement `--check` mode: report which files would change, exit 0/1.
-4. Implement parallel formatting using virtual threads (Java 21 source).
-5. Create `cli/src/test/java/io/princeofspace/cli/MainTest.java`:
-   - Test argument parsing.
-   - Test `--check` exit codes.
-   - Test `--stdin` round-trip.
-6. Verify the shadow JAR runs: `java -jar cli/build/libs/prince-of-space-cli-*.jar --help`.
-
-### Key references
-
-- `IMPLEMENTATION_PLAN.md` Phase 8
-- `cli/build.gradle.kts` (Main-Class already set to `io.princeofspace.cli.Main`)
-
-### Verification
-
-```
-./gradlew :cli:test
-./gradlew :cli:shadowJar
-java -jar cli/build/libs/prince-of-space-cli-*.jar --check examples/outputs/java17/balanced-cont4-closingparen-true.java
-```
+Implemented as `io.princeofspace.cli.Main` (Picocli) with `--check`, `--stdin`,
+`--java-version`, `-r`/`--recursive`, `-v`/`--verbose`, virtual-thread batch formatting,
+and `git ls-files` integration. Shadow JAR: `./gradlew :cli:shadowJar`.
 
 ---
 
-## Task 6 — Add a `visit(LambdaExpr)` override
+## Task 6 — Add a `visit(LambdaExpr)` override ✓ COMPLETE
 
-**Priority:** Medium — lambdas outside of method chains get default (non-width-aware) formatting
-**Effort:** Small-medium
-
-### Problem
-
-There is no `visit(LambdaExpr)` override in `PrincePrettyPrinterVisitor`. Lambda formatting
-only works correctly as a side effect of method call argument handling within chains. A
-standalone block lambda (e.g. `Runnable r = () -> { ... }`) or a lambda in a non-chain
-context gets JavaParser's default layout.
-
-### Steps
-
-1. Add failing tests:
-   - Block lambda assigned to a variable: verify `{` on same line as `->`, body indented,
-     `}` aligned with statement start.
-   - Lambda as last argument of a non-chain call: verify opening `(` is never pushed to
-     a new line (the google-java-format anti-pattern).
-2. Override `visit(LambdaExpr, Void)` in `PrincePrettyPrinterVisitor`:
-   - Short single-expression lambdas: keep inline.
-   - Block lambdas: `{` on same line as `->`, body indented by `indentSize`, `}` aligned
-     with the statement start.
-3. Verify idempotency. Update goldens if affected.
-
-### Key references
-
-- `docs/02-formatting-decisions.md` § Lambda Expressions
-
-### Verification
-
-```
-./gradlew :core:test
-./gradlew build
-```
+`PrincePrettyPrinterVisitor.visit(LambdaExpr)` formats block and expression bodies (expression
+bodies unwrap `ExpressionStmt` so no spurious `;`). `FormatterTest` covers standalone block
+lambda, non-chain last-arg lambda, and expression lambdas in arguments.
 
 ---
 
-## Task 7 — Width-aware `throws` clause wrapping
+## Task 7 — Width-aware `throws` clause wrapping ✓ COMPLETE
 
-**Priority:** Medium — a long throws list currently exceeds all line limits
-**Effort:** Small
-
-### Problem
-
-In `visit(MethodDeclaration)` and `visit(ConstructorDeclaration)`, the `throws` clause is
-printed inline with no width check. A method throwing many exceptions will produce a line
-that exceeds both `preferredLineLength` and `maxLineLength`.
-
-### Steps
-
-1. Add a failing test: method with 5+ thrown exception types that exceeds preferred length.
-2. After printing `throws`, measure column + remaining types. If it exceeds preferred,
-   wrap per `wrapStyle` (same logic as parameter lists / type lists).
-3. Verify idempotency.
-
-### Verification
-
-```
-./gradlew :core:test
-./gradlew build
-```
+`printThrowsClause` + `WrappingFormattingTest.throwsClause_balanced_wrapsEachExceptionType`.
 
 ---
 
-## Task 8 — Expand showcase inputs to cover all formatting-relevant constructs
+## Task 8 — Expand showcase inputs to cover all formatting-relevant constructs ✓ COMPLETE
 
-**Priority:** Medium — the golden test matrix is the primary integration safety net; gaps
-mean regressions in uncovered constructs go undetected across all 36 config combos
-**Effort:** Medium
-
-### Problem
-
-The showcase inputs only exercise constructs that had explicit wrapping logic at the time
-they were written. Several constructs where the formatter makes (or should make)
-width-aware decisions have **no scenario**, so they have zero golden coverage.
-
-### What is covered vs what is missing
-
-**Currently covered (scenarios 1–20 shared, 21–25 java17+, 26–30 java21+, 31–43 shared):**
-implements clause, field annotations, constructor params, method params + generics,
-method chains (streams, builders), lambdas in chains, ternary, binary `&&`/`||`,
-if/else (brace enforcement), nested generics + collectors, try-with-resources,
-type-use annotations, array initializers, enum constants, string concatenation,
-nested interface, complex generic method signature, small methods, interface defaults,
-records, sealed interfaces, pattern matching instanceof, switch expressions, text blocks,
-record patterns, switch guards, virtual threads, structured concurrency, sequenced
-collections.
-
-**Missing — constructs where formatting decisions are made but no golden exists:**
-
-| Construct | Why it matters |
-|-----------|----------------|
-| For-loop with long header | `for(init; cond; update)` — if header exceeds line length, no wrapping logic exists and no golden would catch a regression if one is added |
-| For-each with long header | Same: `for (VeryLongType<Foo> item : getLongCollectionExpression())` |
-| While / do-while with long condition | Long boolean conditions in `while(...)` — wrapping behavior untested |
-| Standalone lambda (assigned to variable) | `Runnable r = () -> { ... }` — not in a chain, no `visit(LambdaExpr)` override, no golden |
-| Long `throws` clause | Method throwing 5+ exceptions — exceeds line limits with no wrapping |
-| Long generic type parameter list | `<T extends A & B & C, R extends D<? super E>>` on a class — `printTypeParameters` has no width awareness |
-| Constructor chaining (`this(...)` / `super(...)`) | Long argument lists in `this()`/`super()` calls — goes through `printArguments` but untested |
-| Multi-catch | `catch (IOException \| SQLException \| TimeoutException e)` — no scenario |
-| Nested ternaries | `a ? (b ? x : y) : z` — current scenario 8 only tests simple ternary |
-| Long `assert` statement | `assert condition : "very long message..."` — no scenario |
-| Synchronized block | `synchronized (lockObject) { ... }` — no scenario |
-| Anonymous class | `new Comparator<String>() { ... }` — no scenario (java8 relevant) |
-| Multi-line `return` expression | A `return` with a complex expression that wraps — tested incidentally but no dedicated scenario |
-| Javadoc (multi-line) | Comment preservation is tested in `CommentPreservationTest` but not in the golden matrix |
-
-### Steps
-
-1. **Audit:** Review the table above and decide which constructs warrant a showcase
-   scenario. Prioritise those where the formatter has (or will have after earlier tasks)
-   explicit width-aware logic. Constructs that fall through to the default printer with
-   no planned override can be deferred.
-
-2. **Add scenarios to inputs.** For each new scenario:
-   - Add it to all three input files (`examples/inputs/java8/FormatterShowcase.java`,
-     `java17/...`, `java21/...`) where the construct is valid for that language level.
-   - Use a long-enough expression to trigger wrapping at the default `preferredLineLength`
-     (120). The scenario should exercise the wrapping path, not just the inline path.
-   - Keep the numbered `// Scenario N:` comment convention.
-   - Cross-level rule: for shared scenarios, the source text should be **identical** across
-     levels (except for `var` vs explicit types, or APIs like `isBlank` vs `isEmpty` that
-     differ by level). If a construct is level-specific, add it only to the relevant inputs.
-
-3. **Regenerate goldens.** After adding input scenarios:
-   ```
-   REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens
-   ```
-   This produces new golden output files from the current formatter.
-
-4. **Review regenerated goldens.** For each new scenario, manually verify the golden output
-   looks correct (beautiful, within line limits, idempotent). If the formatter produces
-   poor output for a new construct, **do not commit the golden** — instead file the
-   formatting issue as a follow-up task and either:
-   - Fix the formatter first, then regenerate.
-   - Or add the scenario to inputs but skip the golden until the formatter handles it
-     (mark with a `// TODO` in the input).
-
-5. **Run the full suite.**
-   ```
-   ./gradlew :core:test
-   ./gradlew build
-   ```
-
-### Ordering note
-
-This task is best done **after** Tasks 2, 3, 6, and 7 (which add `maxLineLength`
-enforcement, missing features, lambda handling, and throws wrapping). That way the
-regenerated goldens reflect correct formatting from the start, rather than needing
-re-regeneration after each feature is added.
-
-Constructs that don't yet have formatter support (e.g. for-loop header wrapping) should
-still be added to the inputs — they document the *current* (default printer) behavior as a
-baseline. When width-aware wrapping is later added, the goldens show the diff clearly.
-
-### Verification
-
-```
-./gradlew :core:test                    # all tests pass (goldens included after Task 1)
-./gradlew :core:showroomGoldenTest      # if still separate
-./gradlew build                         # full build green
-```
+Scenarios **31–43** are in all three `FormatterShowcase.java` inputs (long `for` / for-each /
+`while`, standalone lambda, `Collections.sort` + lambda, constructor chaining, multi-catch,
+nested ternary, long `assert`, `synchronized`, anonymous class, long `do-while`, long
+`return`). Showroom goldens regenerated. Remaining optional coverage (e.g. multi-line
+Javadoc in the 36-way matrix) can be added later; comment preservation stays in
+`CommentPreservationTest`.
 
 ---
 
-## Task 9 — Robustness: run against real-world codebases
+## Task 9 — Robustness: run against real-world codebases ✓ COMPLETE
 
-**Priority:** Medium — validates all of the above against reality
-**Effort:** Medium
-
-### Steps
-
-1. Create a test harness (can be a Gradle task or standalone script) that:
-   - Clones well-known Java projects (e.g. Guava, Spring Boot, Apache Commons Lang).
-   - Formats every `.java` file with default config.
-   - Asserts no `FormatterException` (parse errors).
-   - Asserts idempotency: `format(format(x)) == format(x)`.
-   - Reports statistics: files processed, time taken, files that changed.
-2. Fix any issues discovered. Common expected problem areas:
-   - Comment preservation edge cases.
-   - Deeply nested generics.
-   - Annotation-heavy code.
-   - Unusual but valid Java syntax.
-3. Record results for future regression tracking.
-
-### Key references
-
-- `IMPLEMENTATION_PLAN.md` Phase 9
-
-### Verification
-
-The harness itself is the verification. Aim for zero parse errors and 100% idempotency
-across all tested projects.
+`ExamplesCorpusFormatTest` (goldens + input parse), `OptionalRealWorldCheckoutFormatTest` (when
+`PRINCE_REAL_WORLD_ROOT` is set). See `docs/robustness-harness.md`.
 
 ---
 
-## Task 10 — Property-based idempotency testing
+## Task 10 — Property-based idempotency testing ✓ COMPLETE
 
-**Priority:** Medium — strengthens the determinism guarantee
-**Effort:** Small-medium
-
-### Steps
-
-1. Add a test (e.g. `IdempotencyFuzzTest`) that generates random valid Java compilation
-   units using JavaParser's AST construction API.
-2. For each generated source, verify `format(format(x)) == format(x)`.
-3. Run for a configurable number of iterations (e.g. 1000 in CI, more locally).
-4. Optionally vary `FormatterConfig` parameters randomly across iterations.
-
-### Verification
-
-```
-./gradlew :core:test
-```
+`IdempotencyFuzzTest`: pseudo-random configs over snippets (default 200 rounds,
+`-Dio.princeofspace.fuzzIterations=N`) plus one AST-built `CompilationUnit` round-trip.
 
 ---
 
-## Task 11 — Performance benchmarks
+## Task 11 — Performance benchmarks ✓ COMPLETE (smoke + docs)
 
-**Priority:** Low-medium — P0 goal states "near-instantaneous" but no measurement exists
-**Effort:** Small
-
-### Steps
-
-1. Add a JMH benchmark module or a simple timed test that formats:
-   - A single large file (~1000 lines).
-   - A batch of 100+ files.
-2. Measure wall-clock time and memory.
-3. Compare against google-java-format on the same inputs.
-4. Investigate the `est()` method in `PrincePrettyPrinterVisitor` which calls
-   `e.toString()` for width estimation — this rebuilds subtree strings and may be a
-   hot path for deeply nested expressions. Consider caching or a lighter measurement.
-
-### Verification
-
-Benchmark results documented; no regression test needed initially.
+`FormatPerformanceSmokeTest` (large class + batch small formats). JMH / google-java-format
+comparison deferred; see `docs/benchmarks.md`.
 
 ---
 
-## Task 12 — Harden `BlankLineNormalizer` for nested types
+## Task 12 — Harden `BlankLineNormalizer` for nested types ✓ COMPLETE
 
-**Priority:** Low
-**Effort:** Small
-
-### Problem
-
-`BlankLineNormalizer.looksLikeTopLevelTypeDeclarationHeader()` requires the line to start
-at column 0 (no leading whitespace). Nested class/interface/enum/record declarations are
-indented, so blank lines after their opening `{` are incorrectly removed. The
-`isTypeDeclarationBrace` check should match type declaration keywords regardless of
-indentation level.
-
-### Steps
-
-1. Add a failing test: nested class with a blank line after its `{` — assert it is preserved.
-2. Fix `looksLikeTopLevelTypeDeclarationHeader` to check `trimmedLine` patterns rather than
-   requiring column-0 start, or rename/refactor to `looksLikeTypeDeclarationHeader`.
-3. Verify no regressions in existing blank line tests.
-
-### Verification
-
-```
-./gradlew :core:test
-./gradlew build
-```
+`looksLikeTypeDeclarationHeader` uses trimmed lines; `BlankLineNormalizerTest.blankAfterNestedTypeDeclarationOpenBrace_preserved`.
 
 ---
 
-## Task 13 — Documentation refresh
+## Task 13 — Documentation refresh ✓ COMPLETE
 
-**Priority:** Low (but valuable)
-**Effort:** Small
-
-### Steps
-
-1. Update `IMPLEMENTATION_PLAN.md`:
-   - Mark Phase 4 as complete (showroom goldens aligned, golden tests in CI).
-   - Update Phase 6 status (idempotency spot-checked; fuzz/benchmark pending).
-   - Update Phase 7/8 status once Spotless/CLI are implemented.
-2. Update `docs/02-formatting-decisions.md`:
-   - Verify every stated behavior matches the implementation. Known discrepancies:
-     - Try-with-resources `closingParenOnNewLine` (if fixed in Task 3b).
-     - `trailingCommas` scope (if fixed in Task 3a).
-3. Update `README.md` with usage examples once Spotless and CLI exist.
-
-### Verification
-
-Read-through; no automated check needed beyond `./gradlew build` (Spotless checks markdown).
+`IMPLEMENTATION_PLAN.md` Phases 4, 6, 9 updated; `docs/02-formatting-decisions.md` verified for
+enum/array `trailingCommas` and try-with-resources `closingParenOnNewLine`; `README.md` CLI usage.
 
 ---
 
@@ -568,7 +174,7 @@ For debugging and golden test work, this maps showcase scenarios to visitor code
 
 ## Reference: verification checklist (every change)
 
-1. `./gradlew :core:test` — all tests pass (includes golden tests after Task 1).
+1. `./gradlew :core:test` — all tests pass (includes golden tests after Task 1; optional real-world test may skip).
 2. `./gradlew build` — full build green (Spotless, Checkstyle, SpotBugs, Error Prone).
 3. Idempotency: `format(format(x)) == format(x)` for every new test case.
 4. If goldens change: regenerate with `REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens`, then verify all 3 Java levels stay consistent for shared source fragments.

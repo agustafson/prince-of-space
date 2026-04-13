@@ -126,11 +126,11 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 ---
 
-## Phase 4: Formatting Rules — Wrapping & Line Breaking (core + showroom goldens aligned)
+## Phase 4: Formatting Rules — Wrapping & Line Breaking ✓ COMPLETE
 
 **Goal:** Implement the line-breaking and wrapping logic, which is the most complex and critical part of the formatter.
 
-**Status:** `PrincePrettyPrinterVisitor` implements width-aware layout (preferred/max, wrap styles, continuation indent) for method chains, parameter/argument lists, binary/`+`/`&&`/`||`, ternaries, `implements`/`permits` clauses, `throws` lists, generic type parameters, array initializers, record headers, try-with-resources (including `closingParenOnNewLine` for the resource list), and enum trailing commas where documented. Greedy layouts enforce `maxLineLength` in addition to `preferredLineLength`. **Showroom:** `FormatterShowcaseGoldenTest` compares `Formatter.format` on `examples/inputs/.../FormatterShowcase.java` to `examples/outputs/<java8|java17|java21>/`; these tests are tagged `showroom-golden` and run in the default `./gradlew :core:test` (CI). The `:core:showroomGoldenTest` task still selects only those tests. After intentional formatter changes, refresh goldens with `REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens` (see `RegenerateShowroomGoldens`). Standalone lambda layout outside chains remains a targeted follow-up; see `docs/03-roadmap.md` Task 6.
+**Status:** `PrincePrettyPrinterVisitor` implements width-aware layout for method chains, parameter/argument lists, binary/`+`/`&&`/`||`, ternaries, `implements`/`permits` clauses, array initializers, record headers, try-with-resources (including `closingParenOnNewLine` for multiple resources), enum constants (including `trailingCommas` when multi-line), generic type parameters, `throws` clauses, and standalone `LambdaExpr` printing across all 3 wrap styles. `maxLineLength` is enforced beyond method chains in greedy helpers (see `WrappingFormattingTest`). **Showroom:** `FormatterShowcaseGoldenTest` compares formatted inputs to `examples/outputs/`; scenarios 31–43 cover additional control-flow and declaration forms. Refresh goldens with `REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens`.
 
 ### Tasks
 
@@ -235,11 +235,11 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 ---
 
-## Phase 6: Idempotency & Determinism
+## Phase 6: Idempotency & Determinism ✓ COMPLETE
 
 **Goal:** Guarantee that formatting is stable and repeatable.
 
-**Status:** Tests assert idempotency on formatted output where applicable; `IdempotencyFuzzTest` runs many rounds with pseudo-random `FormatterConfig` over fixed snippets. Broader AST-construction fuzzing and JMH-style benchmarks remain optional follow-ups (see roadmap).
+**Status:** Tests assert idempotency on formatted output where applicable; `IdempotencyFuzzTest` runs many rounds (default 200; override with `-Dio.princeofspace.fuzzIterations=N`) with pseudo-random `FormatterConfig` over fixed snippets and an AST-built compilation unit. **Throughput:** `FormatPerformanceSmokeTest` provides loose wall-clock guards; see `docs/benchmarks.md` for notes and future JMH work.
 
 ### Tasks
 
@@ -257,7 +257,7 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 ---
 
-## Phase 7: Spotless Integration
+## Phase 7: Spotless Integration ✓ COMPLETE
 
 **Goal:** Create a Spotless `FormatterStep` so users can integrate via Spotless's Maven/Gradle plugins.
 
@@ -292,7 +292,7 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 ---
 
-## Phase 8: CLI Tool
+## Phase 8: CLI Tool ✓ COMPLETE
 
 **Goal:** Standalone command-line tool for formatting files.
 
@@ -323,26 +323,19 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 ---
 
-## Phase 9: Testing Against Real-World Code
+## Phase 9: Testing Against Real-World Code ✓ INITIAL HARNESS COMPLETE
 
 **Goal:** Validate the formatter against large, real-world Java codebases.
 
-### Tasks
+**Status:** `ExamplesCorpusFormatTest` exercises every golden under `examples/outputs/**` for idempotency and every input under `examples/inputs/**` for a successful single format. `OptionalRealWorldCheckoutFormatTest` runs when `PRINCE_REAL_WORLD_ROOT` points at a checkout (see `docs/robustness-harness.md`). Full automated cloning of third-party repos is left to manual/CI jobs with network access.
 
-1. **Create a test harness** that:
-   - Clones a list of well-known Java projects (Spring Boot, Guava, Apache Commons, etc.)
-   - Formats every `.java` file
-   - Verifies no parse errors occur
-   - Verifies idempotency
-   - Reports statistics (files formatted, time taken, lines changed)
+### Tasks (ongoing when running optional checkout)
 
-2. **Fix any issues** discovered by real-world testing. This will likely surface edge cases in:
-   - Comment preservation
-   - Complex generic type expressions
-   - Annotation processing
-   - Unusual but valid Java syntax
+1. Format every `.java` file under a large tree; verify no parse errors and idempotency on golden-equivalent outputs.
 
-3. **Collect before/after samples** for documentation and marketing.
+2. Fix issues discovered (comment preservation, generics, annotations, unusual syntax).
+
+3. Collect before/after samples for documentation as needed.
 
 ---
 
