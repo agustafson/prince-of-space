@@ -284,7 +284,108 @@ that exceeds both `preferredLineLength` and `maxLineLength`.
 
 ---
 
-## Task 8 — Robustness: run against real-world codebases
+## Task 8 — Expand showcase inputs to cover all formatting-relevant constructs
+
+**Priority:** Medium — the golden test matrix is the primary integration safety net; gaps
+mean regressions in uncovered constructs go undetected across all 36 config combos
+**Effort:** Medium
+
+### Problem
+
+The showcase inputs only exercise constructs that had explicit wrapping logic at the time
+they were written. Several constructs where the formatter makes (or should make)
+width-aware decisions have **no scenario**, so they have zero golden coverage.
+
+### What is covered vs what is missing
+
+**Currently covered (scenarios 1–20 shared, 21–25 java17+, 26–30 java21+):**
+implements clause, field annotations, constructor params, method params + generics,
+method chains (streams, builders), lambdas in chains, ternary, binary `&&`/`||`,
+if/else (brace enforcement), nested generics + collectors, try-with-resources,
+type-use annotations, array initializers, enum constants, string concatenation,
+nested interface, complex generic method signature, small methods, interface defaults,
+records, sealed interfaces, pattern matching instanceof, switch expressions, text blocks,
+record patterns, switch guards, virtual threads, structured concurrency, sequenced
+collections.
+
+**Missing — constructs where formatting decisions are made but no golden exists:**
+
+| Construct | Why it matters |
+|-----------|----------------|
+| For-loop with long header | `for(init; cond; update)` — if header exceeds line length, no wrapping logic exists and no golden would catch a regression if one is added |
+| For-each with long header | Same: `for (VeryLongType<Foo> item : getLongCollectionExpression())` |
+| While / do-while with long condition | Long boolean conditions in `while(...)` — wrapping behavior untested |
+| Standalone lambda (assigned to variable) | `Runnable r = () -> { ... }` — not in a chain, no `visit(LambdaExpr)` override, no golden |
+| Long `throws` clause | Method throwing 5+ exceptions — exceeds line limits with no wrapping |
+| Long generic type parameter list | `<T extends A & B & C, R extends D<? super E>>` on a class — `printTypeParameters` has no width awareness |
+| Constructor chaining (`this(...)` / `super(...)`) | Long argument lists in `this()`/`super()` calls — goes through `printArguments` but untested |
+| Multi-catch | `catch (IOException \| SQLException \| TimeoutException e)` — no scenario |
+| Nested ternaries | `a ? (b ? x : y) : z` — current scenario 8 only tests simple ternary |
+| Long `assert` statement | `assert condition : "very long message..."` — no scenario |
+| Synchronized block | `synchronized (lockObject) { ... }` — no scenario |
+| Anonymous class | `new Comparator<String>() { ... }` — no scenario (java8 relevant) |
+| Multi-line `return` expression | A `return` with a complex expression that wraps — tested incidentally but no dedicated scenario |
+| Javadoc (multi-line) | Comment preservation is tested in `CommentPreservationTest` but not in the golden matrix |
+
+### Steps
+
+1. **Audit:** Review the table above and decide which constructs warrant a showcase
+   scenario. Prioritise those where the formatter has (or will have after earlier tasks)
+   explicit width-aware logic. Constructs that fall through to the default printer with
+   no planned override can be deferred.
+
+2. **Add scenarios to inputs.** For each new scenario:
+   - Add it to all three input files (`examples/inputs/java8/FormatterShowcase.java`,
+     `java17/...`, `java21/...`) where the construct is valid for that language level.
+   - Use a long-enough expression to trigger wrapping at the default `preferredLineLength`
+     (120). The scenario should exercise the wrapping path, not just the inline path.
+   - Keep the numbered `// Scenario N:` comment convention.
+   - Cross-level rule: for shared scenarios, the source text should be **identical** across
+     levels (except for `var` vs explicit types, or APIs like `isBlank` vs `isEmpty` that
+     differ by level). If a construct is level-specific, add it only to the relevant inputs.
+
+3. **Regenerate goldens.** After adding input scenarios:
+   ```
+   REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens
+   ```
+   This produces new golden output files from the current formatter.
+
+4. **Review regenerated goldens.** For each new scenario, manually verify the golden output
+   looks correct (beautiful, within line limits, idempotent). If the formatter produces
+   poor output for a new construct, **do not commit the golden** — instead file the
+   formatting issue as a follow-up task and either:
+   - Fix the formatter first, then regenerate.
+   - Or add the scenario to inputs but skip the golden until the formatter handles it
+     (mark with a `// TODO` in the input).
+
+5. **Run the full suite.**
+   ```
+   ./gradlew :core:test
+   ./gradlew build
+   ```
+
+### Ordering note
+
+This task is best done **after** Tasks 2, 3, 6, and 7 (which add `maxLineLength`
+enforcement, missing features, lambda handling, and throws wrapping). That way the
+regenerated goldens reflect correct formatting from the start, rather than needing
+re-regeneration after each feature is added.
+
+Constructs that don't yet have formatter support (e.g. for-loop header wrapping) should
+still be added to the inputs — they document the *current* (default printer) behavior as a
+baseline. When width-aware wrapping is later added, the goldens show the diff clearly.
+
+### Verification
+
+```
+./gradlew :core:test                    # all tests pass (goldens included after Task 1)
+./gradlew :core:showroomGoldenTest      # if still separate
+./gradlew build                         # full build green
+```
+
+---
+
+## Task 9 — Robustness: run against real-world codebases
 
 **Priority:** Medium — validates all of the above against reality
 **Effort:** Medium
@@ -315,7 +416,7 @@ across all tested projects.
 
 ---
 
-## Task 9 — Property-based idempotency testing
+## Task 10 — Property-based idempotency testing
 
 **Priority:** Medium — strengthens the determinism guarantee
 **Effort:** Small-medium
@@ -336,7 +437,7 @@ across all tested projects.
 
 ---
 
-## Task 10 — Performance benchmarks
+## Task 11 — Performance benchmarks
 
 **Priority:** Low-medium — P0 goal states "near-instantaneous" but no measurement exists
 **Effort:** Small
@@ -358,7 +459,7 @@ Benchmark results documented; no regression test needed initially.
 
 ---
 
-## Task 11 — Harden `BlankLineNormalizer` for nested types
+## Task 12 — Harden `BlankLineNormalizer` for nested types
 
 **Priority:** Low
 **Effort:** Small
@@ -387,7 +488,7 @@ indentation level.
 
 ---
 
-## Task 12 — Documentation refresh
+## Task 13 — Documentation refresh
 
 **Priority:** Low (but valuable)
 **Effort:** Small
