@@ -394,7 +394,8 @@ public class FormatterShowcase
     public void multiCatch() {
         try {
             copyFile(java.nio.file.Paths.get("a"), java.nio.file.Paths.get("b"));
-        } catch (java.io.IOException | java.lang.IllegalStateException | java.lang.IllegalArgumentException | java.lang.UnsupportedOperationException e) {
+        } catch (java.io.IOException | java.lang.IllegalStateException | java.lang.IllegalArgumentException
+                | java.lang.UnsupportedOperationException e) {
             logError("multi-catch", e);
         }
     }
@@ -406,7 +407,8 @@ public class FormatterShowcase
 
     // Scenario 39: Long assert message
     public void longAssert() {
-        assert legacyField != null && items != null && !items.isEmpty() : "legacyField and items must be populated before calling longAssert in production systems with strict validation rules enabled";
+        assert legacyField != null && items != null && !items.isEmpty() : 
+                "legacyField and items must be populated before calling longAssert in production systems with strict validation rules enabled";
     }
 
     // Scenario 40: Synchronized block
@@ -448,6 +450,23 @@ public class FormatterShowcase
                 .toUpperCase()
                 .concat("-")
                 .concat(legacyField != null ? legacyField : "x");
+    }
+
+    // Scenario 44: Lambda with long parameter list (hard maxLineLength)
+    public void longLambdaParameters() {
+        java.util.function.BiFunction<java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>>, java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>>, Integer> cmp = (
+                java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> left,
+                java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> right
+        ) -> left.getKey().compareTo(right.getKey());
+        cmp.apply(null, null);
+    }
+
+    // Scenario 45: Switch entry with many labels (hard maxLineLength)
+    public int switchManyLabels(String s) {
+        return switch (s) {
+            case "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa" -> 1;
+            default -> 0;
+        };
     }
 
     // Placeholder methods

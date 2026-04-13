@@ -17,7 +17,9 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -44,7 +46,7 @@ public final class Main implements Callable<Integer> {
 
     @CommandLine.Option(
             names = "--java-version",
-            description = "Java language level for parsing: 8, 11, 17, or 21",
+            description = "Java language level for parsing (1–25, stable levels only; no preview levels)",
             defaultValue = "17")
     private int javaVersion;
 
@@ -159,13 +161,36 @@ public final class Main implements Callable<Integer> {
 
     static LanguageLevel parseLanguageLevel(int v) {
         return switch (v) {
+            case 1 -> LanguageLevel.JAVA_1_0;
+            case 2 -> LanguageLevel.JAVA_1_1;
+            case 3 -> LanguageLevel.JAVA_1_2;
+            case 4 -> LanguageLevel.JAVA_1_4;
+            case 5 -> LanguageLevel.JAVA_5;
+            case 6 -> LanguageLevel.JAVA_6;
+            case 7 -> LanguageLevel.JAVA_7;
             case 8 -> LanguageLevel.JAVA_8;
+            case 9 -> LanguageLevel.JAVA_9;
+            case 10 -> LanguageLevel.JAVA_10;
             case 11 -> LanguageLevel.JAVA_11;
+            case 12 -> LanguageLevel.JAVA_12;
+            case 13 -> LanguageLevel.JAVA_13;
+            case 14 -> LanguageLevel.JAVA_14;
+            case 15 -> LanguageLevel.JAVA_15;
+            case 16 -> LanguageLevel.JAVA_16;
             case 17 -> LanguageLevel.JAVA_17;
+            case 18 -> LanguageLevel.JAVA_18;
+            case 19 -> LanguageLevel.JAVA_19;
+            case 20 -> LanguageLevel.JAVA_20;
             case 21 -> LanguageLevel.JAVA_21;
+            case 22 -> LanguageLevel.JAVA_22;
+            case 23 -> LanguageLevel.JAVA_23;
+            case 24 -> LanguageLevel.JAVA_24;
+            case 25 -> LanguageLevel.JAVA_25;
             default ->
                     throw new IllegalArgumentException(
-                            "Unsupported --java-version " + v + " (supported: 8, 11, 17, 21)");
+                            "Unsupported --java-version "
+                                    + v
+                                    + " (supported: 1–25, excluding preview-only levels)");
         };
     }
 
@@ -185,7 +210,10 @@ public final class Main implements Callable<Integer> {
             if (Files.isDirectory(abs)) {
                 Path gitRoot = findGitRoot(abs);
                 if (gitRoot != null) {
-                    out.addAll(gitTrackedJavaFiles(gitRoot, abs));
+                    Set<Path> merged = new LinkedHashSet<>();
+                    merged.addAll(gitListedJavaFiles(gitRoot, abs, false));
+                    merged.addAll(gitListedJavaFiles(gitRoot, abs, true));
+                    out.addAll(merged);
                 } else if (recursive) {
                     walkJavaFiles(abs, out);
                 } else {
@@ -201,11 +229,15 @@ public final class Main implements Callable<Integer> {
         return out;
     }
 
-    /** Walk parents of {@code start} to find a directory containing {@code .git}. */
+    /**
+     * Walk parents of {@code start} to find a directory containing {@code .git} (either a repository
+     * directory or a {@code gitdir:} pointer file as used by linked worktrees).
+     */
     static Path findGitRoot(Path start) {
-        Path p = start.toAbsolutePath();
+        Path p = start.toAbsolutePath().normalize();
         while (p != null) {
-            if (Files.isDirectory(p.resolve(".git"))) {
+            Path git = p.resolve(".git");
+            if (Files.exists(git)) {
                 return p;
             }
             p = p.getParent();
@@ -213,8 +245,21 @@ public final class Main implements Callable<Integer> {
         return null;
     }
 
-    private static List<Path> gitTrackedJavaFiles(Path repoRoot, Path scope) throws IOException {
-        ProcessBuilder pb = new ProcessBuilder("git", "ls-files", "-z");
+    /**
+     * Paths to {@code .java} files reported by {@code git ls-files} under {@code repoRoot}, limited to
+     * those under {@code scope}. When {@code others} is true, uses {@code --others --exclude-standard}
+     * so untracked (but not ignored) sources are included alongside the index.
+     */
+    private static List<Path> gitListedJavaFiles(Path repoRoot, Path scope, boolean others) throws IOException {
+        List<String> cmd = new ArrayList<>();
+        cmd.add("git");
+        cmd.add("ls-files");
+        cmd.add("-z");
+        if (others) {
+            cmd.add("--others");
+            cmd.add("--exclude-standard");
+        }
+        ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.directory(repoRoot.toFile());
         pb.redirectError(ProcessBuilder.Redirect.PIPE);
         Process p = pb.start();

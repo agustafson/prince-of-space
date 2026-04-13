@@ -13,6 +13,7 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -73,6 +74,49 @@ class MainTest {
     @Test
     void parseLanguageLevel_mapsVersions() {
         assertThat(Main.parseLanguageLevel(8)).isEqualTo(LanguageLevel.JAVA_8);
+        assertThat(Main.parseLanguageLevel(9)).isEqualTo(LanguageLevel.JAVA_9);
         assertThat(Main.parseLanguageLevel(21)).isEqualTo(LanguageLevel.JAVA_21);
+        assertThat(Main.parseLanguageLevel(25)).isEqualTo(LanguageLevel.JAVA_25);
+    }
+
+    @Test
+    void findGitRoot_detectsGitdirPointerFile(@TempDir Path dir) throws Exception {
+        Path repo = dir.resolve("repo");
+        Files.createDirectories(repo);
+        Files.writeString(repo.resolve(".git"), "gitdir: " + dir.resolve("real.git") + "\n");
+        assertThat(Main.findGitRoot(repo)).isEqualTo(repo);
+    }
+
+    @Test
+    void collectJavaFiles_includesUntrackedJavaUnderGitRoot(@TempDir Path dir) throws Exception {
+        Path repo = dir.resolve("repo");
+        Files.createDirectories(repo);
+        ProcessBuilder init = new ProcessBuilder("git", "init");
+        init.directory(repo.toFile());
+        assertThat(init.start().waitFor()).isZero();
+
+        Path tracked = repo.resolve("Tracked.java");
+        Path untracked = repo.resolve("Untracked.java");
+        Files.writeString(tracked, "class Tracked {}\n");
+        Files.writeString(untracked, "class Untracked {}\n");
+
+        ProcessBuilder add = new ProcessBuilder("git", "add", "Tracked.java");
+        add.directory(repo.toFile());
+        assertThat(add.start().waitFor()).isZero();
+        ProcessBuilder commit =
+                new ProcessBuilder(
+                        "git",
+                        "-c",
+                        "user.email=test@example.com",
+                        "-c",
+                        "user.name=Test",
+                        "commit",
+                        "-m",
+                        "init");
+        commit.directory(repo.toFile());
+        assertThat(commit.start().waitFor()).isZero();
+
+        List<Path> files = Main.collectJavaFiles(List.of(repo), false);
+        assertThat(files).containsExactlyInAnyOrder(tracked, untracked);
     }
 }

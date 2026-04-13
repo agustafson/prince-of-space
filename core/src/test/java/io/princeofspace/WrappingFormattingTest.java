@@ -1005,4 +1005,48 @@ class WrappingFormattingTest {
         assertNoLineLongerThan(out, max);
         assertThat(f.format(out)).isEqualTo(out);
     }
+
+    @Test
+    void maxLineLength_enforcedForMultiCatchUnionTypes() {
+        int max = 60;
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(50)
+                                .maxLineLength(max)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .build());
+        String input =
+                """
+                class T {
+                    void m() {
+                        try {
+                        } catch (java.io.IOException | java.lang.IllegalStateException | java.lang.IllegalArgumentException | java.lang.RuntimeException e) {
+                        }
+                    }
+                }
+                """;
+        String out = f.format(input);
+        assertNoLineLongerThan(out, max);
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void maxLineLength_enforcedForAssertMessageString() {
+        int max = 55;
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(40)
+                                .maxLineLength(max)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .build());
+        String longMsg = "x".repeat(120);
+        String input = "class T { void m(boolean a) { assert a : \"" + longMsg + "\"; } }";
+        String out = f.format(input);
+        assertNoLineLongerThan(out, max);
+        assertThat(f.format(out)).isEqualTo(out);
+    }
 }

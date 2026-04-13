@@ -105,7 +105,7 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
     }
 
     // Scenario 14: Array initializers
-    public static final String[] DEFAULT_COLUMNS = {"id", "name", "email", "created_at", "updated_at", "status", "role", "department"};
+    public static final String[] DEFAULT_COLUMNS = {"id", "name", "email", "created_at", "updated_at", "status", "role", "department", "very_long_column_name_created_timestamp_millis", "very_long_column_name_updated_timestamp_millis", "very_long_column_name_external_system_identifier"};
     public static final int[] SMALL_ARRAY = {1, 2, 3};
 
     // Scenario 15: Enum declarations
@@ -343,6 +343,35 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
     // Scenario 43: Long return expression
     public String longReturnExpression() {
         return items.stream().filter(item -> item != null && !item.isEmpty()).map(String::trim).sorted().findFirst().orElse("none").toUpperCase().concat("-").concat(legacyField != null ? legacyField : "x");
+    }
+
+    // Scenario 44: Lambda with long parameter list (hard maxLineLength)
+    public void longLambdaParameters() {
+        java.util.function.BiFunction<
+                        java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>>,
+                        java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>>,
+                        Integer>
+                cmp =
+                        (
+                                        java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> left,
+                                        java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> right) ->
+                                left.getKey().compareTo(right.getKey());
+        cmp.apply(null, null);
+    }
+
+    // Scenario 45: Switch entry with long guard (hard maxLineLength)
+    public String switchLongGuard(Object o) {
+        return switch (o) {
+            case String s
+                    when s.length() > 0
+                            && legacyField != null
+                            && !legacyField.isBlank()
+                            && items != null
+                            && !items.isEmpty()
+                            && s.contains(legacyField)
+                            && s.trim().toLowerCase().startsWith("prefix") -> "string-match";
+            default -> "other";
+        };
     }
 
     // Placeholder methods

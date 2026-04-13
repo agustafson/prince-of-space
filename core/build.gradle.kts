@@ -53,8 +53,23 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 tasks.test {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags("eval")
+    }
     finalizedBy(tasks.jacocoTestReport)
+}
+
+val evalTest by tasks.registering(Test::class) {
+    description = "Runs the real-world evaluation harness (requires PRINCE_EVAL_ROOTS to be set)."
+    group = "verification"
+    useJUnitPlatform {
+        includeTags("eval")
+    }
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    environment("PRINCE_EVAL_ROOTS", System.getenv("PRINCE_EVAL_ROOTS") ?: "")
+    environment("PRINCE_EVAL_REPORT_DIR", System.getenv("PRINCE_EVAL_REPORT_DIR") ?: "")
+    dependsOn(tasks.testClasses)
 }
 
 tasks.register<Test>("showroomGoldenTest") {

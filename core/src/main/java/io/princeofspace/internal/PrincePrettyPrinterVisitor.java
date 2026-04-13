@@ -15,8 +15,10 @@ import com.github.javaparser.ast.expr.ConditionalExpr;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.LambdaExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.expr.SwitchExpr;
 import com.github.javaparser.ast.expr.TextBlockLiteralExpr;
+import com.github.javaparser.ast.stmt.AssertStmt;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.CatchClause;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
@@ -26,8 +28,10 @@ import com.github.javaparser.ast.stmt.TryStmt;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.ReferenceType;
 import com.github.javaparser.ast.type.TypeParameter;
+import com.github.javaparser.ast.type.UnionType;
 import com.github.javaparser.printer.DefaultPrettyPrinterVisitor;
 import com.github.javaparser.printer.configuration.PrinterConfiguration;
+import com.github.javaparser.utils.StringEscapeUtils;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.WrapStyle;
@@ -1190,6 +1194,151 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
     }
 
+    private static int referenceTypesUnionFlatWidth(NodeList<ReferenceType> types) {
+        int w = 0;
+        boolean first = true;
+        for (ReferenceType t : types) {
+            if (!first) {
+                w += 3;
+            }
+            first = false;
+            w += t.toString().length();
+        }
+        return w;
+    }
+
+    private void printUnionTypeListGreedy(NodeList<ReferenceType> types, Void arg) {
+        int budget = fmt.preferredLineLength() - 2;
+        boolean first = true;
+        for (ReferenceType t : types) {
+            int need = t.toString().length() + (first ? 0 : 3);
+            if (!first && (column() + need > budget || wouldExceedMaxLine(need))) {
+                printer.println();
+                printCont();
+                printer.print("| ");
+            } else if (!first) {
+                printer.print(" | ");
+            }
+            t.accept(this, arg);
+            first = false;
+        }
+    }
+
+    @Override
+    public void visit(UnionType n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        printAnnotations(n.getAnnotations(), true, arg);
+        NodeList<ReferenceType> types = n.getElements();
+        if (isNullOrEmpty(types)) {
+            return;
+        }
+        int inline = column() + referenceTypesUnionFlatWidth(types);
+        if (inline <= fmt.preferredLineLength() && inline <= fmt.maxLineLength()) {
+            boolean first = true;
+            for (ReferenceType t : types) {
+                if (!first) {
+                    printer.print(" | ");
+                }
+                first = false;
+                t.accept(this, arg);
+            }
+            return;
+        }
+        if (fmt.wrapStyle() == WrapStyle.NARROW) {
+            printer.println();
+            printCont();
+            for (int i = 0; i < types.size(); i++) {
+                if (i > 0) {
+                    printer.println();
+                    printNarrowListIndent();
+                    printer.print("| ");
+                }
+                types.get(i).accept(this, arg);
+            }
+            return;
+        }
+        if (fmt.wrapStyle() == WrapStyle.WIDE) {
+            printUnionTypeListGreedy(types, arg);
+            return;
+        }
+        types.get(0).accept(this, arg);
+        for (int i = 1; i < types.size(); i++) {
+            printer.println();
+            printCont();
+            printer.print("| ");
+            types.get(i).accept(this, arg);
+        }
+    }
+
+    @Override
+    public void visit(AssertStmt n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        printer.print("assert ");
+        n.getCheck().accept(this, arg);
+        if (n.getMessage().isPresent()) {
+            Expression msg = n.getMessage().get();
+            printer.print(" : ");
+            printAssertMessageRespectingMaxLine(msg, arg);
+        }
+        printer.print(";");
+    }
+
+    private void printAssertMessageRespectingMaxLine(Expression msg, Void arg) {
+        if (column() + est(msg) > fmt.maxLineLength()) {
+            printer.println();
+            printCont();
+        }
+        if (msg instanceof StringLiteralExpr sl) {
+            if (column() + sl.toString().length() > fmt.maxLineLength()) {
+                printWrappedStringLiteralChunks(sl.getValue());
+                return;
+            }
+        }
+        msg.accept(this, arg);
+    }
+
+    /**
+     * Emits a chain of string literals joined by {@code +} so each physical line stays within
+     * {@link FormatterConfig#maxLineLength()} (assert message must remain a single expression).
+     */
+    private void printWrappedStringLiteralChunks(String raw) {
+        int i = 0;
+        while (i < raw.length()) {
+            if (i > 0) {
+                printer.println();
+                printCont();
+                printer.print("+ ");
+            }
+            int maxRoom = fmt.maxLineLength() - column() - 2;
+            if (maxRoom < 1) {
+                printer.println();
+                printCont();
+                maxRoom = fmt.maxLineLength() - column() - 2;
+            }
+            int grow = i;
+            while (grow < raw.length()) {
+                int cp = raw.codePointAt(grow);
+                int growNext = grow + Character.charCount(cp);
+                String trial = raw.substring(i, growNext);
+                int trialLen = StringEscapeUtils.escapeJava(trial).length() + 2;
+                if (trialLen > maxRoom) {
+                    break;
+                }
+                grow = growNext;
+            }
+            if (grow == i) {
+                grow = i + Character.charCount(raw.codePointAt(i));
+            }
+            String piece = raw.substring(i, grow);
+            printer.print("\"");
+            printer.print(StringEscapeUtils.escapeJava(piece));
+            printer.print("\"");
+            i = grow;
+        }
+    }
+
     @Override
     public void visit(EnumDeclaration n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -1378,10 +1527,17 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.print("(");
         }
         NodeList<Parameter> ps = n.getParameters();
-        for (int i = 0; i < ps.size(); i++) {
-            ps.get(i).accept(this, arg);
-            if (i < ps.size() - 1) {
-                printer.print(", ");
+        if (!isNullOrEmpty(ps) && paramsNeedWrap(ps)) {
+            printParametersList(ps, arg);
+            if (fmt.closingParenOnNewLine()) {
+                printer.println();
+            }
+        } else {
+            for (int i = 0; i < ps.size(); i++) {
+                ps.get(i).accept(this, arg);
+                if (i < ps.size() - 1) {
+                    printer.print(", ");
+                }
             }
         }
         if (n.isEnclosingParameters()) {
@@ -1422,16 +1578,21 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.print("default");
         } else {
             printer.print("case ");
-            for (Iterator<Expression> i = entry.getLabels().iterator(); i.hasNext(); ) {
-                i.next().accept(this, arg);
-                if (i.hasNext()) {
-                    printer.print(", ");
-                }
-            }
+            NodeList<Expression> labels = entry.getLabels();
+            // Wrap labels using the same comma-list logic as arguments (respects preferred/max and wrapStyle).
+            printCommaSeparatedExprs(labels, arg);
         }
         entry.getGuard().ifPresent(
                 guard -> {
-                    printer.print(" when ");
+                    int flat = column() + 6 + est(guard); // " when " + guard
+                    if (flat <= fmt.preferredLineLength() && flat <= fmt.maxLineLength()) {
+                        printer.print(" when ");
+                        guard.accept(this, arg);
+                        return;
+                    }
+                    printer.println();
+                    printCont();
+                    printer.print("when ");
                     guard.accept(this, arg);
                 });
         if (entry.getType() == SwitchEntry.Type.STATEMENT_GROUP) {
