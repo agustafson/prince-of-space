@@ -817,6 +817,12 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     private void printCommaSeparatedExprs(NodeList<? extends Expression> args, Void arg) {
+        if (args.size() == 1 && hasLeadingLineOrBlockComment(args.get(0))) {
+            printer.println();
+            printCont();
+            args.get(0).accept(this, arg);
+            return;
+        }
         if (!argsNeedWrap(args)) {
             for (Iterator<? extends Expression> i = args.iterator(); i.hasNext(); ) {
                 i.next().accept(this, arg);
@@ -1118,14 +1124,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printTypeParameters(n.getTypeParameters(), arg);
             boolean typeClauseWrapped = false;
             if (!n.getExtendedTypes().isEmpty()) {
-                printer.print(" extends ");
-                for (Iterator<ClassOrInterfaceType> i = n.getExtendedTypes().iterator(); i.hasNext(); ) {
-                    ClassOrInterfaceType c = i.next();
-                    c.accept(this, arg);
-                    if (i.hasNext()) {
-                        printer.print(", ");
-                    }
-                }
+                printer.print(" extends");
+                printInlineTypeClauseList(n.getExtendedTypes(), arg);
             }
             if (!n.getImplementedTypes().isEmpty()) {
                 typeClauseWrapped = printImplementsClause(n.getImplementedTypes(), arg);
@@ -1174,8 +1174,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         // Check if everything fits on the current line (include " {" trailing)
         int inlineWidth = header + 12 + implementsTypesWidth(types) + 2;
         if (inlineWidth <= fmt.preferredLineLength() && inlineWidth <= fmt.maxLineLength()) {
-            printer.print(" implements ");
-            printTypeListInline(types, arg);
+            printer.print(" implements");
+            printInlineTypeClauseList(types, arg);
             return false;
         }
         // Wrapping needed
@@ -1224,8 +1224,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (fmt.wrapStyle() != WrapStyle.NARROW
                 && permitsInline <= fmt.preferredLineLength()
                 && permitsInline <= fmt.maxLineLength()) {
-            printer.print(" permits ");
-            printTypeListInline(types, arg);
+            printer.print(" permits");
+            printInlineTypeClauseList(types, arg);
             return false;
         }
         if (fmt.wrapStyle() == WrapStyle.WIDE) {
@@ -1276,6 +1276,17 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 printer.print(", ");
             }
         }
+    }
+
+    private void printInlineTypeClauseList(NodeList<ClassOrInterfaceType> types, Void arg) {
+        if (types.size() == 1 && hasLeadingLineOrBlockComment(types.get(0))) {
+            printer.println();
+            printCont();
+            types.get(0).accept(this, arg);
+            return;
+        }
+        printer.print(" ");
+        printTypeListInline(types, arg);
     }
 
     private static int referenceTypesFlatWidth(NodeList<ReferenceType> types) {

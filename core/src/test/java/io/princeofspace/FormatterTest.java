@@ -708,4 +708,64 @@ class FormatterTest {
         assertThat(f.format(once)).isEqualTo(once);
         assertThat(once).doesNotContain("= //");
     }
+
+    @Test
+    void idempotency_lineCommentBeforeSingleLambdaArgument_breaksAfterOpeningParen() {
+        Formatter f = new Formatter(
+                FormatterConfig.builder()
+                        .preferredLineLength(80)
+                        .maxLineLength(100)
+                        .wrapStyle(WrapStyle.WIDE)
+                        .build());
+        String input = """
+                class T {
+                    void m(Client client) {
+                        client.accept("json")
+                                .cookies(
+                                        // keep comment with lambda argument
+                                        cookies -> cookies.add("id", "123"))
+                                .done();
+                    }
+
+                    interface Client {
+                        Client accept(String value);
+
+                        Client cookies(java.util.function.Consumer<Cookies> consumer);
+
+                        Client done();
+                    }
+
+                    interface Cookies {
+                        void add(String name, String value);
+                    }
+                }
+                """;
+        String once = f.format(input);
+        assertThat(f.format(once)).isEqualTo(once);
+        assertThat(once).doesNotContain(".cookies(// keep");
+    }
+
+    @Test
+    void idempotency_lineCommentBeforeSingleExtendedType_breaksAfterExtendsKeyword() {
+        Formatter f = new Formatter(
+                FormatterConfig.builder()
+                        .preferredLineLength(80)
+                        .maxLineLength(100)
+                        .wrapStyle(WrapStyle.WIDE)
+                        .build());
+        String input = """
+                class T {
+                    interface MsgOrBuilder extends
+                            // generated marker
+                            Base {
+                    }
+
+                    interface Base {
+                    }
+                }
+                """;
+        String once = f.format(input);
+        assertThat(f.format(once)).isEqualTo(once);
+        assertThat(once).doesNotContain("extends // generated marker");
+    }
 }
