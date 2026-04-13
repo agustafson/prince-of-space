@@ -53,10 +53,7 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 tasks.test {
-    useJUnitPlatform {
-        // Showroom goldens under examples/outputs/ are hand-maintained; see FormatterShowcaseGoldenTest.
-        excludeTags("showroom-golden")
-    }
+    useJUnitPlatform()
     finalizedBy(tasks.jacocoTestReport)
 }
 
