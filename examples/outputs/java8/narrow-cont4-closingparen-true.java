@@ -172,7 +172,8 @@ public class FormatterShowcase
     public void copyFile(Path source, Path destination) throws IOException {
         try (FileInputStream input = new FileInputStream(source.toFile());
              FileOutputStream output = new FileOutputStream(destination.toFile());
-             BufferedInputStream buffered = new BufferedInputStream(input)) {
+             BufferedInputStream buffered = new BufferedInputStream(input)
+        ) {
             byte[] buffer = new byte[8192];
             int bytesRead;
             while ((bytesRead = buffered.read(buffer)) != -1) {

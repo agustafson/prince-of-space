@@ -172,7 +172,8 @@ public class FormatterShowcase
     public void copyFile(Path source, Path destination) throws IOException {
         try (var input = new FileInputStream(source.toFile());
              var output = new FileOutputStream(destination.toFile());
-             var buffered = new BufferedInputStream(input)) {
+             var buffered = new BufferedInputStream(input)
+        ) {
             buffered.transferTo(output);
         }
     }

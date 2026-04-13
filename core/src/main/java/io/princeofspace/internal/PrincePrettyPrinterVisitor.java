@@ -24,6 +24,7 @@ import com.github.javaparser.ast.stmt.SwitchEntry;
 import com.github.javaparser.ast.stmt.TryStmt;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.ReferenceType;
+import com.github.javaparser.ast.type.TypeParameter;
 import com.github.javaparser.printer.DefaultPrettyPrinterVisitor;
 import com.github.javaparser.printer.configuration.PrinterConfiguration;
 import io.princeofspace.model.FormatterConfig;
@@ -116,6 +117,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             }
             if (n.getResources().size() > 1) {
                 printer.unindent();
+            }
+            if (fmt.closingParenOnNewLine() && n.getResources().size() > 1) {
+                printer.println();
             }
             printer.print(") ");
         }
@@ -249,6 +253,81 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             w += p.toString().length();
         }
         return w;
+    }
+
+    private static int typeParametersFlatWidth(NodeList<TypeParameter> ps) {
+        int w = 0;
+        boolean first = true;
+        for (TypeParameter p : ps) {
+            if (!first) {
+                w += 2;
+            }
+            first = false;
+            w += p.toString().length();
+        }
+        return w;
+    }
+
+    private boolean typeParametersNeedWrap(NodeList<TypeParameter> ps) {
+        if (isNullOrEmpty(ps)) {
+            return false;
+        }
+        int width = column() + 1 + typeParametersFlatWidth(ps) + 1;
+        return width > fmt.preferredLineLength() || width > fmt.maxLineLength();
+    }
+
+    @Override
+    protected void printTypeParameters(NodeList<TypeParameter> typeParameters, Void arg) {
+        if (isNullOrEmpty(typeParameters)) {
+            return;
+        }
+        if (!typeParametersNeedWrap(typeParameters)) {
+            printer.print("<");
+            for (Iterator<TypeParameter> i = typeParameters.iterator(); i.hasNext(); ) {
+                i.next().accept(this, arg);
+                if (i.hasNext()) {
+                    printer.print(", ");
+                }
+            }
+            printer.print(">");
+            return;
+        }
+        printer.print("<");
+        if (fmt.wrapStyle() == WrapStyle.WIDE) {
+            int n = typeParameters.size();
+            boolean first = true;
+            for (int idx = 0; idx < n; idx++) {
+                TypeParameter p = typeParameters.get(idx);
+                int need = p.toString().length() + (first ? 0 : 2);
+                boolean isLast = idx == n - 1;
+                int lineBudget = fmt.preferredLineLength();
+                if (isLast) {
+                    lineBudget += 1;
+                }
+                if (first && column() + need > lineBudget) {
+                    printer.println();
+                    printCont();
+                } else if (!first && (column() + need > lineBudget || wouldExceedMaxLine(need))) {
+                    printer.print(",");
+                    printer.println();
+                    printCont();
+                } else if (!first) {
+                    printer.print(", ");
+                }
+                p.accept(this, arg);
+                first = false;
+            }
+        } else {
+            for (Iterator<TypeParameter> i = typeParameters.iterator(); i.hasNext(); ) {
+                printer.println();
+                printCont();
+                i.next().accept(this, arg);
+                if (i.hasNext()) {
+                    printer.print(",");
+                }
+            }
+        }
+        printer.print(">");
     }
 
     private NodeList<AnnotationExpr> declarationAnnotations(MethodDeclaration n) {
@@ -1101,12 +1180,17 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                     e.accept(this, arg);
                     first = false;
                 }
+                if (fmt.trailingCommas() && !n.getEntries().isEmpty()) {
+                    printer.print(",");
+                }
             } else {
                 // One per line
                 for (Iterator<EnumConstantDeclaration> i = n.getEntries().iterator(); i.hasNext(); ) {
                     i.next().accept(this, arg);
                     if (i.hasNext()) {
                         printer.println(",");
+                    } else if (fmt.trailingCommas()) {
+                        printer.print(",");
                     }
                 }
             }

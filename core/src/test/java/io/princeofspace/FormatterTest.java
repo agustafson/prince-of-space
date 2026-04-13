@@ -3,6 +3,7 @@ package io.princeofspace;
 import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.IndentStyle;
+import io.princeofspace.model.WrapStyle;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -368,6 +369,69 @@ class FormatterTest {
         String output = f.format("class T { void m() { int x = 1; } }");
         assertThat(output).contains("\tvoid m()");
         assertThat(output).contains("\t\tint x = 1;");
+    }
+
+    @Test
+    void enum_trailingCommas_addsCommaAfterLastConstantWhenMultiline() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .trailingCommas(true)
+                                .preferredLineLength(40)
+                                .maxLineLength(120)
+                                .build());
+        String input =
+                """
+                enum Letters {
+                    ALPHACONSTANTVERYLONGNAME,
+                    BETACONSTANTVERYLONGNAME,
+                    GAMMACONSTANTVERYLONGNAME
+                }
+                """;
+        String out = f.format(input);
+        assertThat(out).contains("GAMMACONSTANTVERYLONGNAME,");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void tryWithResources_closingParenOnNewLine_movesClosingParenToOwnLineWithMultipleResources() {
+        Formatter f = new Formatter(FormatterConfig.builder().closingParenOnNewLine(true).build());
+        String input =
+                """
+                class T {
+                    void m() throws Exception {
+                        try (java.io.InputStream in = null; java.io.OutputStream out = null) {
+                        }
+                    }
+                }
+                """;
+        String out = f.format(input);
+        assertThat(out).contains("java.io.OutputStream out = null\n");
+        assertThat(out).contains("\n        ) {");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void typeParameters_wrapWhenExceedingPreferredWidth() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(55)
+                                .maxLineLength(120)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .build());
+        String input =
+                """
+                class Demo {
+                    <AlphaTypeParameter, BetaTypeParameter, GammaTypeParameter, DeltaTypeParameter>
+                    void m() {}
+                }
+                """;
+        String out = f.format(input);
+        assertThat(out).contains("<AlphaTypeParameter,");
+        assertThat(out).contains("\n    ");
+        assertThat(f.format(out)).isEqualTo(out);
     }
 
     // ── error handling ────────────────────────────────────────────────────────
