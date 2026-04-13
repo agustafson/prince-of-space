@@ -380,6 +380,15 @@ class FormatterTest {
     }
 
     @Test
+    void invalidJava_formatResult_returnsParseFailureWithProblemMessages() {
+        FormatResult r = DEFAULT.formatResult("this is not java {{ {");
+        assertThat(r).isInstanceOf(FormatResult.ParseFailure.class);
+        FormatResult.ParseFailure pf = (FormatResult.ParseFailure) r;
+        assertThat(pf.problemMessages()).isNotEmpty();
+        assertThat(pf.message()).contains("Parse failed");
+    }
+
+    @Test
     void formatWithPath_parseError_includesPathInMessage() {
         java.nio.file.Path path = java.nio.file.Path.of("src/Foo.java");
         assertThatThrownBy(() -> DEFAULT.format("not java", path))

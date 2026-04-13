@@ -16,6 +16,8 @@ import static java.util.Objects.requireNonNull;
  * Formatter formatter = new Formatter(FormatterConfig.defaults());
  * String formatted = formatter.format(sourceCode);
  * }</pre>
+ *
+ * <p>For a non-throwing API, use {@link #formatResult(String)} and pattern-match on {@link FormatResult}.
  */
 public final class Formatter {
 
@@ -29,29 +31,44 @@ public final class Formatter {
     }
 
     /**
-     * Formats the given Java source code.
+     * Attempts to format the given Java source without throwing. Failures are {@link FormatResult.Failure}
+     * variants with structured detail (e.g. {@link FormatResult.ParseFailure}).
      *
      * @param sourceCode the Java source to format
-     * @return formatted source code
-     * @throws FormatterException if the source cannot be parsed
+     * @return success with formatted text, or a typed failure
      */
-    public String format(String sourceCode) {
+    public FormatResult formatResult(String sourceCode) {
         return engine.format(sourceCode);
     }
 
     /**
-     * Formats the given Java source code, attaching {@code filePath} to any error messages.
+     * Formats the given Java source code.
+     *
+     * @param sourceCode the Java source to format
+     * @return formatted source code
+     * @throws FormatterException if the source cannot be parsed or the pipeline cannot produce output
+     */
+    public String format(String sourceCode) {
+        FormatResult result = engine.format(sourceCode);
+        if (result instanceof FormatResult.Success success) {
+            return success.formattedSource();
+        }
+        throw new FormatterException(((FormatResult.Failure) result).message());
+    }
+
+    /**
+     * Formats the given Java source code, prefixing failure messages with {@code filePath}.
      *
      * @param sourceCode the Java source to format
      * @param filePath path to the file, used only for diagnostics
      * @return formatted source code
-     * @throws FormatterException if the source cannot be parsed
+     * @throws FormatterException if the source cannot be parsed or the pipeline cannot produce output
      */
     public String format(String sourceCode, Path filePath) {
-        try {
-            return engine.format(sourceCode);
-        } catch (FormatterException e) {
-            throw new FormatterException(filePath + ": " + e.getMessage(), e);
+        FormatResult result = engine.format(sourceCode);
+        if (result instanceof FormatResult.Success success) {
+            return success.formattedSource();
         }
+        throw new FormatterException(filePath + ": " + ((FormatResult.Failure) result).message());
     }
 }

@@ -6,10 +6,10 @@ import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.Problem;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
-import io.princeofspace.FormatterException;
+import io.princeofspace.FormatResult;
 import io.princeofspace.model.FormatterConfig;
 
-import java.util.stream.Collectors;
+import java.util.List;
 
 /**
  * JavaParser-aware implementation of the format pipeline.
@@ -34,36 +34,33 @@ public final class FormattingEngine {
     }
 
     /**
+     * Parses and formats the given source, or returns a typed failure without throwing.
+     *
      * @param sourceCode Java source text to format
-     * @return formatted source (may differ only in whitespace and inserted braces)
+     * @return {@link FormatResult.Success} with formatted source, or a {@link FormatResult.Failure}
      */
-    public String format(String sourceCode) {
-        CompilationUnit cu = parse(sourceCode);
-        transform(cu);
-        return print(cu);
-    }
-
-    private CompilationUnit parse(String sourceCode) {
+    public FormatResult format(String sourceCode) {
         ParserConfiguration parserConfig = new ParserConfiguration()
                 .setLanguageLevel(config.javaLanguageLevel());
         ParseResult<CompilationUnit> result = new JavaParser(parserConfig).parse(sourceCode);
         if (!result.isSuccessful()) {
-            String problems = result.getProblems().stream()
-                    .map(Problem::toString)
-                    .collect(Collectors.joining("\n"));
-            throw new FormatterException("Parse failed:\n" + problems);
+            List<String> problems = result.getProblems().stream().map(Problem::toString).toList();
+            return new FormatResult.ParseFailure(problems);
         }
-        CompilationUnit cu =
-                result.getResult().orElseThrow(() -> new FormatterException("Parser returned no result"));
-        return LexicalPreservingPrinter.setup(cu);
+        return result
+            .getResult()
+            .map(LexicalPreservingPrinter::setup)
+            .map(this::printAfterTransform)
+            .orElseGet(FormatResult.EmptyCompilationUnit::new);
+    }
+
+    private FormatResult printAfterTransform(CompilationUnit cu) {
+        transform(cu);
+        return new FormatResult.Success(new PrettyPrinter(config).print(cu));
     }
 
     private void transform(CompilationUnit cu) {
         new BraceEnforcer().visit(cu, null);
         new AnnotationArranger().visit(cu, null);
-    }
-
-    private String print(CompilationUnit cu) {
-        return new PrettyPrinter(config).print(cu);
     }
 }
