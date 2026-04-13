@@ -602,4 +602,24 @@ class FormatterTest {
         String once = DEFAULT.format(input);
         assertThat(DEFAULT.format(once)).isEqualTo(once);
     }
+
+    @Test
+    void idempotency_commentBetweenStatements_doesNotGainExtraBlankLine() {
+        String input = """
+                class T {
+                    void m() {
+                        a();
+                        // keep this comment attached to next statement
+                        b();
+                    }
+
+                    void a() {}
+
+                    void b() {}
+                }
+                """;
+        String once = DEFAULT.format(input);
+        String twice = DEFAULT.format(once);
+        assertThat(twice).isEqualTo(once);
+    }
 }

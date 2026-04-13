@@ -9,6 +9,7 @@ import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
+import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.BinaryExpr;
 import com.github.javaparser.ast.expr.ConditionalExpr;
@@ -86,7 +87,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 if (prev != null && prev.getRange().isPresent() && s.getRange().isPresent()) {
                     int prevEnd = prev.getRange().get().end.line;
                     int curStart = s.getRange().get().begin.line;
-                    if (curStart > prevEnd + 1) {
+                    boolean hasInterveningComment = hasCommentBetweenLines(n, prevEnd, curStart);
+                    if (curStart > prevEnd + 1 && !hasInterveningComment) {
                         printer.println();
                     }
                 }
@@ -98,6 +100,19 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printOrphanCommentsEnding(n);
         printer.unindent();
         printer.print("}");
+    }
+
+    private static boolean hasCommentBetweenLines(BlockStmt block, int startLineExclusive, int endLineExclusive) {
+        for (Comment comment : block.getAllContainedComments()) {
+            if (comment.getRange().isEmpty()) {
+                continue;
+            }
+            int line = comment.getRange().get().begin.line;
+            if (line > startLineExclusive && line < endLineExclusive) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
