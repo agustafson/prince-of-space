@@ -27,6 +27,7 @@ import com.github.javaparser.ast.stmt.SwitchEntry;
 import com.github.javaparser.ast.stmt.TryStmt;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.ReferenceType;
+import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.ast.type.TypeParameter;
 import com.github.javaparser.ast.type.UnionType;
 import com.github.javaparser.printer.DefaultPrettyPrinterVisitor;
@@ -324,6 +325,87 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             }
         } else {
             for (Iterator<TypeParameter> i = typeParameters.iterator(); i.hasNext(); ) {
+                printer.println();
+                printCont();
+                i.next().accept(this, arg);
+                if (i.hasNext()) {
+                    printer.print(",");
+                }
+            }
+        }
+        printer.print(">");
+    }
+
+    private static int typeArgumentsFlatWidth(NodeList<Type> args) {
+        int w = 0;
+        boolean first = true;
+        for (Type t : args) {
+            if (!first) {
+                w += 2;
+            }
+            first = false;
+            w += t.toString().length();
+        }
+        return w;
+    }
+
+    private boolean typeArgumentsNeedWrap(NodeList<Type> args) {
+        if (isNullOrEmpty(args)) {
+            return false;
+        }
+        int width = column() + 1 + typeArgumentsFlatWidth(args) + 1;
+        return width > fmt.preferredLineLength() || width > fmt.maxLineLength();
+    }
+
+    @Override
+    public void visit(ClassOrInterfaceType n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        if (n.getScope().isPresent()) {
+            n.getScope().get().accept(this, arg);
+            printer.print(".");
+        }
+        printAnnotations(n.getAnnotations(), false, arg);
+        n.getName().accept(this, arg);
+        if (n.isUsingDiamondOperator()) {
+            printer.print("<>");
+            return;
+        }
+        NodeList<Type> args = n.getTypeArguments().orElse(null);
+        if (isNullOrEmpty(args)) {
+            return;
+        }
+        if (!typeArgumentsNeedWrap(args)) {
+            printer.print("<");
+            for (Iterator<Type> i = args.iterator(); i.hasNext(); ) {
+                i.next().accept(this, arg);
+                if (i.hasNext()) {
+                    printer.print(", ");
+                }
+            }
+            printer.print(">");
+            return;
+        }
+        printer.print("<");
+        if (fmt.wrapStyle() == WrapStyle.WIDE) {
+            boolean first = true;
+            for (Type t : args) {
+                int need = t.toString().length() + (first ? 0 : 2);
+                if (first && (column() + need > fmt.preferredLineLength() || wouldExceedMaxLine(need))) {
+                    printer.println();
+                    printCont();
+                } else if (!first && (column() + need > fmt.preferredLineLength() || wouldExceedMaxLine(need))) {
+                    printer.print(",");
+                    printer.println();
+                    printCont();
+                } else if (!first) {
+                    printer.print(", ");
+                }
+                t.accept(this, arg);
+                first = false;
+            }
+        } else {
+            for (Iterator<Type> i = args.iterator(); i.hasNext(); ) {
                 printer.println();
                 printCont();
                 i.next().accept(this, arg);

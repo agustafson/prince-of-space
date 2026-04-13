@@ -1049,4 +1049,26 @@ class WrappingFormattingTest {
         assertNoLineLongerThan(out, max);
         assertThat(f.format(out)).isEqualTo(out);
     }
+
+    @Test
+    void maxLineLength_enforcedForLongGenericTypeUse() {
+        int max = 70;
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(60)
+                                .maxLineLength(max)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .build());
+        String input =
+                """
+                class T {
+                    java.util.function.BiFunction<java.util.Map.Entry<String, java.util.List<String>>, java.util.Map.Entry<String, java.util.List<String>>, Integer> cmp = (left, right) -> 0;
+                }
+                """;
+        String out = f.format(input);
+        assertNoLineLongerThan(out, max);
+        assertThat(f.format(out)).isEqualTo(out);
+    }
 }

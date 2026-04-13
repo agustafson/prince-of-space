@@ -9,6 +9,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -289,7 +290,7 @@ class RealWorldEvalTest {
                     .redirectErrorStream(true)
                     .start();
             try (InputStream is = proc.getInputStream()) {
-                String output = new String(is.readAllBytes()).strip();
+                String output = new String(is.readAllBytes(), StandardCharsets.UTF_8).strip();
                 int exit = proc.waitFor();
                 return exit == 0 && !output.isEmpty() ? output : "unknown";
             }

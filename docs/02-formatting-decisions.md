@@ -26,7 +26,7 @@ With **`spaces`**, `indentSize` is how many space characters make up one indent 
 Rather than a single hard limit, we use a two-threshold approach:
 
 - **`preferredLineLength`** (soft limit): The formatter *tries* to keep lines at or below this length. This is where wrapping decisions are first triggered.
-- **`maxLineLength`** (hard limit): The formatter *never* exceeds this length. Lines between preferred and max are allowed when wrapping at the preferred length would produce ugly results (e.g., a single-token continuation line, or breaking an expression that's only slightly over).
+- **`maxLineLength`** (hard limit): The formatter does not exceed this length for code layout decisions (method/constructor signatures, chains, operators, type clauses, switch labels/guards, lambda params, generic type arguments, etc.). Lines between preferred and max are allowed when wrapping at the preferred length would produce ugly results (e.g., a single-token continuation line, or breaking an expression that's only slightly over). Comment and text-block content are preserved verbatim.
 
 This is similar to how Prettier treats `printWidth` as a guide rather than a hard wall, and how rustfmt has per-construct widths alongside `max_width`.
 

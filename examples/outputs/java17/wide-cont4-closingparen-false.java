@@ -173,7 +173,8 @@ public class FormatterShowcase
 
     // Scenario 14: Array initializers
     public static final String[] DEFAULT_COLUMNS = {"id", "name", "email", "created_at", "updated_at", "status",
-        "role", "department"};
+        "role", "department", "very_long_column_name_created_timestamp_millis",
+        "very_long_column_name_updated_timestamp_millis", "very_long_column_name_external_system_identifier"};
     public static final int[] SMALL_ARRAY = {1, 2, 3};
 
     // Scenario 15: Enum declarations
@@ -445,7 +446,8 @@ public class FormatterShowcase
 
     // Scenario 44: Lambda with long parameter list (hard maxLineLength)
     public void longLambdaParameters() {
-        java.util.function.BiFunction<java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>>, java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>>, Integer> cmp = (
+        java.util.function.BiFunction<java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>>,
+            java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>>, Integer> cmp = (
             java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> left,
             java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> right) -> left
             .getKey()

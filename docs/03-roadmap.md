@@ -32,22 +32,10 @@ etc.) alongside `preferredLineLength`.
 
 ### Coverage note
 
-The hard limit is enforced for the core wrapping primitives and for previously-missed constructs
-that now have explicit handling (multi-catch union types and long `assert` messages). The remaining
-surface area must still be audited whenever new visitor overrides are added (notably: switch entry
-labels/guards and lambda parameter lists).
-
-## Task 2a — Enforce `maxLineLength` for switch entry labels/guards and lambda parameters
-
-**Priority:** High — closes remaining “hard cap” gaps in visitor overrides.
-
-### Acceptance criteria
-
-- Switch entries with many labels wrap without exceeding `maxLineLength`.
-- Switch entries with long `when` guards wrap without exceeding `maxLineLength`.
-- Lambdas with long parameter lists wrap without exceeding `maxLineLength` and remain valid Java.
-- Showcase scenarios include explicit hard-limit stress cases for: assert message, multi-catch union type,
-  lambda parameters, and switch labels/guards.
+The hard limit is enforced for the core wrapping primitives and for previously-missed constructs now
+explicitly handled in `PrincePrettyPrinterVisitor`: multi-catch union types, long `assert` messages,
+switch entry labels/guards, lambda parameter lists, and long generic type arguments in type-use positions.
+Showcase scenarios include stress inputs for these paths.
 
 ---
 
