@@ -622,4 +622,40 @@ class FormatterTest {
         String twice = DEFAULT.format(once);
         assertThat(twice).isEqualTo(once);
     }
+
+    @Test
+    void idempotency_chainCommentBeforeLambdaArg_doesNotDriftBeforeDot() {
+        String input = """
+                import java.time.Duration;
+
+                class T {
+                    void m(Client client) {
+                        client
+                                .get()
+                                .uri("/path")
+                                .cookies(// keep comment with lambda argument
+                                        cookies -> cookies.add("id", "123"))
+                                .block(Duration.ofSeconds(1));
+                    }
+
+                    interface Client {
+                        Client get();
+
+                        Client uri(String value);
+
+                        Client cookies(java.util.function.Consumer<Cookies> c);
+
+                        Object block(Duration timeout);
+                    }
+
+                    interface Cookies {
+                        void add(String name, String value);
+                    }
+                }
+                """;
+        String once = DEFAULT.format(input);
+        String twice = DEFAULT.format(once);
+        assertThat(twice).isEqualTo(once);
+        assertThat(twice).doesNotContain(".// keep comment");
+    }
 }

@@ -512,9 +512,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     @Override
     public void visit(MethodCallExpr n, Void arg) {
-        printOrphanCommentsBeforeThisChildNode(n);
-        printComment(n.getComment(), arg);
         if (n.getScope().isEmpty()) {
+            printOrphanCommentsBeforeThisChildNode(n);
+            printComment(n.getComment(), arg);
             super.visit(n, arg);
             return;
         }
@@ -522,6 +522,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (!outer.equals(n)) {
             return;
         }
+        printOrphanCommentsBeforeThisChildNode(n);
         List<MethodCallExpr> calls = chainInOrder(outer);
         Optional<Expression> baseOpt = chainBase(outer);
         if (baseOpt.isEmpty()) {
@@ -549,7 +550,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         for (MethodCallExpr mc : calls) {
             printer.print(".");
             printTypeArgs(mc, arg);
-            mc.getName().accept(this, arg);
+            printer.print(mc.getNameAsString());
             printArguments(mc.getArguments(), arg);
         }
     }
@@ -559,7 +560,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         for (MethodCallExpr mc : calls) {
             printer.print(".");
             printTypeArgs(mc, arg);
-            mc.getName().accept(this, arg);
+            printer.print(mc.getNameAsString());
             printArgumentsInline(mc.getArguments());
         }
     }
@@ -603,7 +604,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             }
             printer.print(".");
             printTypeArgs(mc, arg);
-            mc.getName().accept(this, arg);
+            printer.print(mc.getNameAsString());
             if (hasBlockLambdaArgument(mc.getArguments())) {
                 indentWithAlignToSafe(Math.max(contCol, lineStartColumn + fmt.continuationIndentSize()));
                 try {
