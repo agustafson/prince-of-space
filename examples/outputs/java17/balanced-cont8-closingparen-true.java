@@ -230,8 +230,7 @@ public class FormatterShowcase
 
     // Scenario 16: Long string concatenation
     public String buildMessage() {
-        var traditional = "Hello " + legacyField + ", you have " + items.size()
-                + " items in your collection. "
+        var traditional = "Hello " + legacyField + ", you have " + items.size() + " items in your collection. "
                 + "Please review them at your earliest convenience. "
                 + "If you have any questions, please contact support.";
         return traditional;
@@ -304,11 +303,7 @@ public class FormatterShowcase
     }
 
     // Scenario 22: Sealed interface hierarchy
-    sealed interface Shape
-            permits Shape.Circle,
-            Shape.Rectangle,
-            Shape.Triangle
-    {
+    sealed interface Shape permits Shape.Circle, Shape.Rectangle, Shape.Triangle {
         double area();
 
         record Circle(double radius) implements Shape {
@@ -349,11 +344,12 @@ public class FormatterShowcase
     }
 
     // Scenario 24: Switch expressions
-    public double getScaleFactor(Shape shape) {
-        return switch (shape) {
-            case Shape.Circle c -> c.radius() > 100 ? 0.5 : 1.0;
-            case Shape.Rectangle r -> r.width() == r.height() ? 1.0 : 0.75;
-            case Shape.Triangle t -> 1.0;
+    public double getScaleFactor(String shapeType) {
+        return switch (shapeType) {
+            case "circle" -> 1.0;
+            case "rectangle" -> 0.75;
+            case "triangle" -> 1.0;
+            default -> 1.0;
         };
     }
 

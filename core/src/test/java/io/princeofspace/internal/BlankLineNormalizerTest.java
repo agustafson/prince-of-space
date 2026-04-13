@@ -51,6 +51,20 @@ class BlankLineNormalizerTest {
     }
 
     @Test
+    void blankAfterTypeDeclarationOpenBrace_preserved() {
+        String input = "class T {\n\n    void a() {}\n}";
+        assertThat(BlankLineNormalizer.normalize(input))
+                .isEqualTo("class T {\n\n    void a() {}\n}");
+    }
+
+    @Test
+    void blankAfterNestedTypeDeclarationOpenBrace_removed() {
+        String input = "class Outer {\n    interface Inner {\n\n        void run();\n    }\n}";
+        assertThat(BlankLineNormalizer.normalize(input))
+                .isEqualTo("class Outer {\n    interface Inner {\n        void run();\n    }\n}");
+    }
+
+    @Test
     void sourceWithNoBlankLines_unchanged() {
         String input = "class T {\n    void m() {\n        return;\n    }\n}";
         assertThat(BlankLineNormalizer.normalize(input)).isEqualTo(input);

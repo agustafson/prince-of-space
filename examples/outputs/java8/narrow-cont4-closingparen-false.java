@@ -127,10 +127,13 @@ public class FormatterShowcase
 
     // Scenario 9: Binary operator wrapping
     public boolean isValid() {
-        return legacyField != null && !legacyField.isEmpty()
-            && items != null && !items.isEmpty()
+        return legacyField != null
+            && !legacyField.isEmpty()
+            && items != null
+            && !items.isEmpty()
             && items.stream().allMatch(item -> item != null && !item.isEmpty())
-            && complexGenericField != null && complexGenericField.size() > 0;
+            && complexGenericField != null
+            && complexGenericField.size() > 0;
     }
 
     // Scenario 10: If/else without braces

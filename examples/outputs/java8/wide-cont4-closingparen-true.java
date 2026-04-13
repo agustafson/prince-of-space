@@ -17,8 +17,7 @@ import java.nio.file.Path;
 
 // Scenario 1: Class declaration with long implements list
 public class FormatterShowcase
-    implements Comparable<FormatterShowcase>, java.io.Serializable, Cloneable,
-    AutoCloseable
+    implements Comparable<FormatterShowcase>, java.io.Serializable, Cloneable, AutoCloseable
 {
 
     // Scenario 2: Field declarations with annotations
@@ -31,9 +30,8 @@ public class FormatterShowcase
 
     // Scenario 3: Constructor with many parameters
     public FormatterShowcase(String legacyField, List<String> items,
-        Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField,
-        boolean validateOnConstruction, String defaultLocale,
-        ExecutorService executorService
+        Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField, boolean validateOnConstruction,
+        String defaultLocale, ExecutorService executorService
     ) {
         this.legacyField = legacyField;
         this.items = items;
@@ -121,8 +119,8 @@ public class FormatterShowcase
     // Scenario 9: Binary operator wrapping
     public boolean isValid() {
         return legacyField != null && !legacyField.isEmpty() && items != null && !items.isEmpty()
-            && items.stream().allMatch(item -> item != null && !item.isEmpty())
-            && complexGenericField != null && complexGenericField.size() > 0;
+            && items.stream().allMatch(item -> item != null && !item.isEmpty()) && complexGenericField != null
+            && complexGenericField.size() > 0;
     }
 
     // Scenario 10: If/else without braces
@@ -178,9 +176,8 @@ public class FormatterShowcase
     enum Priority { LOW, MEDIUM, HIGH, CRITICAL }
 
     enum HttpStatus {
-        OK(200, "OK"), CREATED(201, "Created"), BAD_REQUEST(400, "Bad Request"),
-        UNAUTHORIZED(401, "Unauthorized"), FORBIDDEN(403, "Forbidden"),
-        NOT_FOUND(404, "Not Found"), INTERNAL_SERVER_ERROR(500, "Internal Server Error");
+        OK(200, "OK"), CREATED(201, "Created"), BAD_REQUEST(400, "Bad Request"), UNAUTHORIZED(401, "Unauthorized"),
+        FORBIDDEN(403, "Forbidden"), NOT_FOUND(404, "Not Found"), INTERNAL_SERVER_ERROR(500, "Internal Server Error");
 
         private final int code;
         private final String message;
@@ -202,8 +199,7 @@ public class FormatterShowcase
     // Scenario 16: Long string concatenation
     public String buildMessage() {
         String traditional = "Hello " + legacyField + ", you have " + items.size() + " items in your collection. "
-            + "Please review them at your earliest convenience. "
-            + "If you have any questions, please contact support.";
+            + "Please review them at your earliest convenience. " + "If you have any questions, please contact support.";
         return traditional;
     }
 
@@ -215,8 +211,7 @@ public class FormatterShowcase
 
     // Scenario 18: Complex generic method signature
     public <T extends Comparable<T> & java.io.Serializable, R extends List<? super T>> R transformAndCollect(
-        List<T> source, Function<T, R> transformer,
-        java.util.function.BinaryOperator<R> combiner
+        List<T> source, Function<T, R> transformer, java.util.function.BinaryOperator<R> combiner
     ) {
         return source.stream()
             .map(transformer)

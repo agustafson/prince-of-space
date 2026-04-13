@@ -30,8 +30,8 @@ public class FormatterShowcase
 
     // Scenario 3: Constructor with many parameters
     public FormatterShowcase(String legacyField, List<String> items,
-        Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField,
-        boolean validateOnConstruction, String defaultLocale, ExecutorService executorService
+        Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField, boolean validateOnConstruction,
+        String defaultLocale, ExecutorService executorService
     ) {
         this.legacyField = legacyField;
         this.items = items;
@@ -119,8 +119,8 @@ public class FormatterShowcase
     // Scenario 9: Binary operator wrapping
     public boolean isValid() {
         return legacyField != null && !legacyField.isBlank() && items != null && !items.isEmpty()
-            && items.stream().allMatch(item -> item != null && !item.isBlank())
-            && complexGenericField != null && complexGenericField.size() > 0;
+            && items.stream().allMatch(item -> item != null && !item.isBlank()) && complexGenericField != null
+            && complexGenericField.size() > 0;
     }
 
     // Scenario 10: If/else without braces
@@ -142,8 +142,7 @@ public class FormatterShowcase
     public Map<String, List<String>> groupByFirstLetter() {
         return items.stream()
             .filter(item -> item != null && !item.isBlank())
-            .collect(Collectors.groupingBy(
-                item -> String.valueOf(item.charAt(0)).toUpperCase(),
+            .collect(Collectors.groupingBy(item -> String.valueOf(item.charAt(0)).toUpperCase(),
                 Collectors.mapping(String::toLowerCase, Collectors.toList())
             ));
     }
@@ -180,9 +179,8 @@ public class FormatterShowcase
     enum Priority { LOW, MEDIUM, HIGH, CRITICAL }
 
     enum HttpStatus {
-        OK(200, "OK"), CREATED(201, "Created"), BAD_REQUEST(400, "Bad Request"),
-        UNAUTHORIZED(401, "Unauthorized"), FORBIDDEN(403, "Forbidden"), NOT_FOUND(404, "Not Found"),
-        INTERNAL_SERVER_ERROR(500, "Internal Server Error");
+        OK(200, "OK"), CREATED(201, "Created"), BAD_REQUEST(400, "Bad Request"), UNAUTHORIZED(401, "Unauthorized"),
+        FORBIDDEN(403, "Forbidden"), NOT_FOUND(404, "Not Found"), INTERNAL_SERVER_ERROR(500, "Internal Server Error");
 
         private final int code;
         private final String message;
@@ -204,8 +202,7 @@ public class FormatterShowcase
     // Scenario 16: Long string concatenation
     public String buildMessage() {
         var traditional = "Hello " + legacyField + ", you have " + items.size() + " items in your collection. "
-            + "Please review them at your earliest convenience. "
-            + "If you have any questions, please contact support.";
+            + "Please review them at your earliest convenience. " + "If you have any questions, please contact support.";
         return traditional;
     }
 
@@ -256,8 +253,8 @@ public class FormatterShowcase
     // Scenario 21: Record declarations
     record UserProfile(String name, String email, int age) {}
 
-    record DetailedProfile(String firstName, String lastName, String email, String phone, String address,
-        String city, String country, int age
+    record DetailedProfile(String firstName, String lastName, String email, String phone, String address, String city,
+        String country, int age
     ) {
         DetailedProfile {
             if (age < 0) {
@@ -308,11 +305,12 @@ public class FormatterShowcase
     }
 
     // Scenario 24: Switch expressions
-    public double getScaleFactor(Shape shape) {
-        return switch (shape) {
-            case Shape.Circle c -> c.radius() > 100 ? 0.5 : 1.0;
-            case Shape.Rectangle r -> r.width() == r.height() ? 1.0 : 0.75;
-            case Shape.Triangle t -> 1.0;
+    public double getScaleFactor(String shapeType) {
+        return switch (shapeType) {
+            case "circle" -> 1.0;
+            case "rectangle" -> 0.75;
+            case "triangle" -> 1.0;
+            default -> 1.0;
         };
     }
 

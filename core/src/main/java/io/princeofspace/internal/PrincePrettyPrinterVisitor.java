@@ -2,13 +2,26 @@ package io.princeofspace.internal;
 
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
+import com.github.javaparser.ast.body.EnumConstantDeclaration;
+import com.github.javaparser.ast.body.EnumDeclaration;
+import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
+import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.BinaryExpr;
 import com.github.javaparser.ast.expr.ConditionalExpr;
 import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.LambdaExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.SwitchExpr;
+import com.github.javaparser.ast.expr.TextBlockLiteralExpr;
+import com.github.javaparser.ast.stmt.BlockStmt;
+import com.github.javaparser.ast.stmt.CatchClause;
+import com.github.javaparser.ast.stmt.Statement;
+import com.github.javaparser.ast.stmt.SwitchEntry;
+import com.github.javaparser.ast.stmt.TryStmt;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.ReferenceType;
 import com.github.javaparser.printer.DefaultPrettyPrinterVisitor;
@@ -38,8 +51,86 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         this.fmt = fmt;
     }
 
+    @Override
+    protected void printMembers(NodeList<BodyDeclaration<?>> members, Void arg) {
+        BodyDeclaration<?> prev = null;
+        for (BodyDeclaration<?> member : members) {
+            // Add blank line between members, EXCEPT between consecutive fields
+            if (prev != null && !(prev instanceof FieldDeclaration && member instanceof FieldDeclaration)) {
+                printer.println();
+            }
+            printer.println();
+            member.accept(this, arg);
+            prev = member;
+        }
+        printer.println();
+    }
+
+    @Override
+    public void visit(BlockStmt n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        printer.println("{");
+        if (n.getStatements() != null) {
+            printer.indent();
+            Statement prev = null;
+            for (Statement s : n.getStatements()) {
+                // Preserve blank lines between statements from original source
+                if (prev != null && prev.getRange().isPresent() && s.getRange().isPresent()) {
+                    int prevEnd = prev.getRange().get().end.line;
+                    int curStart = s.getRange().get().begin.line;
+                    if (curStart > prevEnd + 1) {
+                        printer.println();
+                    }
+                }
+                s.accept(this, arg);
+                printer.println();
+                prev = s;
+            }
+        }
+        printOrphanCommentsEnding(n);
+        printer.unindent();
+        printer.print("}");
+    }
+
+    @Override
+    public void visit(TryStmt n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        printer.print("try ");
+        if (!n.getResources().isEmpty()) {
+            printer.print("(");
+            int alignCol = column();
+            Iterator<Expression> resources = n.getResources().iterator();
+            boolean first = true;
+            while (resources.hasNext()) {
+                resources.next().accept(this, arg);
+                if (resources.hasNext()) {
+                    printer.print(";");
+                    printer.println();
+                    if (first) {
+                        printer.indentWithAlignTo(alignCol);
+                    }
+                }
+                first = false;
+            }
+            if (n.getResources().size() > 1) {
+                printer.unindent();
+            }
+            printer.print(") ");
+        }
+        n.getTryBlock().accept(this, arg);
+        for (CatchClause c : n.getCatchClauses()) {
+            c.accept(this, arg);
+        }
+        if (n.getFinallyBlock().isPresent()) {
+            printer.print(" finally ");
+            n.getFinallyBlock().get().accept(this, arg);
+        }
+    }
+
     private int column() {
-        return Math.max(0, printer.getCursor().column - 1);
+        return printer.getCursor().column;
     }
 
     /**
@@ -58,9 +149,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     /** Narrow style uses extra indentation for wrapped list items (implements, etc.). */
     private void printNarrowListIndent() {
         if (fmt.indentStyle() == IndentStyle.TABS) {
-            printer.print("\t".repeat(fmt.indentSize() + fmt.continuationIndentSize()));
+            printer.print("\t".repeat(fmt.continuationIndentSize() * 2));
         } else {
-            printer.print(" ".repeat(fmt.indentSize() + fmt.continuationIndentSize()));
+            printer.print(" ".repeat(fmt.continuationIndentSize() * 2));
         }
     }
 
@@ -136,6 +227,17 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         return w;
     }
 
+    private void printArgumentsInline(NodeList<? extends Expression> args, Void arg) {
+        printer.print("(");
+        for (Iterator<? extends Expression> i = args.iterator(); i.hasNext(); ) {
+            printer.print(i.next().toString());
+            if (i.hasNext()) {
+                printer.print(", ");
+            }
+        }
+        printer.print(")");
+    }
+
     private static int paramsFlatWidth(NodeList<Parameter> ps) {
         int w = 0;
         boolean first = true;
@@ -149,12 +251,68 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         return w;
     }
 
+    private NodeList<AnnotationExpr> declarationAnnotations(MethodDeclaration n) {
+        if (n.getModifiers().isEmpty()) {
+            return new NodeList<>(n.getAnnotations());
+        }
+        int firstModifierColumn = n.getModifiers().get(0).getRange().map(r -> r.begin.column).orElse(Integer.MAX_VALUE);
+        NodeList<AnnotationExpr> result = new NodeList<>();
+        for (AnnotationExpr annotation : n.getAnnotations()) {
+            int annotationColumn = annotation.getRange().map(r -> r.begin.column).orElse(Integer.MIN_VALUE);
+            if (annotationColumn < firstModifierColumn) {
+                result.add(annotation);
+            }
+        }
+        return result;
+    }
+
+    private NodeList<AnnotationExpr> inlineReturnTypeAnnotations(MethodDeclaration n) {
+        if (n.getModifiers().isEmpty()) {
+            return new NodeList<>();
+        }
+        int lastModifierColumn = n.getModifiers().get(n.getModifiers().size() - 1)
+                .getRange()
+                .map(r -> r.end.column)
+                .orElse(Integer.MAX_VALUE);
+        NodeList<AnnotationExpr> result = new NodeList<>();
+        for (AnnotationExpr annotation : n.getAnnotations()) {
+            int annotationColumn = annotation.getRange().map(r -> r.begin.column).orElse(Integer.MIN_VALUE);
+            if (annotationColumn > lastModifierColumn) {
+                result.add(annotation);
+            }
+        }
+        return result;
+    }
+
     private boolean mustWrapChain(Expression base, List<MethodCallExpr> calls) {
         return column() + chainOneLineWidth(base, calls) > fmt.preferredLineLength();
     }
 
     private boolean mustHardWrapChain(Expression base, List<MethodCallExpr> calls) {
         return column() + chainOneLineWidth(base, calls) > fmt.maxLineLength();
+    }
+
+    private boolean shouldWrapLambdaHeavyChain(Expression base, List<MethodCallExpr> calls) {
+        if (calls.size() <= 1) {
+            return false;
+        }
+        Optional<Node> parent = calls.get(calls.size() - 1).getParentNode();
+        if (parent.isPresent() && (parent.get() instanceof BinaryExpr || parent.get() instanceof ConditionalExpr)) {
+            return false;
+        }
+        boolean hasLambdaArgument = false;
+        for (MethodCallExpr call : calls) {
+            for (Expression argument : call.getArguments()) {
+                if (argument instanceof LambdaExpr) {
+                    hasLambdaArgument = true;
+                    break;
+                }
+            }
+            if (hasLambdaArgument) {
+                break;
+            }
+        }
+        return hasLambdaArgument && chainOneLineWidth(base, calls) > 60;
     }
 
     @Override
@@ -171,16 +329,19 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
         List<MethodCallExpr> calls = chainInOrder(outer);
         Expression base = chainBase(outer);
-        boolean wrap = mustHardWrapChain(base, calls) || mustWrapChain(base, calls);
+        if (base instanceof TextBlockLiteralExpr) {
+            printChainInlineWithInlineArgs(base, calls, arg);
+            return;
+        }
+        boolean wrap = mustHardWrapChain(base, calls)
+                || mustWrapChain(base, calls)
+                || shouldWrapLambdaHeavyChain(base, calls);
         if (!wrap) {
             printChainInline(base, calls, arg);
             return;
         }
-        if (fmt.wrapStyle() == WrapStyle.WIDE) {
-            printChainWide(base, calls, arg);
-        } else {
-            printChainBalancedOrNarrow(base, calls, arg);
-        }
+        // All wrap styles format chains the same way: one call per line
+        printChainBalancedOrNarrow(base, calls, arg);
     }
 
     private void printChainInline(Expression base, List<MethodCallExpr> calls, Void arg) {
@@ -193,16 +354,83 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
     }
 
-    private void printChainBalancedOrNarrow(Expression base, List<MethodCallExpr> calls, Void arg) {
+    private void printChainInlineWithInlineArgs(Expression base, List<MethodCallExpr> calls, Void arg) {
         base.accept(this, arg);
         for (MethodCallExpr mc : calls) {
-            printer.println();
-            printCont();
             printer.print(".");
             printTypeArgs(mc, arg);
             mc.getName().accept(this, arg);
-            printArguments(mc.getArguments(), arg);
+            printArgumentsInline(mc.getArguments(), arg);
         }
+    }
+
+    private void printChainBalancedOrNarrow(Expression base, List<MethodCallExpr> calls, Void arg) {
+        base.accept(this, arg);
+        int lineStartColumn = column() - est(base);
+        // When the base is a simple name, keep the first call on the same line
+        int start = 0;
+        if (!calls.isEmpty() && isSimpleBase(base)) {
+            MethodCallExpr first = calls.get(0);
+            printer.print(".");
+            printTypeArgs(first, arg);
+            first.getName().accept(this, arg);
+            if (hasBlockLambdaArgument(first.getArguments())) {
+                printer.indentWithAlignTo(lineStartColumn + fmt.continuationIndentSize());
+                try {
+                    printArguments(first.getArguments(), arg);
+                } finally {
+                    printer.unindent();
+                }
+            } else {
+                printArguments(first.getArguments(), arg);
+            }
+            start = 1;
+        }
+        if (start < calls.size()) {
+            // Push indent to continuation column so lambda bodies are properly indented
+            printer.println();
+            printCont();
+            int contCol = column();
+            printer.indentWithAlignTo(contCol);
+            for (int i = start; i < calls.size(); i++) {
+                MethodCallExpr mc = calls.get(i);
+                if (i > start) {
+                    printer.println();
+                }
+                printer.print(".");
+                printTypeArgs(mc, arg);
+                mc.getName().accept(this, arg);
+                printArguments(mc.getArguments(), arg);
+            }
+            printer.unindent();
+        }
+    }
+
+    private static boolean isSimpleBase(Expression base) {
+        return base instanceof com.github.javaparser.ast.expr.NameExpr
+                || base instanceof com.github.javaparser.ast.expr.FieldAccessExpr
+                || base instanceof com.github.javaparser.ast.expr.ThisExpr
+                || base instanceof com.github.javaparser.ast.expr.SuperExpr;
+    }
+
+    private static boolean hasBlockLambdaArgument(NodeList<? extends Expression> args) {
+        for (Expression expression : args) {
+            if (expression instanceof LambdaExpr lambda && lambda.getBody() instanceof BlockStmt) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean shouldGlueWrappedClosingParen(NodeList<? extends Expression> args) {
+        if (args.isEmpty()) {
+            return false;
+        }
+        if (hasBlockLambdaArgument(args)) {
+            return true;
+        }
+        Expression last = args.get(args.size() - 1);
+        return args.size() == 1 && last instanceof MethodCallExpr;
     }
 
     /** Greedy packing: start a new line before {@code .} when the segment would exceed preferred width. */
@@ -252,14 +480,20 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 }
                 return;
             }
-            parts.get(0).accept(this, arg);
             String os = n.getOperator().asString();
-            for (int i = 1; i < parts.size(); i++) {
-                printer.println();
-                printCont();
-                printer.print(os);
-                printer.print(" ");
-                parts.get(i).accept(this, arg);
+            if (fmt.wrapStyle() == WrapStyle.BALANCED || fmt.wrapStyle() == WrapStyle.NARROW) {
+                // One operand per continuation line (operator at line start); NARROW matches this for &&/||
+                parts.get(0).accept(this, arg);
+                for (int i = 1; i < parts.size(); i++) {
+                    printer.println();
+                    printCont();
+                    printer.print(os);
+                    printer.print(" ");
+                    parts.get(i).accept(this, arg);
+                }
+            } else {
+                // WIDE: greedy packing (continuation indent affects only column position, not line budget)
+                printBinaryGreedy(parts, os, arg);
             }
             return;
         }
@@ -278,16 +512,48 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 }
                 return;
             }
-            parts.get(0).accept(this, arg);
-            for (int i = 1; i < parts.size(); i++) {
-                printer.println();
-                printCont();
-                printer.print("+ ");
-                parts.get(i).accept(this, arg);
+            if (fmt.wrapStyle() == WrapStyle.NARROW) {
+                parts.get(0).accept(this, arg);
+                for (int i = 1; i < parts.size(); i++) {
+                    printer.println();
+                    printCont();
+                    printer.print("+ ");
+                    parts.get(i).accept(this, arg);
+                }
+            } else {
+                printBinaryGreedy(parts, "+", arg);
             }
             return;
         }
         super.visit(n, arg);
+    }
+
+    /** Greedy packing for binary operator chains: pack as many operands per line as fit. */
+    private void printBinaryGreedy(List<Expression> parts, String op, Void arg) {
+        printBinaryGreedy(parts, op, arg, fmt.preferredLineLength());
+    }
+
+    private void printBinaryGreedy(List<Expression> parts, String op, Void arg, int budget) {
+        parts.get(0).accept(this, arg);
+        int used = column();
+        for (int i = 1; i < parts.size(); i++) {
+            int opLen = op.length() + 2; // " op "
+            int partLen = est(parts.get(i));
+            if (used + opLen + partLen > budget) {
+                printer.println();
+                printCont();
+                printer.print(op);
+                printer.print(" ");
+                used = column();
+            } else {
+                printer.print(" ");
+                printer.print(op);
+                printer.print(" ");
+                used += opLen;
+            }
+            parts.get(i).accept(this, arg);
+            used = column();
+        }
     }
 
     @Override
@@ -317,12 +583,13 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     @Override
     protected <T extends Expression> void printArguments(NodeList<T> args, Void arg) {
         printer.print("(");
+        boolean wrapped = false;
         if (!isNullOrEmpty(args)) {
+            wrapped = argsNeedWrap(args);
             printCommaSeparatedExprs(args, arg);
         }
-        if (fmt.closingParenOnNewLine() && !isNullOrEmpty(args) && argsNeedWrap(args)) {
+        if (fmt.closingParenOnNewLine() && wrapped && !shouldGlueWrappedClosingParen(args)) {
             printer.println();
-            printCont();
         }
         printer.print(")");
     }
@@ -341,8 +608,14 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             }
             return;
         }
+        if (args.size() == 1) {
+            args.get(0).accept(this, arg);
+            return;
+        }
         if (fmt.wrapStyle() == WrapStyle.WIDE) {
-            printGreedyCommaLines(args, arg);
+            int extraLastLine =
+                    fmt.closingParenOnNewLine() ? 2 : 0; // ")" on its own line — no width reserved on last arg line
+            printGreedyCommaLines(args, arg, 0, false, extraLastLine);
         } else {
             for (Iterator<? extends Expression> i = args.iterator(); i.hasNext(); ) {
                 printer.println();
@@ -355,23 +628,38 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
     }
 
-    private void printGreedyCommaLines(NodeList<? extends Expression> args, Void arg) {
+    /**
+     * Greedy comma-separated expressions. Uses {@link #column()} after continuation indent so
+     * {@code continuationIndentSize} does not change wrap positions vs other configs (only indent).
+     *
+     * @param extraLastLineBudget when the closing delimiter is printed on its own line, extra width
+     *     allowed on the last content line (no need to reserve for {@code )} on that line).
+     */
+    private void printGreedyCommaLines(
+            NodeList<? extends Expression> args,
+            Void arg,
+            int trailingWidth,
+            boolean avoidLoneLastItem,
+            int extraLastLineBudget) {
         boolean first = true;
-        int budget = fmt.preferredLineLength();
-        int used = column();
-        for (Expression e : args) {
+        int budget = fmt.preferredLineLength() - trailingWidth;
+        Iterator<? extends Expression> iter = args.iterator();
+        int remaining = args.size();
+        while (iter.hasNext()) {
+            Expression e = iter.next();
             int need = est(e) + (first ? 0 : 2);
-            if (!first && used + need > budget) {
+            boolean shouldWrapForLoneLastItem = avoidLoneLastItem && !first && remaining == 2;
+            int lineBudget = budget + (extraLastLineBudget > 0 && remaining == 1 ? extraLastLineBudget : 0);
+            if (!first && (column() + need > lineBudget || shouldWrapForLoneLastItem)) {
+                printer.print(",");
                 printer.println();
                 printCont();
-                used = column();
             } else if (!first) {
                 printer.print(", ");
-                used += 2;
             }
             e.accept(this, arg);
-            used = column();
             first = false;
+            remaining--;
         }
     }
 
@@ -393,21 +681,29 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             return;
         }
         if (fmt.wrapStyle() == WrapStyle.WIDE) {
+            int n = ps.size();
             boolean first = true;
-            int budget = fmt.preferredLineLength();
-            int used = column();
-            for (Parameter p : ps) {
+            for (int idx = 0; idx < n; idx++) {
+                Parameter p = ps.get(idx);
                 int need = p.toString().length() + (first ? 0 : 2);
-                if (!first && used + need > budget) {
+                boolean isLast = idx == n - 1;
+                int lineBudget = fmt.preferredLineLength();
+                if (isLast) {
+                    // When ")" stays on the last param line, reserve ") {" / ");"; when ")" is alone on
+                    // the next line, that width is not needed on the param line.
+                    lineBudget += fmt.closingParenOnNewLine() ? 3 : -3;
+                }
+                if (first && column() + need > lineBudget) {
                     printer.println();
                     printCont();
-                    used = column();
+                } else if (!first && column() + need > lineBudget) {
+                    printer.print(",");
+                    printer.println();
+                    printCont();
                 } else if (!first) {
                     printer.print(", ");
-                    used += 2;
                 }
                 p.accept(this, arg);
-                used = column();
                 first = false;
             }
         } else {
@@ -442,10 +738,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                                 printer.print(", ");
                             }
                         });
+        boolean paramsWrapped = !isNullOrEmpty(n.getParameters()) && paramsNeedWrap(n.getParameters());
         printParametersList(n.getParameters(), arg);
-        if (fmt.closingParenOnNewLine() && !isNullOrEmpty(n.getParameters()) && paramsNeedWrap(n.getParameters())) {
+        if (fmt.closingParenOnNewLine() && paramsWrapped) {
             printer.println();
-            printCont();
         }
         printer.print(")");
         if (!isNullOrEmpty(n.getThrownExceptions())) {
@@ -466,11 +762,19 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     public void visit(MethodDeclaration n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
-        printMemberAnnotations(n.getAnnotations(), arg);
+        NodeList<AnnotationExpr> declarationAnnotations = declarationAnnotations(n);
+        NodeList<AnnotationExpr> inlineReturnTypeAnnotations = inlineReturnTypeAnnotations(n);
+        printMemberAnnotations(declarationAnnotations, arg);
         printModifiers(n.getModifiers());
         printTypeParameters(n.getTypeParameters(), arg);
         if (!isNullOrEmpty(n.getTypeParameters())) {
             printer.print(" ");
+        }
+        if (!inlineReturnTypeAnnotations.isEmpty()) {
+            for (Iterator<AnnotationExpr> i = inlineReturnTypeAnnotations.iterator(); i.hasNext(); ) {
+                i.next().accept(this, arg);
+                printer.print(" ");
+            }
         }
         n.getType().accept(this, arg);
         printer.print(" ");
@@ -484,10 +788,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                                 printer.print(", ");
                             }
                         });
+        boolean paramsWrapped = !isNullOrEmpty(n.getParameters()) && paramsNeedWrap(n.getParameters());
         printParametersList(n.getParameters(), arg);
-        if (fmt.closingParenOnNewLine() && !isNullOrEmpty(n.getParameters()) && paramsNeedWrap(n.getParameters())) {
+        if (fmt.closingParenOnNewLine() && paramsWrapped) {
             printer.println();
-            printCont();
         }
         printer.print(")");
         if (!isNullOrEmpty(n.getThrownExceptions())) {
@@ -503,8 +807,18 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (!n.getBody().isPresent()) {
             printer.print(";");
         } else {
-            printer.print(" ");
-            n.getBody().get().accept(this, arg);
+            BlockStmt body = n.getBody().get();
+            boolean modernCompactEmptyMethod =
+                    fmt.javaLanguageLevel() != com.github.javaparser.ParserConfiguration.LanguageLevel.JAVA_8
+                            && body.getStatements().isEmpty()
+                            && body.getComment().isEmpty()
+                            && body.getOrphanComments().isEmpty();
+            if (modernCompactEmptyMethod) {
+                printer.print(" {}");
+            } else {
+                printer.print(" ");
+                body.accept(this, arg);
+            }
         }
     }
 
@@ -518,10 +832,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         n.getName().accept(this, arg);
         printTypeParameters(n.getTypeParameters(), arg);
         printer.print("(");
+        boolean paramsWrapped = !isNullOrEmpty(n.getParameters()) && paramsNeedWrap(n.getParameters());
         printParametersList(n.getParameters(), arg);
-        if (fmt.closingParenOnNewLine() && !isNullOrEmpty(n.getParameters()) && paramsNeedWrap(n.getParameters())) {
+        if (fmt.closingParenOnNewLine() && paramsWrapped) {
             printer.println();
-            printCont();
         }
         printer.print(")");
         if (!n.getImplementedTypes().isEmpty()) {
@@ -533,6 +847,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                     printer.print(", ");
                 }
             }
+        }
+        if (isNullOrEmpty(n.getMembers())) {
+            printer.print(" {}");
+            return;
         }
         printer.println(" {");
         printer.indent();
@@ -558,6 +876,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             }
             n.getName().accept(this, arg);
             printTypeParameters(n.getTypeParameters(), arg);
+            boolean typeClauseWrapped = false;
             if (!n.getExtendedTypes().isEmpty()) {
                 printer.print(" extends ");
                 for (Iterator<ClassOrInterfaceType> i = n.getExtendedTypes().iterator(); i.hasNext(); ) {
@@ -569,12 +888,17 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 }
             }
             if (!n.getImplementedTypes().isEmpty()) {
-                printImplementsClause(n.getImplementedTypes(), arg);
+                typeClauseWrapped = printImplementsClause(n.getImplementedTypes(), arg);
             }
             if (!n.getPermittedTypes().isEmpty()) {
-                printPermitsClause(n.getPermittedTypes(), arg);
+                typeClauseWrapped = printPermitsClause(n.getPermittedTypes(), arg) || typeClauseWrapped;
             }
-            printer.println(" {");
+            if (typeClauseWrapped && fmt.closingParenOnNewLine()) {
+                printer.println();
+                printer.println("{");
+            } else {
+                printer.println(" {");
+            }
             printer.indent();
         }
         if (!isNullOrEmpty(n.getMembers())) {
@@ -604,19 +928,22 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         return w;
     }
 
-    private void printImplementsClause(NodeList<ClassOrInterfaceType> types, Void arg) {
+    /** @return true if the clause wrapped to a new line. */
+    private boolean printImplementsClause(NodeList<ClassOrInterfaceType> types, Void arg) {
         int header = column();
+        // Check if everything fits on the current line (include " {" trailing)
+        if (header + 12 + implementsTypesWidth(types) + 2 <= fmt.preferredLineLength()) {
+            printer.print(" implements ");
+            printTypeListInline(types, arg);
+            return false;
+        }
+        // Wrapping needed
         if (fmt.wrapStyle() == WrapStyle.WIDE) {
-            if (header + 12 + implementsTypesWidth(types) <= fmt.preferredLineLength()) {
-                printer.print(" implements ");
-                printTypeListInline(types, arg);
-                return;
-            }
             printer.println();
             printCont();
             printer.print("implements ");
-            printTypeListInline(types, arg);
-            return;
+            printTypeListGreedy(types, arg);
+            return true;
         }
         if (fmt.wrapStyle() == WrapStyle.BALANCED) {
             printer.println();
@@ -629,28 +956,41 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 printCont();
                 types.get(i).accept(this, arg);
             }
-            return;
+            return true;
         }
+        // NARROW: implements keyword alone, types double-indented
         printer.println();
         printCont();
-        printer.print("implements ");
-        types.get(0).accept(this, arg);
-        for (int i = 1; i < types.size(); i++) {
-            printer.print(",");
+        printer.print("implements");
+        for (int i = 0; i < types.size(); i++) {
             printer.println();
             printNarrowListIndent();
             types.get(i).accept(this, arg);
+            if (i < types.size() - 1) {
+                printer.print(",");
+            }
         }
+        return true;
     }
 
-    private void printPermitsClause(NodeList<ClassOrInterfaceType> types, Void arg) {
+    /** @return true if the clause wrapped to a new line. */
+    private boolean printPermitsClause(NodeList<ClassOrInterfaceType> types, Void arg) {
         if (types.isEmpty()) {
-            return;
+            return false;
         }
-        if (fmt.wrapStyle() == WrapStyle.WIDE) {
+        int header = column();
+        if (fmt.wrapStyle() != WrapStyle.NARROW
+                && header + 9 + implementsTypesWidth(types) <= fmt.preferredLineLength()) {
             printer.print(" permits ");
             printTypeListInline(types, arg);
-            return;
+            return false;
+        }
+        if (fmt.wrapStyle() == WrapStyle.WIDE) {
+            printer.println();
+            printCont();
+            printer.print("permits ");
+            printTypeListGreedy(types, arg);
+            return true;
         }
         printer.println();
         printCont();
@@ -666,6 +1006,24 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             }
             types.get(i).accept(this, arg);
         }
+        return true;
+    }
+
+    private void printTypeListGreedy(NodeList<ClassOrInterfaceType> types, Void arg) {
+        int budget = fmt.preferredLineLength() - 2;
+        boolean first = true;
+        for (ClassOrInterfaceType t : types) {
+            int need = t.toString().length() + (first ? 0 : 2);
+            if (!first && column() + need > budget) {
+                printer.print(",");
+                printer.println();
+                printCont();
+            } else if (!first) {
+                printer.print(", ");
+            }
+            t.accept(this, arg);
+            first = false;
+        }
     }
 
     private void printTypeListInline(NodeList<ClassOrInterfaceType> types, Void arg) {
@@ -678,31 +1036,123 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     @Override
+    public void visit(EnumDeclaration n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        printMemberAnnotations(n.getAnnotations(), arg);
+        printModifiers(n.getModifiers());
+        printer.print("enum ");
+        n.getName().accept(this, arg);
+        if (!n.getImplementedTypes().isEmpty()) {
+            printer.print(" implements ");
+            for (Iterator<ClassOrInterfaceType> i = n.getImplementedTypes().iterator(); i.hasNext(); ) {
+                ClassOrInterfaceType c = i.next();
+                c.accept(this, arg);
+                if (i.hasNext()) {
+                    printer.print(", ");
+                }
+            }
+        }
+        // Check if simple enum (no bodies, fits on one line)
+        boolean hasMembers = !n.getMembers().isEmpty();
+        boolean hasBodies = n.getEntries().stream().anyMatch(e -> !e.getClassBody().isEmpty());
+        int flatWidth = enumConstantsFlatWidth(n.getEntries());
+        boolean fitsOneLine = column() + 3 + flatWidth + 2 <= fmt.preferredLineLength()
+                && !hasBodies && !hasMembers;
+        if (fitsOneLine && n.getEntries().isNonEmpty()) {
+            printer.print(" { ");
+            for (Iterator<EnumConstantDeclaration> i = n.getEntries().iterator(); i.hasNext(); ) {
+                i.next().accept(this, arg);
+                if (i.hasNext()) {
+                    printer.print(", ");
+                }
+            }
+            printer.print(" }");
+            return;
+        }
+        printer.println(" {");
+        printer.indent();
+        if (n.getEntries().isNonEmpty()) {
+            if (fmt.wrapStyle() == WrapStyle.WIDE && !hasBodies) {
+                // Greedy packing of constants
+                boolean first = true;
+                int budget = fmt.preferredLineLength();
+                for (EnumConstantDeclaration e : n.getEntries()) {
+                    int need = e.toString().length() + (first ? 0 : 2);
+                    if (!first && column() + need > budget) {
+                        printer.print(",");
+                        printer.println();
+                    } else if (!first) {
+                        printer.print(", ");
+                    }
+                    e.accept(this, arg);
+                    first = false;
+                }
+            } else {
+                // One per line
+                for (Iterator<EnumConstantDeclaration> i = n.getEntries().iterator(); i.hasNext(); ) {
+                    i.next().accept(this, arg);
+                    if (i.hasNext()) {
+                        printer.println(",");
+                    }
+                }
+            }
+        }
+        if (hasMembers) {
+            printer.println(";");
+            printMembers(n.getMembers(), arg);
+        } else if (n.getEntries().isNonEmpty()) {
+            printer.println();
+        }
+        printer.unindent();
+        printer.print("}");
+    }
+
+    private static int enumConstantsFlatWidth(NodeList<EnumConstantDeclaration> entries) {
+        int w = 0;
+        boolean first = true;
+        for (EnumConstantDeclaration e : entries) {
+            if (!first) {
+                w += 2;
+            }
+            first = false;
+            w += e.toString().length();
+        }
+        return w;
+    }
+
+    @Override
     public void visit(com.github.javaparser.ast.expr.ArrayInitializerExpr n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
         printer.print("{");
         if (!isNullOrEmpty(n.getValues())) {
-            boolean multi = column() + 1 + argsFlatWidth(n.getValues()) > fmt.preferredLineLength();
+            boolean multi = column() + argsFlatWidth(n.getValues()) + 2 > fmt.preferredLineLength();
             if (multi) {
-                printer.println();
-                printCont();
-                for (Iterator<Expression> i = n.getValues().iterator(); i.hasNext(); ) {
-                    Expression expr = i.next();
-                    expr.accept(this, arg);
-                    if (i.hasNext()) {
-                        printer.print(",");
-                        printer.println();
-                        printCont();
+                if (fmt.wrapStyle() == WrapStyle.WIDE) {
+                    // Greedy inline packing
+                    printGreedyCommaLines(n.getValues(), arg, 2, true, 0);
+                    printer.print("}");
+                } else {
+                    // One per line
+                    printer.println();
+                    printCont();
+                    for (Iterator<Expression> i = n.getValues().iterator(); i.hasNext(); ) {
+                        Expression expr = i.next();
+                        expr.accept(this, arg);
+                        if (i.hasNext()) {
+                            printer.print(",");
+                            printer.println();
+                            printCont();
+                        }
                     }
+                    if (fmt.trailingCommas()) {
+                        printer.print(",");
+                    }
+                    printer.println();
+                    printer.print("}");
                 }
-                if (fmt.trailingCommas()) {
-                    printer.print(",");
-                }
-                printer.println();
-                printCont();
             } else {
-                printer.print(" ");
                 for (Iterator<Expression> i = n.getValues().iterator(); i.hasNext(); ) {
                     Expression expr = i.next();
                     expr.accept(this, arg);
@@ -710,11 +1160,74 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                         printer.print(", ");
                     }
                 }
+                printer.print("}");
+            }
+        } else {
+            printer.print("}");
+        }
+        printOrphanCommentsEnding(n);
+    }
+
+    @Override
+    public void visit(TextBlockLiteralExpr n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        printer.print("\"\"\"\n");
+        printer.print(n.getValue());
+        printer.print("\"\"\"");
+        printOrphanCommentsEnding(n);
+    }
+
+    @Override
+    public void visit(SwitchExpr n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        printer.print("switch (");
+        n.getSelector().accept(this, arg);
+        printer.println(") {");
+        printer.indent();
+        for (SwitchEntry entry : n.getEntries()) {
+            printer.println();
+            printSwitchEntry(entry, arg);
+        }
+        printer.println();
+        printer.unindent();
+        printer.print("}");
+        printOrphanCommentsEnding(n);
+    }
+
+    private void printSwitchEntry(SwitchEntry entry, Void arg) {
+        if (entry.getLabels().isEmpty()) {
+            printer.print("default");
+        } else {
+            printer.print("case ");
+            for (Iterator<Expression> i = entry.getLabels().iterator(); i.hasNext(); ) {
+                i.next().accept(this, arg);
+                if (i.hasNext()) {
+                    printer.print(", ");
+                }
+            }
+        }
+        entry.getGuard().ifPresent(
+                guard -> {
+                    printer.print(" when ");
+                    guard.accept(this, arg);
+                });
+        if (entry.getType() == SwitchEntry.Type.STATEMENT_GROUP) {
+            printer.print(":");
+            return;
+        }
+        printer.print(" -> ");
+        if (entry.getStatements().size() == 1) {
+            entry.getStatements().get(0).accept(this, arg);
+            return;
+        }
+        for (Iterator<Statement> i = entry.getStatements().iterator(); i.hasNext(); ) {
+            i.next().accept(this, arg);
+            if (i.hasNext()) {
                 printer.print(" ");
             }
         }
-        printOrphanCommentsEnding(n);
-        printer.print("}");
     }
 
 }

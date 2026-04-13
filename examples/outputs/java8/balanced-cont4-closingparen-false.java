@@ -224,8 +224,7 @@ public class FormatterShowcase
     // Scenario 16: Long string concatenation
     public String buildMessage() {
         String traditional = "Hello " + legacyField + ", you have " + items.size() + " items in your collection. "
-            + "Please review them at your earliest convenience. "
-            + "If you have any questions, please contact support.";
+            + "Please review them at your earliest convenience. " + "If you have any questions, please contact support.";
         return traditional;
     }
 

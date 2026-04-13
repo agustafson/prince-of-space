@@ -19,10 +19,12 @@ import java.nio.file.Path;
 
 // Scenario 1: Class declaration with long implements list
 public class FormatterShowcase
-    implements Comparable<FormatterShowcase>,
+    implements
+        Comparable<FormatterShowcase>,
         java.io.Serializable,
         Cloneable,
-        AutoCloseable {
+        AutoCloseable
+{
 
     // Scenario 2: Field declarations with annotations
     private static final long serialVersionUID = 1L;
@@ -175,7 +177,10 @@ public class FormatterShowcase
 
     // Scenario 13: Annotation placement (including JSpecify type-use)
     public @org.jspecify.annotations.Nullable String findItem(String query) {
-        return items.stream().filter(item -> item.contains(query)).findFirst().orElse(null);
+        return items.stream()
+            .filter(item -> item.contains(query))
+            .findFirst()
+            .orElse(null);
     }
 
     @Override
@@ -308,7 +313,8 @@ public class FormatterShowcase
     sealed interface Shape
         permits Shape.Circle,
             Shape.Rectangle,
-            Shape.Triangle {
+            Shape.Triangle
+    {
         double area();
 
         record Circle(double radius) implements Shape {
@@ -393,7 +399,9 @@ public class FormatterShowcase
     // Scenario 28: Virtual threads
     public void processWithVirtualThreads(List<String> urls) throws Exception {
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            var futures = urls.stream().map(url -> executor.submit(() -> fetchAndProcess(url))).toList();
+            var futures = urls.stream()
+                .map(url -> executor.submit(() -> fetchAndProcess(url)))
+                .toList();
             for (var future : futures) {
                 var result = future.get();
                 System.out.println("Processed: " + result);

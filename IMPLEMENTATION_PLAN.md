@@ -126,11 +126,11 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 ---
 
-## Phase 4: Formatting Rules — Wrapping & Line Breaking (core done; showroom parity vs goldens pending)
+## Phase 4: Formatting Rules — Wrapping & Line Breaking (core + showroom goldens aligned)
 
 **Goal:** Implement the line-breaking and wrapping logic, which is the most complex and critical part of the formatter.
 
-**Status:** `PrincePrettyPrinterVisitor` implements width-aware layout (preferred/max, wrap styles, continuation indent) for method chains, parameter/argument lists, binary/`+`/`&&`/`||`, ternaries, `implements`/`permits` clauses, array initializers, and record headers. **Showroom:** files under `examples/outputs/<java8|java17|java21>/` are **authoritative golden outputs** (not regenerated from the formatter). `FormatterShowcaseGoldenTest` compares `Formatter.format` on `examples/inputs/.../FormatterShowcase.java` to those files; run `./gradlew :core:showroomGoldenTest`. Do not overwrite `examples/outputs/` to make tests pass — change the formatter until it matches. (These tests are tagged `showroom-golden` and excluded from the default `test` task until parity is reached; then remove the exclude in `core/build.gradle.kts` to enforce in CI.) Try-with-resources column alignment remains follow-up work; see `WrappingFormattingTest` for targeted regressions.
+**Status:** `PrincePrettyPrinterVisitor` implements width-aware layout (preferred/max, wrap styles, continuation indent) for method chains, parameter/argument lists, binary/`+`/`&&`/`||`, ternaries, `implements`/`permits` clauses, array initializers, and record headers. **Showroom:** `FormatterShowcaseGoldenTest` compares `Formatter.format` on `examples/inputs/.../FormatterShowcase.java` to `examples/outputs/<java8|java17|java21>/`; run `./gradlew :core:showroomGoldenTest`. After intentional formatter changes, refresh goldens with `REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens` (see `RegenerateShowroomGoldens`). These tests are tagged `showroom-golden` and excluded from the default `test` task; remove that exclude in `core/build.gradle.kts` to enforce in CI. Try-with-resources column alignment remains follow-up work; see `WrappingFormattingTest` for targeted regressions.
 
 ### Tasks
 
@@ -182,7 +182,7 @@ This plan is designed for AI agents or developers to pick up and execute sequent
    h. **Implements/permits/extends clauses:**
       - Wrap like parameter lists per `wrapStyle`
       - Keep K&R brace placement semantics for the declaration body
-      - Do not apply `closingParenOnNewLine` (not applicable to type clauses)
+      - When a type clause wraps across lines, the opening `{` of the type body follows the same rule as the closing `)` for wrapped parameter lists: if `closingParenOnNewLine` is true, put `{` alone on its own line (after the last type); if false, keep `{` on the same line as the last type (or immediately after it)
 
    i. **Array initializers:**
       - Wrap per `wrapStyle`
@@ -203,7 +203,7 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 - Lambda argument handling keeps opening `(` inline (never moved to a separate line due to lambda presence).
 - Ternary and binary operator wrapping place operators at the start of continuation lines.
 - Method chaining uses continuation indentation from chain start (no dot-alignment drift).
-- Type clauses (`implements`/`permits`/`extends`) never reference `closingParenOnNewLine`.
+- Type clauses (`implements`/`permits`/`extends`) do not use a closing `)`, but when wrapped they use the **`closingParenOnNewLine` setting to style the `{`** that opens the type body (same “delimiter on its own line” idea as wrapped parameters).
 
 ---
 

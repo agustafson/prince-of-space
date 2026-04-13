@@ -30,8 +30,8 @@ public class FormatterShowcase
 
     // Scenario 3: Constructor with many parameters
     public FormatterShowcase(String legacyField, List<String> items,
-            Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField,
-            boolean validateOnConstruction, String defaultLocale, ExecutorService executorService
+            Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField, boolean validateOnConstruction,
+            String defaultLocale, ExecutorService executorService
     ) {
         this.legacyField = legacyField;
         this.items = items;
@@ -118,10 +118,9 @@ public class FormatterShowcase
 
     // Scenario 9: Binary operator wrapping
     public boolean isValid() {
-        return legacyField != null && !legacyField.isEmpty()
-                && items != null && !items.isEmpty()
-                && items.stream().allMatch(item -> item != null && !item.isEmpty())
-                && complexGenericField != null && complexGenericField.size() > 0;
+        return legacyField != null && !legacyField.isEmpty() && items != null && !items.isEmpty()
+                && items.stream().allMatch(item -> item != null && !item.isEmpty()) && complexGenericField != null
+                && complexGenericField.size() > 0;
     }
 
     // Scenario 10: If/else without braces
@@ -177,9 +176,8 @@ public class FormatterShowcase
     enum Priority { LOW, MEDIUM, HIGH, CRITICAL }
 
     enum HttpStatus {
-        OK(200, "OK"), CREATED(201, "Created"), BAD_REQUEST(400, "Bad Request"),
-        UNAUTHORIZED(401, "Unauthorized"), FORBIDDEN(403, "Forbidden"), NOT_FOUND(404, "Not Found"),
-        INTERNAL_SERVER_ERROR(500, "Internal Server Error");
+        OK(200, "OK"), CREATED(201, "Created"), BAD_REQUEST(400, "Bad Request"), UNAUTHORIZED(401, "Unauthorized"),
+        FORBIDDEN(403, "Forbidden"), NOT_FOUND(404, "Not Found"), INTERNAL_SERVER_ERROR(500, "Internal Server Error");
 
         private final int code;
         private final String message;

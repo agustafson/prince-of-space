@@ -1,5 +1,6 @@
 package io.princeofspace;
 
+import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.IndentStyle;
 import org.junit.jupiter.api.Test;
@@ -82,6 +83,229 @@ class FormatterTest {
         assertThat(output).containsPattern("@Deprecated\\s*\\n\\s*private String s;");
     }
 
+    @Test
+    void emptyRecordBody_staysCompact() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder().javaLanguageLevel(LanguageLevel.JAVA_21).build());
+        String input = """
+                record UserProfile(String name, String email, int age) {}
+                """;
+
+        String output = f.format(input);
+
+        assertThat(output).contains("record UserProfile(String name, String email, int age) {}");
+    }
+
+    @Test
+    void emptyMethodBody_staysExpandedInJava8() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder().javaLanguageLevel(LanguageLevel.JAVA_8).build());
+        String input = """
+                class T {
+                    void m() {}
+                }
+                """;
+
+        String output = f.format(input);
+
+        assertThat(output).contains("void m() {\n");
+    }
+
+    @Test
+    void emptyMethodBody_staysCompactInJava21() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder().javaLanguageLevel(LanguageLevel.JAVA_21).build());
+        String input = """
+                class T {
+                    void m() {}
+                }
+                """;
+
+        String output = f.format(input);
+
+        assertThat(output).contains("void m() {}");
+    }
+
+    @Test
+    void typeUseMethodAnnotation_staysBetweenModifierAndReturnType() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder().javaLanguageLevel(LanguageLevel.JAVA_21).build());
+        String input = """
+                class T {
+                    public @org.jspecify.annotations.Nullable String findItem(String query) { return null; }
+                }
+                """;
+
+        String output = f.format(input);
+
+        assertThat(output).contains("public @org.jspecify.annotations.Nullable String findItem(String query)");
+    }
+
+    @Test
+    void switchExpression_keepsSpaceBeforeSelectorAndSingleLineCases() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder().javaLanguageLevel(LanguageLevel.JAVA_21).build());
+        String input = """
+                class T {
+                    sealed interface Shape permits Shape.Circle, Shape.Rectangle, Shape.Triangle {
+                        record Circle(double radius) implements Shape {}
+                        record Rectangle(double width, double height) implements Shape {}
+                        record Triangle(double base, double height) implements Shape {}
+                    }
+
+                    double scale(Shape shape) {
+                        return switch (shape) {
+                            case Shape.Circle c -> c.radius() > 100 ? 0.5 : 1.0;
+                            case Shape.Rectangle r -> r.width() == r.height() ? 1.0 : 0.75;
+                            case Shape.Triangle t -> 1.0;
+                        };
+                    }
+                }
+                """;
+
+        String output = f.format(input);
+
+        assertThat(output).contains("return switch (shape) {\n");
+        assertThat(output).contains("case Shape.Circle c -> c.radius() > 100 ? 0.5 : 1.0;\n");
+        assertThat(output).contains("case Shape.Rectangle r -> r.width() == r.height() ? 1.0 : 0.75;\n");
+    }
+
+    @Test
+    void textBlock_preservesContentIndent_andFormattedStaysOnClosingDelimiterLine() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder().javaLanguageLevel(LanguageLevel.JAVA_21).build());
+        String input = """
+                class T {
+                    String report(String legacyField, int size, boolean valid) {
+                        return \"\"\"
+                                Report for %s
+                                =============
+                                Items: %d
+                                Status: %s
+                                \"\"\".formatted(legacyField, size, valid ? "valid" : "invalid");
+                    }
+                }
+                """;
+
+        String output = f.format(input);
+
+        assertThat(output).contains("return \"\"\"\n");
+        assertThat(output).contains("                Report for %s\n");
+        assertThat(output).contains("                \"\"\".formatted(legacyField, size, valid ? \"valid\" : \"invalid\");\n");
+    }
+
+    @Test
+    void closingParenOnNewLine_movesWrappedTypeClauseBraceToNextLine() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(50)
+                                .maxLineLength(120)
+                                .continuationIndentSize(4)
+                                .wrapStyle(io.princeofspace.model.WrapStyle.BALANCED)
+                                .closingParenOnNewLine(true)
+                                .javaLanguageLevel(LanguageLevel.JAVA_21)
+                                .build());
+        String input =
+                """
+                sealed interface Shape permits Shape.Circle, Shape.Rectangle, Shape.Triangle {
+                    record Circle(double radius) implements Shape {}
+                    record Rectangle(double width, double height) implements Shape {}
+                    record Triangle(double base, double height) implements Shape {}
+                }
+                """;
+
+        String output = f.format(input);
+
+        assertThat(output).contains("Shape.Triangle\n{\n");
+    }
+
+    @Test
+    void closingParenOnNewLine_doesNotBreakShortCompactRecordHeader() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .closingParenOnNewLine(true)
+                                .javaLanguageLevel(LanguageLevel.JAVA_21)
+                                .build());
+        String input =
+                """
+                class T {
+                    record LoadedProfile(String name, java.util.List<String> orders, double balance) {}
+                }
+                """;
+
+        String output = f.format(input);
+
+        assertThat(output).contains("record LoadedProfile(String name, java.util.List<String> orders, double balance) {}");
+    }
+
+    @Test
+    void emptyMethodBody_staysCompactInJava21_withSectionComment() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder().javaLanguageLevel(LanguageLevel.JAVA_21).build());
+        String input = """
+                class T {
+                    // Placeholder methods
+                    private void validate(String locale) {}
+                    private void loadData() {}
+                    private void saveResult(Object r) {}
+                }
+                """;
+
+        String output = f.format(input);
+
+        assertThat(output).contains("private void validate(String locale) {}");
+        assertThat(output).contains("private void loadData() {}");
+        assertThat(output).contains("private void saveResult(Object r) {}");
+    }
+
+    @Test
+    void nestedEmptyRecordBody_staysCompact() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder().javaLanguageLevel(LanguageLevel.JAVA_21).build());
+        String input = """
+                class T {
+                    record UserProfile(String name, String email, int age) {}
+                }
+                """;
+
+        String output = f.format(input);
+
+        assertThat(output).contains("record UserProfile(String name, String email, int age) {}");
+    }
+
+    @Test
+    void nestedEmptyRecordBody_staysCompact_withFollowingRecord() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .javaLanguageLevel(LanguageLevel.JAVA_21)
+                                .build());
+        String input = """
+                class T {
+                    // Scenario 21: Record declarations
+                    record UserProfile(String name, String email, int age) {}
+
+                    record DetailedProfile(String firstName, String lastName, String email, String phone, String address, String city, String country, int age) {
+                        DetailedProfile {}
+                    }
+                }
+                """;
+
+        String output = f.format(input);
+
+        assertThat(output).contains("record UserProfile(String name, String email, int age) {}");
+    }
+
     // ── blank lines ───────────────────────────────────────────────────────────
 
     @Test
@@ -113,7 +337,7 @@ class FormatterTest {
                 """;
         String output = DEFAULT.format(input);
         // The method body should start immediately after "{"
-        assertThat(output).doesNotMatch("(?s).*\\{\\s*\\n\\s*\\n.*");
+        assertThat(output).contains("void m() {\n        a();");
     }
 
     // ── indentation ───────────────────────────────────────────────────────────

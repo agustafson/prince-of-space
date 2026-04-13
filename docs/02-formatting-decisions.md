@@ -124,6 +124,8 @@ doSomething(
 
 This applies consistently to both method parameter declarations and method call arguments.
 
+**Wrapped type clauses:** When `implements`, `extends`, or `permits` lists wrap across lines, the **`{`** that begins the class/interface/record body uses the same idea: with `closingParenOnNewLine=true`, the `{` is typically alone on the line after the last type; with `false`, `{` stays on the same line as the last type (K&R style). There is no `)` in a type clause, but the config name reflects the shared “closing delimiter” behavior.
+
 When `closingParenOnNewLine=true` and `continuationIndentSize` equals `indentSize`, this provides a crucial visual separator between wrapped parameters and the method body — without it, parameters and body are indistinguishable. This convention aligns with Kotlin's default style and common TypeScript/Prettier formatting.
 
 **Config:** `closingParenOnNewLine: true|false`

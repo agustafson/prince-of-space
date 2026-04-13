@@ -19,10 +19,11 @@ import java.nio.file.Path;
 
 // Scenario 1: Class declaration with long implements list
 public class FormatterShowcase
-        implements Comparable<FormatterShowcase>,
-            java.io.Serializable,
-            Cloneable,
-            AutoCloseable {
+        implements
+                Comparable<FormatterShowcase>,
+                java.io.Serializable,
+                Cloneable,
+                AutoCloseable {
 
     // Scenario 2: Field declarations with annotations
     private static final long serialVersionUID = 1L;
@@ -193,7 +194,8 @@ public class FormatterShowcase
             "updated_at",
             "status",
             "role",
-            "department"};
+            "department"
+    };
     public static final int[] SMALL_ARRAY = {1, 2, 3};
 
     // Scenario 15: Enum declarations
@@ -304,8 +306,8 @@ public class FormatterShowcase
     // Scenario 22: Sealed interface hierarchy
     sealed interface Shape
             permits Shape.Circle,
-                Shape.Rectangle,
-                Shape.Triangle {
+                    Shape.Rectangle,
+                    Shape.Triangle {
         double area();
 
         record Circle(double radius) implements Shape {

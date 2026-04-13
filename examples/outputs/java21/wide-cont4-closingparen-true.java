@@ -19,7 +19,8 @@ import java.nio.file.Path;
 
 // Scenario 1: Class declaration with long implements list
 public class FormatterShowcase
-    implements Comparable<FormatterShowcase>, java.io.Serializable, Cloneable, AutoCloseable {
+    implements Comparable<FormatterShowcase>, java.io.Serializable, Cloneable, AutoCloseable
+{
 
     // Scenario 2: Field declarations with annotations
     private static final long serialVersionUID = 1L;
@@ -31,8 +32,8 @@ public class FormatterShowcase
 
     // Scenario 3: Constructor with many parameters
     public FormatterShowcase(String legacyField, List<String> items,
-        Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField,
-        boolean validateOnConstruction, String defaultLocale, ExecutorService executorService
+        Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField, boolean validateOnConstruction,
+        String defaultLocale, ExecutorService executorService
     ) {
         this.legacyField = legacyField;
         this.items = items;
@@ -120,8 +121,8 @@ public class FormatterShowcase
     // Scenario 9: Binary operator wrapping
     public boolean isValid() {
         return legacyField != null && !legacyField.isBlank() && items != null && !items.isEmpty()
-            && items.stream().allMatch(item -> item != null && !item.isBlank())
-            && complexGenericField != null && complexGenericField.size() > 0;
+            && items.stream().allMatch(item -> item != null && !item.isBlank()) && complexGenericField != null
+            && complexGenericField.size() > 0;
     }
 
     // Scenario 10: If/else without braces
@@ -144,7 +145,8 @@ public class FormatterShowcase
         return items.stream()
             .filter(item -> item != null && !item.isBlank())
             .collect(Collectors.groupingBy(item -> String.valueOf(item.charAt(0)).toUpperCase(),
-                Collectors.mapping(String::toLowerCase, Collectors.toList())));
+                Collectors.mapping(String::toLowerCase, Collectors.toList())
+            ));
     }
 
     // Scenario 12: Try-with-resources
@@ -158,7 +160,10 @@ public class FormatterShowcase
 
     // Scenario 13: Annotation placement (including JSpecify type-use)
     public @org.jspecify.annotations.Nullable String findItem(String query) {
-        return items.stream().filter(item -> item.contains(query)).findFirst().orElse(null);
+        return items.stream()
+            .filter(item -> item.contains(query))
+            .findFirst()
+            .orElse(null);
     }
 
     @Override
@@ -176,9 +181,8 @@ public class FormatterShowcase
     enum Priority { LOW, MEDIUM, HIGH, CRITICAL }
 
     enum HttpStatus {
-        OK(200, "OK"), CREATED(201, "Created"), BAD_REQUEST(400, "Bad Request"),
-        UNAUTHORIZED(401, "Unauthorized"), FORBIDDEN(403, "Forbidden"), NOT_FOUND(404, "Not Found"),
-        INTERNAL_SERVER_ERROR(500, "Internal Server Error");
+        OK(200, "OK"), CREATED(201, "Created"), BAD_REQUEST(400, "Bad Request"), UNAUTHORIZED(401, "Unauthorized"),
+        FORBIDDEN(403, "Forbidden"), NOT_FOUND(404, "Not Found"), INTERNAL_SERVER_ERROR(500, "Internal Server Error");
 
         private final int code;
         private final String message;
@@ -200,8 +204,7 @@ public class FormatterShowcase
     // Scenario 16: Long string concatenation
     public String buildMessage() {
         var traditional = "Hello " + legacyField + ", you have " + items.size() + " items in your collection. "
-            + "Please review them at your earliest convenience. "
-            + "If you have any questions, please contact support.";
+            + "Please review them at your earliest convenience. " + "If you have any questions, please contact support.";
         return traditional;
     }
 
@@ -252,8 +255,8 @@ public class FormatterShowcase
     // Scenario 21: Record declarations
     record UserProfile(String name, String email, int age) {}
 
-    record DetailedProfile(String firstName, String lastName, String email, String phone, String address,
-        String city, String country, int age
+    record DetailedProfile(String firstName, String lastName, String email, String phone, String address, String city,
+        String country, int age
     ) {
         DetailedProfile {
             if (age < 0) {
@@ -348,7 +351,9 @@ public class FormatterShowcase
     // Scenario 28: Virtual threads
     public void processWithVirtualThreads(List<String> urls) throws Exception {
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            var futures = urls.stream().map(url -> executor.submit(() -> fetchAndProcess(url))).toList();
+            var futures = urls.stream()
+                .map(url -> executor.submit(() -> fetchAndProcess(url)))
+                .toList();
             for (var future : futures) {
                 var result = future.get();
                 System.out.println("Processed: " + result);

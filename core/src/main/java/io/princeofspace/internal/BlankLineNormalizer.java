@@ -40,8 +40,9 @@ final class BlankLineNormalizer {
     }
 
     private static boolean shouldKeep(List<String> emitted, String[] input, int blankIndex) {
-        // Rule 1: no blank immediately after "{"
-        if (lastNonBlank(emitted).trim().endsWith("{")) {
+        // Rule 1: no blank immediately after "{", EXCEPT after class/interface/enum/record opening braces
+        String prevLine = lastNonBlank(emitted).trim();
+        if (prevLine.endsWith("{") && !isTypeDeclarationBrace(emitted)) {
             return false;
         }
 
@@ -74,5 +75,60 @@ final class BlankLineNormalizer {
             }
         }
         return "";
+    }
+
+    private static boolean isTypeDeclarationBrace(List<String> emitted) {
+        int last = lastNonBlankIndex(emitted, emitted.size() - 1);
+        if (last < 0) {
+            return false;
+        }
+        String line = emitted.get(last).trim();
+        if (!line.endsWith("{")) {
+            return false;
+        }
+        if (looksLikeTopLevelTypeDeclarationHeader(emitted.get(last))) {
+            return true;
+        }
+        for (int i = last - 1; i >= 0; i--) {
+            String rawCandidate = emitted.get(i);
+            String candidate = rawCandidate.trim();
+            if (candidate.isEmpty()) {
+                break;
+            }
+            if (candidate.endsWith("{")) {
+                break;
+            }
+            if (looksLikeTopLevelTypeDeclarationHeader(rawCandidate)) {
+                return true;
+            }
+            if (candidate.endsWith(";") || candidate.endsWith("}")) {
+                break;
+            }
+        }
+        return false;
+    }
+
+    private static int lastNonBlankIndex(List<String> lines, int startInclusive) {
+        for (int i = startInclusive; i >= 0; i--) {
+            if (!lines.get(i).trim().isEmpty()) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static boolean looksLikeTopLevelTypeDeclarationHeader(String line) {
+        if (!line.equals(line.stripLeading())) {
+            return false;
+        }
+        String trimmedLine = line.trim();
+        return trimmedLine.contains(" class ")
+                || trimmedLine.startsWith("class ")
+                || trimmedLine.contains(" interface ")
+                || trimmedLine.startsWith("interface ")
+                || trimmedLine.contains(" enum ")
+                || trimmedLine.startsWith("enum ")
+                || trimmedLine.contains(" record ")
+                || trimmedLine.startsWith("record ");
     }
 }

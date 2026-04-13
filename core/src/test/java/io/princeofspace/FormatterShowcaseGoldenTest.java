@@ -19,9 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Compares {@link Formatter#format(String)} on each {@code examples/inputs/.../FormatterShowcase.java}
- * against the <strong>authoritative</strong> golden files under {@code examples/outputs/}. Those files
- * are the specification; adjust the formatter until they match — do not overwrite goldens to silence
- * tests.
+ * against golden files under {@code examples/outputs/}. Prefer fixing the formatter to match; after
+ * agreed behavior changes, regenerate with {@code RegenerateShowroomGoldens} (see {@code REGENERATE_SHOWROOM}).
  *
  * <p>Run with {@code ./gradlew :core:showroomGoldenTest} (excluded from the default {@code test} task
  * until showroom parity is complete).
@@ -33,7 +32,7 @@ class FormatterShowcaseGoldenTest {
         Path root = repoRoot();
         Path inputs = root.resolve("examples/inputs");
         Path outputs = root.resolve("examples/outputs");
-        String[] levels = {"java8", "java17", "java21"};
+        LanguageLevel[] levels = {LanguageLevel.JAVA_8, LanguageLevel.JAVA_17, LanguageLevel.JAVA_21};
         String[] goldens = {
             "balanced-cont4-closingparen-false.java",
             "balanced-cont4-closingparen-true.java",
@@ -49,9 +48,10 @@ class FormatterShowcaseGoldenTest {
             "wide-cont8-closingparen-true.java",
         };
         Stream.Builder<Arguments> b = Stream.builder();
-        for (String level : levels) {
+        for (LanguageLevel level : levels) {
+            String dir = showcaseDirFor(level);
             for (String name : goldens) {
-                b.add(Arguments.of(level, name, inputs.resolve(level).resolve("FormatterShowcase.java"), outputs.resolve(level).resolve(name)));
+                b.add(Arguments.of(level, name, inputs.resolve(dir).resolve("FormatterShowcase.java"), outputs.resolve(dir).resolve(name)));
             }
         }
         return b.build();
@@ -71,10 +71,9 @@ class FormatterShowcaseGoldenTest {
     }
 
     /**
-     * Maps matrix filename segments to {@link FormatterConfig}. Parser language level must accept the
-     * showcase source; {@code java17} inputs use syntax JavaParser only parses from {@code JAVA_21}.
+     * Maps matrix filename segments to {@link FormatterConfig}.
      */
-    static FormatterConfig formatterConfigFor(String level, String goldenFileName) {
+    static FormatterConfig formatterConfigFor(LanguageLevel level, String goldenFileName) {
         String base = goldenFileName.replace(".java", "");
         String[] p = base.split("-", 4);
         if (p.length != 4) {
@@ -89,19 +88,21 @@ class FormatterShowcaseGoldenTest {
             throw new IllegalArgumentException("Expected closingparen segment: " + goldenFileName);
         }
         boolean closing = Boolean.parseBoolean(p[3]);
-        LanguageLevel lang =
-                switch (level) {
-                    case "java8" -> LanguageLevel.JAVA_8;
-                    case "java17" -> LanguageLevel.JAVA_21;
-                    case "java21" -> LanguageLevel.JAVA_21;
-                    default -> throw new IllegalArgumentException(level);
-                };
         return FormatterConfig.builder()
                 .wrapStyle(wrap)
                 .continuationIndentSize(cont)
                 .closingParenOnNewLine(closing)
-                .javaLanguageLevel(lang)
+                .javaLanguageLevel(level)
                 .build();
+    }
+
+    private static String showcaseDirFor(LanguageLevel level) {
+        return switch (level) {
+            case JAVA_8 -> "java8";
+            case JAVA_17 -> "java17";
+            case JAVA_21 -> "java21";
+            default -> throw new IllegalArgumentException("Unsupported showcase language level: " + level);
+        };
     }
 
     private static String nl(String s) {
@@ -110,7 +111,7 @@ class FormatterShowcaseGoldenTest {
 
     @ParameterizedTest(name = "{0}/{1}")
     @MethodSource("cases")
-    void matchesGolden(String level, String goldenName, Path input, Path goldenPath) throws IOException {
+    void matchesGolden(LanguageLevel level, String goldenName, Path input, Path goldenPath) throws IOException {
         String source = Files.readString(input, StandardCharsets.UTF_8);
         String expected = Files.readString(goldenPath, StandardCharsets.UTF_8);
         Formatter f = new Formatter(formatterConfigFor(level, goldenName));

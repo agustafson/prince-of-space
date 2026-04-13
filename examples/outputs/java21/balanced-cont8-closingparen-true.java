@@ -22,7 +22,8 @@ public class FormatterShowcase
         implements Comparable<FormatterShowcase>,
         java.io.Serializable,
         Cloneable,
-        AutoCloseable {
+        AutoCloseable
+{
 
     // Scenario 2: Field declarations with annotations
     private static final long serialVersionUID = 1L;
@@ -304,10 +305,7 @@ public class FormatterShowcase
     }
 
     // Scenario 22: Sealed interface hierarchy
-    sealed interface Shape
-            permits Shape.Circle,
-            Shape.Rectangle,
-            Shape.Triangle {
+    sealed interface Shape permits Shape.Circle, Shape.Rectangle, Shape.Triangle {
         double area();
 
         record Circle(double radius) implements Shape {

@@ -17,10 +17,12 @@ import java.nio.file.Path;
 
 // Scenario 1: Class declaration with long implements list
 public class FormatterShowcase
-    implements Comparable<FormatterShowcase>,
+    implements
+        Comparable<FormatterShowcase>,
         java.io.Serializable,
         Cloneable,
-        AutoCloseable {
+        AutoCloseable
+{
 
     // Scenario 2: Field declarations with annotations
     private static final long serialVersionUID = 1L;
@@ -309,7 +311,8 @@ public class FormatterShowcase
     sealed interface Shape
         permits Shape.Circle,
             Shape.Rectangle,
-            Shape.Triangle {
+            Shape.Triangle
+    {
         double area();
 
         record Circle(double radius) implements Shape {
@@ -350,11 +353,12 @@ public class FormatterShowcase
     }
 
     // Scenario 24: Switch expressions
-    public double getScaleFactor(Shape shape) {
-        return switch (shape) {
-            case Shape.Circle c -> c.radius() > 100 ? 0.5 : 1.0;
-            case Shape.Rectangle r -> r.width() == r.height() ? 1.0 : 0.75;
-            case Shape.Triangle t -> 1.0;
+    public double getScaleFactor(String shapeType) {
+        return switch (shapeType) {
+            case "circle" -> 1.0;
+            case "rectangle" -> 0.75;
+            case "triangle" -> 1.0;
+            default -> 1.0;
         };
     }
 

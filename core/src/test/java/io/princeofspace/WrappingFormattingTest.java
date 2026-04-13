@@ -1,5 +1,6 @@
 package io.princeofspace;
 
+import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.WrapStyle;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,89 @@ class WrappingFormattingTest {
     }
 
     @Test
+    void lambdaHeavyChain_wrapsEvenWhenUnderPreferredLineLength() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .javaLanguageLevel(LanguageLevel.JAVA_21)
+                                .build());
+        String input =
+                """
+                import java.util.List;
+
+                class T {
+                    String m(List<String> items, String query) {
+                        return items.stream().filter(item -> item.contains(query)).findFirst().orElse(null);
+                    }
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("        return items.stream()\n");
+        assertThat(out).contains("            .filter(item -> item.contains(query))\n");
+        assertThat(out).contains("            .findFirst()\n");
+        assertThat(out).contains("            .orElse(null);\n");
+    }
+
+    @Test
+    void lambdaHeavyChain_withNestedLambda_wrapsBySegment() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .javaLanguageLevel(LanguageLevel.JAVA_21)
+                                .build());
+        String input =
+                """
+                import java.util.List;
+                import java.util.concurrent.ExecutorService;
+
+                class T {
+                    void m(List<String> urls, ExecutorService executor) {
+                        var futures = urls.stream().map(url -> executor.submit(() -> fetch(url))).toList();
+                    }
+
+                    String fetch(String url) { return url; }
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("        var futures = urls.stream()\n");
+        assertThat(out).contains("            .map(url -> executor.submit(() -> fetch(url)))\n");
+        assertThat(out).contains("            .toList();\n");
+    }
+
+    @Test
+    void lambdaHeavyChain_insideLogicalExpression_staysInline() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .javaLanguageLevel(LanguageLevel.JAVA_21)
+                                .build());
+        String input =
+                """
+                import java.util.List;
+
+                class T {
+                    boolean m(String legacyField, List<String> items, java.util.Map<String, String> complexGenericField) {
+                        return legacyField != null && !legacyField.isBlank() && items != null && !items.isEmpty() && items.stream().allMatch(item -> item != null && !item.isBlank()) && complexGenericField != null && complexGenericField.size() > 0;
+                    }
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("            && items.stream().allMatch(item -> item != null && !item.isBlank())\n");
+    }
+
+    @Test
     void logicalAnd_wrapsWithOperatorAtContinuationStart() {
         Formatter f =
                 new Formatter(
@@ -75,6 +159,688 @@ class WrappingFormattingTest {
         String out = f.format(input);
         assertThat(out).contains("implements");
         assertThat(out).contains("java.io.Serializable");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void implementsClause_narrow_cont8_doubleIndentsWrappedTypes() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(50)
+                                .maxLineLength(120)
+                                .continuationIndentSize(8)
+                                .wrapStyle(WrapStyle.NARROW)
+                                .build());
+        String input =
+                "public class T implements java.io.Serializable, java.lang.Cloneable, AutoCloseable {}";
+
+        String out = f.format(input);
+
+        assertThat(out)
+                .contains(
+                        """
+                        public class T
+                                implements
+                                        java.io.Serializable,
+                                        java.lang.Cloneable,
+                                        AutoCloseable
+                        {""");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void permitsClause_narrow_wrapsEvenWhenInlineWouldFit() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.NARROW)
+                                .closingParenOnNewLine(false)
+                                .javaLanguageLevel(LanguageLevel.JAVA_21)
+                                .build());
+        String input =
+                """
+                sealed interface Shape permits Shape.Circle, Shape.Rectangle, Shape.Triangle {
+                    record Circle(double radius) implements Shape {}
+                    record Rectangle(double width, double height) implements Shape {}
+                    record Triangle(double base, double height) implements Shape {}
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out)
+                .contains(
+                        """
+                        sealed interface Shape
+                            permits Shape.Circle,
+                                Shape.Rectangle,
+                                Shape.Triangle {""");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void implementsClause_wide_usesDeclarationColumnWhenGreedyPacking() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .build());
+        String input =
+                "public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io.Serializable, Cloneable, AutoCloseable {}";
+
+        String out = f.format(input);
+
+        assertThat(out)
+                .contains(
+                        """
+                        public class FormatterShowcase
+                            implements Comparable<FormatterShowcase>, java.io.Serializable, Cloneable, AutoCloseable
+                        {""");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void implementsClause_wide_cont8_keepsLastTypeOnWrappedLine() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(8)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .build());
+        String input =
+                "public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io.Serializable, Cloneable, AutoCloseable {}";
+
+        String out = f.format(input);
+
+        assertThat(out)
+                .contains(
+                        """
+                        public class FormatterShowcase
+                                implements Comparable<FormatterShowcase>, java.io.Serializable, Cloneable, AutoCloseable
+                        {""");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void constructorParameters_wide_useOpeningColumnWhenGreedyPacking() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .closingParenOnNewLine(true)
+                                .build());
+        String input =
+                """
+                class FormatterShowcase {
+                    public FormatterShowcase(String legacyField, List<String> items, Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField, boolean validateOnConstruction, String defaultLocale, ExecutorService executorService) {}
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("public FormatterShowcase(String legacyField, List<String> items,\n");
+        assertThat(out)
+                .contains(
+                        "        Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField, boolean validateOnConstruction,\n");
+        assertThat(out).contains("        String defaultLocale, ExecutorService executorService\n");
+        assertThat(out).contains("    ) {\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void constructorParameters_wide_cont8_keepLastParameterOnWrappedLine() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(8)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .closingParenOnNewLine(false)
+                                .build());
+        String input =
+                """
+                import java.util.List;
+                import java.util.Map;
+                import java.util.Optional;
+                import java.util.concurrent.CompletableFuture;
+                import java.util.concurrent.ExecutorService;
+
+                class FormatterShowcase {
+                    public FormatterShowcase(String legacyField, List<String> items, Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField, boolean validateOnConstruction, String defaultLocale, ExecutorService executorService) {}
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("    public FormatterShowcase(String legacyField, List<String> items,\n");
+        assertThat(out)
+                .contains(
+                        "            Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField, boolean validateOnConstruction,\n");
+        assertThat(out)
+                .contains(
+                        "            String defaultLocale, ExecutorService executorService) {\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void blockLambdaInFirstWrappedChainCall_indentsRelativeToChainContinuation() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(60)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .closingParenOnNewLine(true)
+                                .build());
+        String input =
+                """
+                import java.util.concurrent.CompletableFuture;
+                import java.util.concurrent.ExecutorService;
+
+                class T {
+                    ExecutorService executorService;
+
+                    void m() {
+                        CompletableFuture.supplyAsync(() -> { loadData(); return processData(); }, executorService).thenApply(result -> transformResult(result)).thenAccept(finalResult -> consume(finalResult));
+                    }
+
+                    void loadData() {}
+                    String processData() { return ""; }
+                    String transformResult(String result) { return result; }
+                    void consume(String result) {}
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("        CompletableFuture.supplyAsync(() -> {\n");
+        assertThat(out).contains("                loadData();\n");
+        assertThat(out).contains("                return processData();\n");
+        assertThat(out).contains("            }, executorService)\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void blockLambdaInFirstWrappedChainCall_honorsContinuationIndentSize() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(60)
+                                .maxLineLength(150)
+                                .continuationIndentSize(8)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .closingParenOnNewLine(true)
+                                .build());
+        String input =
+                """
+                import java.util.concurrent.CompletableFuture;
+                import java.util.concurrent.ExecutorService;
+
+                class T {
+                    ExecutorService executorService;
+
+                    void m() {
+                        CompletableFuture.supplyAsync(() -> { loadData(); return processData(); }, executorService).thenApply(result -> transformResult(result)).thenAccept(finalResult -> consume(finalResult));
+                    }
+
+                    void loadData() {}
+                    String processData() { return ""; }
+                    String transformResult(String result) { return result; }
+                    void consume(String result) {}
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("                    loadData();\n");
+        assertThat(out).contains("                    return processData();\n");
+        assertThat(out).contains("                }, executorService)\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void nestedWrappedCall_gluesStackedClosingParens() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(90)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .closingParenOnNewLine(true)
+                                .build());
+        String input =
+                """
+                import java.util.List;
+                import java.util.Map;
+                import java.util.stream.Collectors;
+
+                class T {
+                    Map<String, List<String>> m(List<String> items) {
+                        return items.stream().collect(Collectors.groupingBy(item -> key(item), Collectors.mapping(String::toLowerCase, Collectors.toList())));
+                    }
+
+                    String key(String item) { return item; }
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains(".collect(Collectors.groupingBy(item -> key(item),\n");
+        assertThat(out)
+                .contains("                Collectors.mapping(String::toLowerCase, Collectors.toList())\n");
+        assertThat(out).contains("            ));\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void methodParameters_wide_packByPhysicalWidthAfterFirstForcedWrap() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .closingParenOnNewLine(true)
+                                .build());
+        String input =
+                """
+                import java.util.List;
+                import java.util.function.Function;
+
+                class T {
+                    public <A extends Comparable<A> & java.io.Serializable, B extends List<? super A>> B transformAndCollect(List<A> source, Function<A, B> transformer, java.util.function.BinaryOperator<B> combiner) {
+                        return null;
+                    }
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out)
+                .contains("    public <A extends Comparable<A> & java.io.Serializable, B extends List<? super A>> B transformAndCollect(\n");
+        assertThat(out)
+                .contains(
+                        "        List<A> source, Function<A, B> transformer, java.util.function.BinaryOperator<B> combiner\n");
+        assertThat(out).contains("    ) {\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void methodParameters_wide_cont8_keepThirdParameterOnSameWrappedLine() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(8)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .closingParenOnNewLine(false)
+                                .build());
+        String input =
+                """
+                import java.util.List;
+                import java.util.function.Function;
+
+                class T {
+                    public <A extends Comparable<A> & java.io.Serializable, B extends List<? super A>> B transformAndCollect(List<A> source, Function<A, B> transformer, java.util.function.BinaryOperator<B> combiner) {
+                        return null;
+                    }
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out)
+                .contains(
+                        "            List<A> source, Function<A, B> transformer, java.util.function.BinaryOperator<B> combiner) {\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void arrayInitializer_wide_keepsRoomForClosingBrace() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .build());
+        String input =
+                """
+                class T {
+                    static final String[] DEFAULT_COLUMNS = {"id", "name", "email", "created_at", "updated_at", "status", "role", "department"};
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out)
+                .contains(
+                        "    static final String[] DEFAULT_COLUMNS = {\"id\", \"name\", \"email\", \"created_at\", \"updated_at\", \"status\",\n");
+        assertThat(out).contains("        \"role\", \"department\"};\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void enumConstants_wide_accountForDeclarationColumnWhenGreedyPacking() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .build());
+        String input =
+                """
+                class T {
+                    enum HttpStatus {
+                        OK(200, "OK"), CREATED(201, "Created"), BAD_REQUEST(400, "Bad Request"), UNAUTHORIZED(401, "Unauthorized"), FORBIDDEN(403, "Forbidden"), NOT_FOUND(404, "Not Found"), INTERNAL_SERVER_ERROR(500, "Internal Server Error");
+                        private final int code;
+                        private final String message;
+                        HttpStatus(int code, String message) { this.code = code; this.message = message; }
+                    }
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out)
+                .contains(
+                        "        OK(200, \"OK\"), CREATED(201, \"Created\"), BAD_REQUEST(400, \"Bad Request\"), UNAUTHORIZED(401, \"Unauthorized\"),\n");
+        assertThat(out)
+                .contains(
+                        "        FORBIDDEN(403, \"Forbidden\"), NOT_FOUND(404, \"Not Found\"), INTERNAL_SERVER_ERROR(500, \"Internal Server Error\");\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void enumConstants_wide_cont8_keepThreeConstantsOnSecondLine() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(8)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .build());
+        String input =
+                """
+                class T {
+                    enum HttpStatus {
+                        OK(200, "OK"), CREATED(201, "Created"), BAD_REQUEST(400, "Bad Request"), UNAUTHORIZED(401, "Unauthorized"), FORBIDDEN(403, "Forbidden"), NOT_FOUND(404, "Not Found"), INTERNAL_SERVER_ERROR(500, "Internal Server Error");
+                        private final int code;
+                        private final String message;
+                        HttpStatus(int code, String message) { this.code = code; this.message = message; }
+                    }
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out)
+                .contains(
+                        "        OK(200, \"OK\"), CREATED(201, \"Created\"), BAD_REQUEST(400, \"Bad Request\"), UNAUTHORIZED(401, \"Unauthorized\"),\n");
+        assertThat(out)
+                .contains(
+                        "        FORBIDDEN(403, \"Forbidden\"), NOT_FOUND(404, \"Not Found\"), INTERNAL_SERVER_ERROR(500, \"Internal Server Error\");\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void balancedSingleWrappedLambdaArgument_staysInlineAfterOpeningParen() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(60)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .closingParenOnNewLine(false)
+                                .build());
+        String input =
+                """
+                import java.util.List;
+
+                class T {
+                    void m(List<String> items) {
+                        items.stream().filter(item -> { String trimmed = item.trim(); return !trimmed.isEmpty() && trimmed.length() > 3; }).forEach(System.out::println);
+                    }
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("            .filter(item -> {\n");
+        assertThat(out).contains("                String trimmed = item.trim();\n");
+        assertThat(out).contains("            })\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void balancedSingleWrappedMethodCallArgument_staysInlineAfterOpeningParen() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(90)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .closingParenOnNewLine(false)
+                                .build());
+        String input =
+                """
+                import java.util.List;
+                import java.util.Map;
+                import java.util.stream.Collectors;
+
+                class T {
+                    Map<String, List<String>> m(List<String> items) {
+                        return items.stream().collect(Collectors.groupingBy(item -> key(item), Collectors.mapping(String::toLowerCase, Collectors.toList())));
+                    }
+
+                    String key(String item) { return item; }
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("            .collect(Collectors.groupingBy(\n");
+        assertThat(out).contains("                item -> key(item),\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void stringConcatenation_balanced_keepsGreedyFirstLinePacking() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .javaLanguageLevel(LanguageLevel.JAVA_8)
+                                .build());
+        String input =
+                """
+                class T {
+                    String m(String legacyField, java.util.List<String> items) {
+                        String traditional = "Hello " + legacyField + ", you have " + items.size() + " items in your collection. " + "Please review them at your earliest convenience. " + "If you have any questions, please contact support.";
+                        return traditional;
+                    }
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out)
+                .contains(
+                        "        String traditional = \"Hello \" + legacyField + \", you have \" + items.size() + \" items in your collection. \"\n");
+        assertThat(out)
+                .contains(
+                        "            + \"Please review them at your earliest convenience. \" + \"If you have any questions, please contact support.\";\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void stringConcatenation_balanced_java21_keepsGreedyFirstLinePacking() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .javaLanguageLevel(LanguageLevel.JAVA_21)
+                                .build());
+        String input =
+                """
+                class T {
+                    String buildMessage(String legacyField, java.util.List<String> items) {
+                        var traditional = "Hello " + legacyField + ", you have " + items.size() + " items in your collection. " + "Please review them at your earliest convenience. " + "If you have any questions, please contact support.";
+                        return traditional;
+                    }
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out)
+                .contains(
+                        "        var traditional = \"Hello \" + legacyField + \", you have \" + items.size() + \" items in your collection. \"\n");
+        assertThat(out)
+                .contains(
+                        "            + \"Please review them at your earliest convenience. \" + \"If you have any questions, please contact support.\";\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void stringConcatenation_narrow_staysOneOperandPerLine() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.NARROW)
+                                .build());
+        String input =
+                """
+                class T {
+                    String m(String legacyField, java.util.List<String> items) {
+                        String traditional = "Hello " + legacyField + ", you have " + items.size() + " items in your collection. " + "Please review them at your earliest convenience. " + "If you have any questions, please contact support.";
+                        return traditional;
+                    }
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("        String traditional = \"Hello \"\n");
+        assertThat(out).contains("            + legacyField\n");
+        assertThat(out).contains("            + \", you have \"\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void logicalAnd_balanced_staysOneOperandPerLine() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .build());
+        String input =
+                """
+                class T {
+                    boolean m(String legacyField, java.util.List<String> items, java.util.Map<String, String> complexGenericField) {
+                        return legacyField != null && !legacyField.isEmpty() && items != null && !items.isEmpty() && items.stream().allMatch(item -> item != null && !item.isEmpty()) && complexGenericField != null && complexGenericField.size() > 0;
+                    }
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("        return legacyField != null\n");
+        assertThat(out).contains("            && !legacyField.isEmpty()\n");
+        assertThat(out).contains("            && items != null\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void logicalAnd_narrow_putsEachOperandOnItsOwnLine() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.NARROW)
+                                .build());
+        String input =
+                """
+                class T {
+                    boolean m(String legacyField, java.util.List<String> items, java.util.Map<String, String> complexGenericField) {
+                        return legacyField != null && !legacyField.isEmpty() && items != null && !items.isEmpty() && items.stream().allMatch(item -> item != null && !item.isEmpty()) && complexGenericField != null && complexGenericField.size() > 0;
+                    }
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("        return legacyField != null\n");
+        assertThat(out).contains("            && !legacyField.isEmpty()\n");
+        assertThat(out).contains("            && items != null\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void logicalAnd_wide_cont8_keepsPairPackingOnFirstTwoLines() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(8)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .build());
+        String input =
+                """
+                class T {
+                    boolean m(String legacyField, java.util.List<String> items, java.util.Map<String, String> complexGenericField) {
+                        return legacyField != null && !legacyField.isEmpty() && items != null && !items.isEmpty() && items.stream().allMatch(item -> item != null && !item.isEmpty()) && complexGenericField != null && complexGenericField.size() > 0;
+                    }
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out)
+                .contains(
+                        "        return legacyField != null && !legacyField.isEmpty() && items != null && !items.isEmpty()\n");
+        assertThat(out)
+                .contains(
+                        "                && items.stream().allMatch(item -> item != null && !item.isEmpty()) && complexGenericField != null\n");
+        assertThat(out).contains("                && complexGenericField.size() > 0;\n");
         assertThat(f.format(out)).isEqualTo(out);
     }
 }
