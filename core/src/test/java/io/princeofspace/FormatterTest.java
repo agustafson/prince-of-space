@@ -685,4 +685,27 @@ class FormatterTest {
         assertThat(f.format(once)).isEqualTo(once);
         assertThat(once).doesNotContain("-> // keep");
     }
+
+    @Test
+    void idempotency_lineCommentBeforeLambdaInitializer_breaksAfterEquals() {
+        Formatter f = new Formatter(
+                FormatterConfig.builder()
+                        .preferredLineLength(80)
+                        .maxLineLength(100)
+                        .wrapStyle(WrapStyle.WIDE)
+                        .build());
+        String input =
+                """
+                class T {
+                    void m() {
+                        java.util.function.Consumer<String> handler =
+                                // Mono note
+                                s -> System.out.println(s);
+                    }
+                }
+                """;
+        String once = f.format(input);
+        assertThat(f.format(once)).isEqualTo(once);
+        assertThat(once).doesNotContain("= //");
+    }
 }

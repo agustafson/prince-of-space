@@ -9,6 +9,7 @@ import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
+import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.comments.BlockComment;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.comments.LineComment;
@@ -28,6 +29,8 @@ import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.stmt.SwitchEntry;
 import com.github.javaparser.ast.stmt.TryStmt;
+import com.github.javaparser.ast.nodeTypes.NodeWithVariables;
+import com.github.javaparser.ast.type.ArrayType;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.ReferenceType;
 import com.github.javaparser.ast.type.Type;
@@ -1638,6 +1641,46 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     @Override
+    public void visit(VariableDeclarator n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        n.getName().accept(this, arg);
+        n.findAncestor(NodeWithVariables.class)
+                .ifPresent(
+                        ancestor ->
+                                ((NodeWithVariables<?>) ancestor)
+                                        .getMaximumCommonType()
+                                        .ifPresent(
+                                                commonType -> {
+                                                    final Type type = n.getType();
+                                                    ArrayType arrayType = null;
+                                                    for (int i = commonType.getArrayLevel();
+                                                            i < type.getArrayLevel();
+                                                            i++) {
+                                                        if (arrayType == null) {
+                                                            arrayType = (ArrayType) type;
+                                                        } else {
+                                                            arrayType =
+                                                                    (ArrayType) arrayType.getComponentType();
+                                                        }
+                                                        printAnnotations(arrayType.getAnnotations(), true, arg);
+                                                        printer.print("[]");
+                                                    }
+                                                }));
+        if (n.getInitializer().isPresent()) {
+            Expression init = n.getInitializer().get();
+            printer.print(" =");
+            if (hasLeadingLineOrBlockComment(init)) {
+                printer.println();
+                printCont();
+            } else {
+                printer.print(" ");
+            }
+            init.accept(this, arg);
+        }
+    }
+
+    @Override
     public void visit(LambdaExpr n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
@@ -1763,8 +1806,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             return;
         }
         boolean multilineBody =
-                stmts.size() > 1
-                        || leadingCommentNeedsNewLineAfterArrow(stmts.get(0));
+                stmts.size() > 1 || hasLeadingLineOrBlockComment(stmts.get(0));
         if (multilineBody) {
             printer.println();
             printer.indent();
@@ -1780,13 +1822,12 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     /**
-     * If a line/block comment on the first statement is printed immediately after {@code ->} on the
-     * same line, a second parse/re-print cycle can re-attach the comment to the {@code case} label.
-     * Breaking before the body matches {@link DefaultPrettyPrinterVisitor}'s switch-entry layout and
-     * keeps comment placement stable.
+     * Line/block comments on nodes printed immediately after {@code =} or {@code ->} without a line
+     * break can be re-attached to a different AST node on the next parse. Use a continuation line
+     * before printing such nodes.
      */
-    private static boolean leadingCommentNeedsNewLineAfterArrow(Statement stmt) {
-        Optional<Comment> c = stmt.getComment();
+    private static boolean hasLeadingLineOrBlockComment(Node node) {
+        Optional<Comment> c = node.getComment();
         if (c.isEmpty()) {
             return false;
         }
