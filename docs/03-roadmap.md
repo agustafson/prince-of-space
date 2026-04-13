@@ -5,7 +5,7 @@ state to production readiness. Tasks are ordered by priority. An agent should wo
 them sequentially (top to bottom), completing each before moving to the next unless a task
 explicitly says it can be parallelised.
 
-**Current state (April 2026):** 109 unit/integration tests + 36 showroom golden tests all
+**Current state (April 2026):** 122 unit/integration tests + 36 showroom golden tests all
 pass. `./gradlew build` is green (Spotless, Checkstyle, SpotBugs, Error Prone, NullAway).
 Phases 0–5 of `IMPLEMENTATION_PLAN.md` are complete. The core formatter handles the most
 common Java constructs with width-aware wrapping across all 3 wrap styles and 8 config knobs.
@@ -25,7 +25,7 @@ slip in undetected.
 
 1. In `core/build.gradle.kts`, remove the `excludeTags("showroom-golden")` line from the
    `tasks.test` block.
-2. Run `./gradlew :core:test` — all 145 tests (109 existing + 36 golden) should pass.
+2. Run `./gradlew :core:test` — all 158 tests (122 existing + 36 golden) should pass.
 3. Run `./gradlew build` — full build stays green.
 4. Update the `IMPLEMENTATION_PLAN.md` Phase 4 status paragraph: remove the sentence about
    excluding showroom-golden and enforcing later; state they now run in CI.
@@ -33,7 +33,7 @@ slip in undetected.
 ### Verification
 
 ```
-./gradlew :core:test          # 145 tests pass (includes goldens)
+./gradlew :core:test          # 158 tests pass (includes goldens)
 ./gradlew build               # green
 ```
 
@@ -298,7 +298,7 @@ width-aware decisions have **no scenario**, so they have zero golden coverage.
 
 ### What is covered vs what is missing
 
-**Currently covered (scenarios 1–20 shared, 21–25 java17+, 26–30 java21+):**
+**Currently covered (scenarios 1–20 shared, 21–25 java17+, 26–30 java21+, 31–43 shared):**
 implements clause, field annotations, constructor params, method params + generics,
 method chains (streams, builders), lambdas in chains, ternary, binary `&&`/`||`,
 if/else (brace enforcement), nested generics + collectors, try-with-resources,
@@ -536,6 +536,19 @@ For debugging and golden test work, this maps showcase scenarios to visitor code
 | 18 | Complex generic method | `visit(MethodDeclaration)`, parameter wrapping |
 | 19–20 | Small methods, interface defaults | Method / interface printing |
 | 21+ | Records, sealed, switch, text blocks | `visit(RecordDeclaration)`, `visit(SwitchExpr)`, etc. |
+| 31 | Long `for` header | `visit(ForStmt)`, default / future header wrapping |
+| 32 | Long `for-each` element type | `visit(ForeachStmt)` |
+| 33 | Long `while` condition | `visit(WhileStmt)` |
+| 34 | Standalone block lambda | `visit(LambdaExpr)`, `visit(BlockStmt)` |
+| 35 | Lambda as last argument (non-chain) | `visit(LambdaExpr)`, `printArguments` |
+| 36 | Constructor chaining `this(...)` | `visit(ExplicitConstructorInvocationStmt)` |
+| 37 | Multi-catch | `visit(CatchClause)` |
+| 38 | Nested ternary | `visit(ConditionalExpr)` |
+| 39 | Long `assert` | `visit(AssertStmt)` |
+| 40 | `synchronized` block | `visit(SynchronizedStmt)` |
+| 41 | Anonymous class | `visit(ObjectCreationExpr)`, type body |
+| 42 | Long `do-while` condition | `visit(DoStmt)` |
+| 43 | Long `return` expression | `visit(ReturnStmt)`, expression wrapping |
 
 ## Reference: key files
 
