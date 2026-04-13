@@ -768,4 +768,54 @@ class FormatterTest {
         assertThat(f.format(once)).isEqualTo(once);
         assertThat(once).doesNotContain("extends // generated marker");
     }
+
+    @Test
+    void idempotency_trailingCommentAfterWrappedChainCall_doesNotForceBreakInsideSingleArg() {
+        Formatter f = new Formatter(
+                FormatterConfig.builder()
+                        .preferredLineLength(80)
+                        .maxLineLength(100)
+                        .wrapStyle(WrapStyle.WIDE)
+                        .build());
+        String input = """
+                class T {
+                    Object m() {
+                        return Mono.deferContextual(
+                                        contextView -> {
+                                            return Mono.empty();
+                                        })
+                                .subscribeOn(Schedulers.boundedElastic()); // keep trailing comment on the call
+                    }
+                }
+                """;
+        String once = f.format(input);
+        assertThat(f.format(once)).isEqualTo(once);
+        assertThat(once).doesNotContain(".subscribeOn(\n");
+    }
+
+    @Test
+    void idempotency_endOfLineCommentAfterStatement_staysAttachedWithoutExtraBlankLine() {
+        Formatter f = new Formatter(
+                FormatterConfig.builder()
+                        .preferredLineLength(80)
+                        .maxLineLength(100)
+                        .wrapStyle(WrapStyle.WIDE)
+                        .build());
+        String input = """
+                class T {
+                    void m() {
+                        BindTarget bindTarget = mock();
+
+                        BindMarkers bindMarkers = BindMarkersFactory.named("@", "p", 32).create();
+
+                        bindMarkers.next(); // ignore
+                        bindMarkers.next().bindNull(bindTarget, Integer.class);
+                    }
+                }
+                """;
+        String once = f.format(input);
+        String twice = f.format(once);
+        assertThat(twice).isEqualTo(once);
+        assertThat(once).doesNotContain("\n\n        // ignore");
+    }
 }

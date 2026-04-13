@@ -93,7 +93,11 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                     int prevEnd = prev.getRange().get().end.line;
                     int curStart = s.getRange().get().begin.line;
                     boolean hasInterveningComment = hasCommentBetweenLines(n, prevEnd, curStart);
-                    if (curStart > prevEnd + 1 && !hasInterveningComment) {
+                    boolean currentStatementPrintsCommentBeforeCode =
+                            hasLineOrBlockCommentPrintedBeforeNode(s);
+                    if (curStart > prevEnd + 1
+                            && !hasInterveningComment
+                            && !currentStatementPrintsCommentBeforeCode) {
                         printer.println();
                     }
                 }
@@ -118,6 +122,18 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             }
         }
         return false;
+    }
+
+    private static boolean hasLineOrBlockCommentPrintedBeforeNode(Node node) {
+        Optional<Comment> c = node.getComment();
+        if (c.isEmpty() || node.getRange().isEmpty() || c.get().getRange().isEmpty()) {
+            return false;
+        }
+        Comment comment = c.get();
+        if (!(comment instanceof LineComment || comment instanceof BlockComment)) {
+            return false;
+        }
+        return comment.getRange().get().begin.line <= node.getRange().get().begin.line;
     }
 
     @Override
@@ -1839,11 +1855,24 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
      */
     private static boolean hasLeadingLineOrBlockComment(Node node) {
         Optional<Comment> c = node.getComment();
-        if (c.isEmpty()) {
+        if (c.isEmpty() || node.getRange().isEmpty() || c.get().getRange().isEmpty()) {
             return false;
         }
         Comment comment = c.get();
-        return comment instanceof LineComment || comment instanceof BlockComment;
+        if (!(comment instanceof LineComment || comment instanceof BlockComment)) {
+            return false;
+        }
+        int commentLine = comment.getRange().get().begin.line;
+        int nodeLine = node.getRange().get().begin.line;
+        if (commentLine < nodeLine) {
+            return true;
+        }
+        if (commentLine > nodeLine) {
+            return false;
+        }
+        int commentEndColumn = comment.getRange().get().end.column;
+        int nodeBeginColumn = node.getRange().get().begin.column;
+        return commentEndColumn < nodeBeginColumn;
     }
 
 }
