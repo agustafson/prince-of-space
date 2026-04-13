@@ -17,9 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Formats every {@code .java} file under {@code examples/outputs} (golden files produced by
  * {@code RegenerateShowroomGoldens}). These must be fixed points: {@code format(format(x)) == format(x)}.
  * <p>
- * {@code examples/inputs} are hand-maintained and are only required to parse and format once for
- * showroom tests; they are not included here because the full inputs are not always idempotent
- * under double-formatting with the current printer.
+ * {@code examples/inputs} must also satisfy {@code format(format(x)) == format(x)} (same language
+ * level inference as for outputs).
  */
 class ExamplesCorpusFormatTest {
 
@@ -74,7 +73,7 @@ class ExamplesCorpusFormatTest {
     }
 
     @Test
-    void formatShowcaseInputs_singlePassSucceeds() throws IOException {
+    void formatInputsTree_idempotent() throws IOException {
         Path root = examplesDirectory().resolve("inputs");
         assertThat(Files.isDirectory(root)).as("missing %s", root).isTrue();
         List<Path> files = new ArrayList<>();
@@ -85,7 +84,9 @@ class ExamplesCorpusFormatTest {
         for (Path p : files) {
             LanguageLevel level = languageLevelFor(p);
             Formatter f = new Formatter(FormatterConfig.builder().javaLanguageLevel(level).build());
-            f.format(Files.readString(p));
+            String src = Files.readString(p);
+            String once = f.format(src);
+            assertThat(f.format(once)).as("%s", p).isEqualTo(once);
         }
     }
 }

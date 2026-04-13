@@ -5,7 +5,7 @@ state to production readiness. Tasks are ordered by priority. An agent should wo
 them sequentially (top to bottom), completing each before moving to the next unless a task
 explicitly says it can be parallelised.
 
-**Current state (April 2026):** 164 tests (128 unit/integration + 36 showroom golden) all
+**Current state (April 2026):** 165 tests (129 unit/integration + 36 showroom golden) all
 pass (2 optional tests skipped when env vars unset). `./gradlew build` is green (Spotless,
 Checkstyle, SpotBugs, Error Prone, NullAway).
 Phases 0–8 of `IMPLEMENTATION_PLAN.md` are complete. The core formatter handles the most
@@ -18,7 +18,7 @@ Golden tests run in the default `test` task.
 
 ## Task 1 — Enable golden tests in CI ✓ COMPLETE
 
-Golden tests now run in the default `test` task (no `excludeTags`). All 164 tests pass (2 skipped).
+Golden tests now run in the default `test` task (no `excludeTags`). All 165 tests pass (2 skipped).
 
 ---
 

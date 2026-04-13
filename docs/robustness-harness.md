@@ -2,10 +2,9 @@
 
 ## Checked-in corpus (always on)
 
-`ExamplesCorpusFormatTest` walks `examples/outputs/**` and asserts every golden `.java` file satisfies
-`format(format(x)) == format(x)`. It also walks `examples/inputs/**` and asserts a single
-`format(...)` succeeds (parse + print). Language level is inferred from path segments `java8`,
-`java17`, or `java21`.
+`ExamplesCorpusFormatTest` walks `examples/outputs/**` and `examples/inputs/**` and asserts every
+`.java` file satisfies `format(format(x)) == format(x)` (language level from path segments `java8`,
+`java17`, or `java21`).
 
 ## Optional checkout (manual / CI with clone)
 

@@ -336,10 +336,17 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             return new NodeList<>(n.getAnnotations());
         }
         int firstModifierColumn = n.getModifiers().get(0).getRange().map(r -> r.begin.column).orElse(Integer.MAX_VALUE);
+        int firstModifierLine = n.getModifiers().get(0).getRange().map(r -> r.begin.line).orElse(Integer.MAX_VALUE);
         NodeList<AnnotationExpr> result = new NodeList<>();
         for (AnnotationExpr annotation : n.getAnnotations()) {
             int annotationColumn = annotation.getRange().map(r -> r.begin.column).orElse(Integer.MIN_VALUE);
-            if (annotationColumn < firstModifierColumn) {
+            int annotationLine = annotation.getRange().map(r -> r.begin.line).orElse(Integer.MIN_VALUE);
+            // Lexical column alone is not enough: after a first format pass, @Override may sit on the
+            // line above "public" at the *same* column as "public", so we also treat any annotation
+            // starting on a line strictly before the first modifier line as a declaration annotation.
+            boolean beforeOnEarlierLine = annotationLine < firstModifierLine;
+            boolean beforeOnSameLine = annotationLine == firstModifierLine && annotationColumn < firstModifierColumn;
+            if (beforeOnEarlierLine || beforeOnSameLine) {
                 result.add(annotation);
             }
         }

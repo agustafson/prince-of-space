@@ -101,5 +101,5 @@ Parse → `LexicalPreservingPrinter.setup` (comment/token coherence for transfor
 - Idempotency fuzz: `IdempotencyFuzzTest` (randomized `FormatterConfig` over fixed snippets + AST-built CU)
 - Examples corpus: `ExamplesCorpusFormatTest` (outputs idempotent; inputs single-pass)
 - 3 Java levels (java8, java17, java21) × 12 config combinations = 36 golden files
-- 164 total tests (128 unit/integration + 36 golden; 2 optional skipped)
+- 165 total tests (129 unit/integration + 36 golden; 2 optional skipped)
 - Every test must verify idempotency: `format(format(x)) == format(x)`

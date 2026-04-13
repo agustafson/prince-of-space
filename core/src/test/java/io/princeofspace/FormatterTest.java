@@ -493,6 +493,20 @@ class FormatterTest {
         assertThat(DEFAULT.format(once)).isEqualTo(once);
     }
 
+    @Test
+    void methodDeclaration_annotationsOnOwnLines_idempotentOnSecondFormat() {
+        String input = """
+                class T implements Comparable<T> {
+                    @Override @SuppressWarnings("unchecked") public int compareTo(T o) {
+                        return 0;
+                    }
+                }
+                """;
+        String once = DEFAULT.format(input);
+        assertThat(once).contains("@Override");
+        assertThat(DEFAULT.format(once)).isEqualTo(once);
+    }
+
     // ── error handling ────────────────────────────────────────────────────────
 
     @Test
