@@ -465,7 +465,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             for (Expression p : parts) {
                 flat += est(p) + 4;
             }
-            if (flat <= fmt.preferredLineLength()) {
+            if (flat <= fmt.preferredLineLength() && flat <= fmt.maxLineLength()) {
                 parts.get(0).accept(this, arg);
                 String os = n.getOperator().asString();
                 for (int i = 1; i < parts.size(); i++) {
@@ -500,7 +500,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             for (Expression p : parts) {
                 flat += est(p) + 3;
             }
-            if (flat <= fmt.preferredLineLength()) {
+            if (flat <= fmt.preferredLineLength() && flat <= fmt.maxLineLength()) {
                 parts.get(0).accept(this, arg);
                 for (int i = 1; i < parts.size(); i++) {
                     printer.print(" + ");
@@ -535,7 +535,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         for (int i = 1; i < parts.size(); i++) {
             int opLen = op.length() + 2; // " op "
             int partLen = est(parts.get(i));
-            if (used + opLen + partLen > budget) {
+            boolean overPreferred = used + opLen + partLen > budget;
+            boolean overMax = used + opLen + partLen > fmt.maxLineLength();
+            if (overPreferred || overMax) {
                 printer.println();
                 printCont();
                 printer.print(op);
@@ -557,7 +559,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
         int flat = column() + est(n.getCondition()) + 3 + est(n.getThenExpr()) + 3 + est(n.getElseExpr());
-        if (flat <= fmt.preferredLineLength()) {
+        if (flat <= fmt.preferredLineLength() && flat <= fmt.maxLineLength()) {
             n.getCondition().accept(this, arg);
             printer.print(" ? ");
             n.getThenExpr().accept(this, arg);
@@ -591,7 +593,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     private boolean argsNeedWrap(NodeList<? extends Expression> args) {
-        return column() + 1 + argsFlatWidth(args) > fmt.preferredLineLength();
+        int width = column() + 1 + argsFlatWidth(args);
+        return width > fmt.preferredLineLength() || width > fmt.maxLineLength();
     }
 
     private void printCommaSeparatedExprs(NodeList<? extends Expression> args, Void arg) {
@@ -646,7 +649,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             int need = est(e) + (first ? 0 : 2);
             boolean shouldWrapForLoneLastItem = avoidLoneLastItem && !first && remaining == 2;
             int lineBudget = budget + (extraLastLineBudget > 0 && remaining == 1 ? extraLastLineBudget : 0);
-            if (!first && (column() + need > lineBudget || shouldWrapForLoneLastItem)) {
+            if (!first
+                    && (column() + need > lineBudget
+                            || wouldExceedMaxLine(need)
+                            || shouldWrapForLoneLastItem)) {
                 printer.print(",");
                 printer.println();
                 printCont();
@@ -660,7 +666,13 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     private boolean paramsNeedWrap(NodeList<Parameter> ps) {
-        return column() + 1 + paramsFlatWidth(ps) > fmt.preferredLineLength();
+        int width = column() + 1 + paramsFlatWidth(ps);
+        return width > fmt.preferredLineLength() || width > fmt.maxLineLength();
+    }
+
+    /** Whether appending {@code additionalWidth} characters on the current line would exceed the configured hard line limit. */
+    private boolean wouldExceedMaxLine(int additionalWidth) {
+        return column() + additionalWidth > fmt.maxLineLength();
     }
 
     private void printParametersList(NodeList<Parameter> ps, Void arg) {
@@ -689,10 +701,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                     // the next line, that width is not needed on the param line.
                     lineBudget += fmt.closingParenOnNewLine() ? 3 : -3;
                 }
-                if (first && column() + need > lineBudget) {
+                if (first && (column() + need > lineBudget || wouldExceedMaxLine(need))) {
                     printer.println();
                     printCont();
-                } else if (!first && column() + need > lineBudget) {
+                } else if (!first && (column() + need > lineBudget || wouldExceedMaxLine(need))) {
                     printer.print(",");
                     printer.println();
                     printCont();
@@ -928,7 +940,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     private boolean printImplementsClause(NodeList<ClassOrInterfaceType> types, Void arg) {
         int header = column();
         // Check if everything fits on the current line (include " {" trailing)
-        if (header + 12 + implementsTypesWidth(types) + 2 <= fmt.preferredLineLength()) {
+        int inlineWidth = header + 12 + implementsTypesWidth(types) + 2;
+        if (inlineWidth <= fmt.preferredLineLength() && inlineWidth <= fmt.maxLineLength()) {
             printer.print(" implements ");
             printTypeListInline(types, arg);
             return false;
@@ -975,8 +988,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             return false;
         }
         int header = column();
+        int permitsInline = header + 9 + implementsTypesWidth(types);
         if (fmt.wrapStyle() != WrapStyle.NARROW
-                && header + 9 + implementsTypesWidth(types) <= fmt.preferredLineLength()) {
+                && permitsInline <= fmt.preferredLineLength()
+                && permitsInline <= fmt.maxLineLength()) {
             printer.print(" permits ");
             printTypeListInline(types, arg);
             return false;
@@ -1010,7 +1025,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         boolean first = true;
         for (ClassOrInterfaceType t : types) {
             int need = t.toString().length() + (first ? 0 : 2);
-            if (!first && column() + need > budget) {
+            if (!first && (column() + need > budget || wouldExceedMaxLine(need))) {
                 printer.print(",");
                 printer.println();
                 printCont();
@@ -1053,7 +1068,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         boolean hasMembers = !n.getMembers().isEmpty();
         boolean hasBodies = n.getEntries().stream().anyMatch(e -> !e.getClassBody().isEmpty());
         int flatWidth = enumConstantsFlatWidth(n.getEntries());
-        boolean fitsOneLine = column() + 3 + flatWidth + 2 <= fmt.preferredLineLength()
+        int oneLineEnum = column() + 3 + flatWidth + 2;
+        boolean fitsOneLine = oneLineEnum <= fmt.preferredLineLength()
+                && oneLineEnum <= fmt.maxLineLength()
                 && !hasBodies && !hasMembers;
         if (fitsOneLine && n.getEntries().isNonEmpty()) {
             printer.print(" { ");
@@ -1075,7 +1092,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 int budget = fmt.preferredLineLength();
                 for (EnumConstantDeclaration e : n.getEntries()) {
                     int need = e.toString().length() + (first ? 0 : 2);
-                    if (!first && column() + need > budget) {
+                    if (!first && (column() + need > budget || wouldExceedMaxLine(need))) {
                         printer.print(",");
                         printer.println();
                     } else if (!first) {
@@ -1123,7 +1140,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printComment(n.getComment(), arg);
         printer.print("{");
         if (!isNullOrEmpty(n.getValues())) {
-            boolean multi = column() + argsFlatWidth(n.getValues()) + 2 > fmt.preferredLineLength();
+            int arrayFlat = column() + argsFlatWidth(n.getValues()) + 2;
+            boolean multi =
+                    arrayFlat > fmt.preferredLineLength() || arrayFlat > fmt.maxLineLength();
             if (multi) {
                 if (fmt.wrapStyle() == WrapStyle.WIDE) {
                     // Greedy inline packing

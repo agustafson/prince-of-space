@@ -14,6 +14,15 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class WrappingFormattingTest {
 
+    private static void assertNoLineLongerThan(String formatted, int maxLineLength) {
+        String[] lines = formatted.split("\\R", -1);
+        for (int i = 0; i < lines.length; i++) {
+            assertThat(lines[i].length())
+                    .as("line %d must not exceed maxLineLength=%d: %s", i, maxLineLength, lines[i])
+                    .isLessThanOrEqualTo(maxLineLength);
+        }
+    }
+
     @Test
     void methodChain_wrapsEachSegmentWhenPreferredExceeded() {
         Formatter f =
@@ -844,6 +853,132 @@ class WrappingFormattingTest {
                 .contains(
                         "                && items.stream().allMatch(item -> item != null && !item.isEmpty()) && complexGenericField != null\n");
         assertThat(out).contains("                && complexGenericField.size() > 0;\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void maxLineLength_enforcedForWideMethodParameters() {
+        int max = 55;
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(50)
+                                .maxLineLength(max)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .closingParenOnNewLine(false)
+                                .build());
+        String input =
+                """
+                class TightMargins {
+                    void m(
+                            String aaaaaaaaaaa,
+                            String bbbbbbbbbbb,
+                            String ccccccccccc,
+                            String ddddddddddd,
+                            String eeeeeeeeeee) {}
+                }
+                """;
+        String out = f.format(input);
+        assertNoLineLongerThan(out, max);
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void maxLineLength_enforcedForWideBinaryAndChain() {
+        int max = 58;
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(52)
+                                .maxLineLength(max)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .build());
+        String input =
+                """
+                class TightMargins {
+                    boolean m(boolean x0, boolean x1, boolean x2, boolean x3, boolean x4) {
+                        return x0 && x1 && x2 && x3 && x4;
+                    }
+                }
+                """;
+        String out = f.format(input);
+        assertNoLineLongerThan(out, max);
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void maxLineLength_enforcedForWideStringConcatenation() {
+        int max = 56;
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(48)
+                                .maxLineLength(max)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .build());
+        String input =
+                """
+                class TightMargins {
+                    String m() {
+                        return "aaaaaaaaaaa"
+                                + "bbbbbbbbbbb"
+                                + "ccccccccccc"
+                                + "ddddddddddd"
+                                + "eeeeeeeeeee";
+                    }
+                }
+                """;
+        String out = f.format(input);
+        assertNoLineLongerThan(out, max);
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void maxLineLength_enforcedForWideImplementsClause() {
+        int max = 62;
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(55)
+                                .maxLineLength(max)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .build());
+        String input =
+                "public class TightMargins implements AA.AAAAAAAAAAA, BB.BBBBBBBBBBB, CC.CCCCCCCCCCC, DD.DDDDDDDDDDD, EE.EEEEEEEEEEE {}";
+        String out = f.format(input);
+        assertNoLineLongerThan(out, max);
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void maxLineLength_enforcedForWideArrayInitializer() {
+        int max = 54;
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(46)
+                                .maxLineLength(max)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .build());
+        String input =
+                """
+                class TightMargins {
+                    String[] NAMES = {
+                        "aaaaaaaaaaa",
+                        "bbbbbbbbbbb",
+                        "ccccccccccc",
+                        "ddddddddddd",
+                        "eeeeeeeeeee"
+                    };
+                }
+                """;
+        String out = f.format(input);
+        assertNoLineLongerThan(out, max);
         assertThat(f.format(out)).isEqualTo(out);
     }
 }
