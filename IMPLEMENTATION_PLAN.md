@@ -130,7 +130,7 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 **Goal:** Implement the line-breaking and wrapping logic, which is the most complex and critical part of the formatter.
 
-**Status:** `PrincePrettyPrinterVisitor` implements width-aware layout (preferred/max, wrap styles, continuation indent) for method chains, parameter/argument lists, binary/`+`/`&&`/`||`, ternaries, `implements`/`permits` clauses, array initializers, and record headers. **Showroom:** `FormatterShowcaseGoldenTest` compares `Formatter.format` on `examples/inputs/.../FormatterShowcase.java` to `examples/outputs/<java8|java17|java21>/`; these tests are tagged `showroom-golden` and run in the default `./gradlew :core:test` (CI). The `:core:showroomGoldenTest` task still selects only those tests. After intentional formatter changes, refresh goldens with `REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens` (see `RegenerateShowroomGoldens`). Try-with-resources column alignment remains follow-up work; see `WrappingFormattingTest` for targeted regressions.
+**Status:** `PrincePrettyPrinterVisitor` implements width-aware layout (preferred/max, wrap styles, continuation indent) for method chains, parameter/argument lists, binary/`+`/`&&`/`||`, ternaries, `implements`/`permits` clauses, `throws` lists, generic type parameters, array initializers, record headers, try-with-resources (including `closingParenOnNewLine` for the resource list), and enum trailing commas where documented. Greedy layouts enforce `maxLineLength` in addition to `preferredLineLength`. **Showroom:** `FormatterShowcaseGoldenTest` compares `Formatter.format` on `examples/inputs/.../FormatterShowcase.java` to `examples/outputs/<java8|java17|java21>/`; these tests are tagged `showroom-golden` and run in the default `./gradlew :core:test` (CI). The `:core:showroomGoldenTest` task still selects only those tests. After intentional formatter changes, refresh goldens with `REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens` (see `RegenerateShowroomGoldens`). Standalone lambda layout outside chains remains a targeted follow-up; see `docs/03-roadmap.md` Task 6.
 
 ### Tasks
 
@@ -239,6 +239,8 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 **Goal:** Guarantee that formatting is stable and repeatable.
 
+**Status:** Tests assert idempotency on formatted output where applicable; `IdempotencyFuzzTest` runs many rounds with pseudo-random `FormatterConfig` over fixed snippets. Broader AST-construction fuzzing and JMH-style benchmarks remain optional follow-ups (see roadmap).
+
 ### Tasks
 
 1. **Implement idempotency check** in the test suite: for every test case, verify `format(format(input)) == format(input)`.
@@ -258,6 +260,8 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 ## Phase 7: Spotless Integration
 
 **Goal:** Create a Spotless `FormatterStep` so users can integrate via Spotless's Maven/Gradle plugins.
+
+**Status:** Implemented in `spotless` as `io.princeofspace.spotless.PrinceOfSpaceStep`; `FormatterConfig` is `Serializable` for step state. Usage is documented in the root `README.md`.
 
 ### Tasks
 
@@ -291,6 +295,8 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 ## Phase 8: CLI Tool
 
 **Goal:** Standalone command-line tool for formatting files.
+
+**Status:** Implemented as `io.princeofspace.cli.Main` (Picocli) with `--check`, `--stdin`, `--java-version`, `-r`/`--recursive`, `-v`/`--verbose`, virtual-thread batch formatting, and `git ls-files` when inside a Git work tree. Shadow JAR: `./gradlew :cli:shadowJar`.
 
 ### Tasks
 

@@ -241,6 +241,7 @@ public class FormatterShowcase
     // Scenario 17: Nested interface
     @FunctionalInterface
     interface Transformer<T, R> {
+
         R transform(T input);
     }
 
@@ -269,6 +270,7 @@ public class FormatterShowcase
 
     // Scenario 20: Default and static interface methods
     interface Validator<T> {
+
         boolean validate(T item);
 
         default Validator<T> and(Validator<T> other) {
@@ -296,6 +298,7 @@ public class FormatterShowcase
         String city,
         String country,
         int age) {
+
         DetailedProfile {
             if (age < 0) {
                 throw new IllegalArgumentException("Age must be non-negative: " + age);
@@ -305,9 +308,11 @@ public class FormatterShowcase
 
     // Scenario 22: Sealed interface hierarchy
     sealed interface Shape permits Shape.Circle, Shape.Rectangle, Shape.Triangle {
+
         double area();
 
         record Circle(double radius) implements Shape {
+
             @Override
             public double area() {
                 return Math.PI * radius * radius;
@@ -315,6 +320,7 @@ public class FormatterShowcase
         }
 
         record Rectangle(double width, double height) implements Shape {
+
             @Override
             public double area() {
                 return width * height;
@@ -322,6 +328,7 @@ public class FormatterShowcase
         }
 
         record Triangle(double base, double height) implements Shape {
+
             @Override
             public double area() {
                 return 0.5 * base * height;

@@ -831,16 +831,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.println();
         }
         printer.print(")");
-        if (!isNullOrEmpty(n.getThrownExceptions())) {
-            printer.print(" throws ");
-            for (Iterator<ReferenceType> i = n.getThrownExceptions().iterator(); i.hasNext(); ) {
-                ReferenceType name = i.next();
-                name.accept(this, arg);
-                if (i.hasNext()) {
-                    printer.print(", ");
-                }
-            }
-        }
+        printThrowsClause(n.getThrownExceptions(), arg);
         printer.print(" ");
         n.getBody().accept(this, arg);
     }
@@ -881,16 +872,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.println();
         }
         printer.print(")");
-        if (!isNullOrEmpty(n.getThrownExceptions())) {
-            printer.print(" throws ");
-            for (Iterator<ReferenceType> i = n.getThrownExceptions().iterator(); i.hasNext(); ) {
-                ReferenceType name = i.next();
-                name.accept(this, arg);
-                if (i.hasNext()) {
-                    printer.print(", ");
-                }
-            }
-        }
+        printThrowsClause(n.getThrownExceptions(), arg);
         if (!n.getBody().isPresent()) {
             printer.print(";");
         } else {
@@ -1122,6 +1104,81 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             if (i.hasNext()) {
                 printer.print(", ");
             }
+        }
+    }
+
+    private static int referenceTypesFlatWidth(NodeList<ReferenceType> types) {
+        int w = 0;
+        boolean first = true;
+        for (ReferenceType t : types) {
+            if (!first) {
+                w += 2;
+            }
+            first = false;
+            w += t.toString().length();
+        }
+        return w;
+    }
+
+    private void printThrowsClause(NodeList<ReferenceType> types, Void arg) {
+        if (isNullOrEmpty(types)) {
+            return;
+        }
+        int inline = column() + 7 + referenceTypesFlatWidth(types);
+        if (inline <= fmt.preferredLineLength() && inline <= fmt.maxLineLength()) {
+            printer.print(" throws ");
+            for (Iterator<ReferenceType> i = types.iterator(); i.hasNext(); ) {
+                i.next().accept(this, arg);
+                if (i.hasNext()) {
+                    printer.print(", ");
+                }
+            }
+            return;
+        }
+        if (fmt.wrapStyle() == WrapStyle.NARROW) {
+            printer.println();
+            printCont();
+            printer.print("throws");
+            for (int i = 0; i < types.size(); i++) {
+                printer.println();
+                printNarrowListIndent();
+                types.get(i).accept(this, arg);
+                if (i < types.size() - 1) {
+                    printer.print(",");
+                }
+            }
+            return;
+        }
+        printer.println();
+        printCont();
+        printer.print("throws ");
+        if (fmt.wrapStyle() == WrapStyle.WIDE) {
+            printReferenceTypeListGreedy(types, arg);
+        } else {
+            types.get(0).accept(this, arg);
+            for (int i = 1; i < types.size(); i++) {
+                printer.print(",");
+                printer.println();
+                printCont();
+                types.get(i).accept(this, arg);
+            }
+        }
+    }
+
+    private void printReferenceTypeListGreedy(NodeList<ReferenceType> types, Void arg) {
+        int budget = fmt.preferredLineLength() - 2;
+        boolean first = true;
+        for (ReferenceType t : types) {
+            int need = t.toString().length() + (first ? 0 : 2);
+            if (!first && (column() + need > budget || wouldExceedMaxLine(need))) {
+                printer.print(",");
+                printer.println();
+                printCont();
+            } else if (!first) {
+                printer.print(", ");
+            }
+            t.accept(this, arg);
+            first = false;
         }
     }
 

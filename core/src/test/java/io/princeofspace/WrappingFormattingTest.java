@@ -14,6 +14,30 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class WrappingFormattingTest {
 
+    @Test
+    void throwsClause_balanced_wrapsEachExceptionType() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(55)
+                                .maxLineLength(100)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .build());
+        String input =
+                """
+                class T {
+                    void m() throws java.io.IOException, java.sql.SQLException, java.lang.IllegalStateException {
+                    }
+                }
+                """;
+        String out = f.format(input);
+        assertThat(out).contains("throws");
+        assertThat(out).contains("java.io.IOException");
+        assertThat(out).contains("\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
     private static void assertNoLineLongerThan(String formatted, int maxLineLength) {
         String[] lines = formatted.split("\\R", -1);
         for (int i = 0; i < lines.length; i++) {

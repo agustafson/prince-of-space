@@ -207,6 +207,7 @@ public class FormatterShowcase
     // Scenario 17: Nested interface
     @FunctionalInterface
     interface Transformer<T, R> {
+
         R transform(T input);
     }
 
@@ -233,6 +234,7 @@ public class FormatterShowcase
 
     // Scenario 20: Default and static interface methods
     interface Validator<T> {
+
         boolean validate(T item);
 
         default Validator<T> and(Validator<T> other) {

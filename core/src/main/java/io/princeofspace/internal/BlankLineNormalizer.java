@@ -86,7 +86,7 @@ final class BlankLineNormalizer {
         if (!line.endsWith("{")) {
             return false;
         }
-        if (looksLikeTopLevelTypeDeclarationHeader(emitted.get(last))) {
+        if (looksLikeTypeDeclarationHeader(emitted.get(last))) {
             return true;
         }
         for (int i = last - 1; i >= 0; i--) {
@@ -98,7 +98,7 @@ final class BlankLineNormalizer {
             if (candidate.endsWith("{")) {
                 break;
             }
-            if (looksLikeTopLevelTypeDeclarationHeader(rawCandidate)) {
+            if (looksLikeTypeDeclarationHeader(rawCandidate)) {
                 return true;
             }
             if (candidate.endsWith(";") || candidate.endsWith("}")) {
@@ -117,10 +117,11 @@ final class BlankLineNormalizer {
         return -1;
     }
 
-    private static boolean looksLikeTopLevelTypeDeclarationHeader(String line) {
-        if (!line.equals(line.stripLeading())) {
-            return false;
-        }
+    /**
+     * True for a line that opens a class, interface, enum, or record body, including nested type
+     * declarations (indentation allowed).
+     */
+    private static boolean looksLikeTypeDeclarationHeader(String line) {
         String trimmedLine = line.trim();
         return trimmedLine.contains(" class ")
                 || trimmedLine.startsWith("class ")
