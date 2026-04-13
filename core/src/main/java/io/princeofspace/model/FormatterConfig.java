@@ -2,6 +2,9 @@ package io.princeofspace.model;
 
 import com.github.javaparser.ParserConfiguration.LanguageLevel;
 
+import java.io.Serial;
+import java.io.Serializable;
+
 /**
  * Immutable configuration for the Prince of Space formatter.
  *
@@ -32,7 +35,10 @@ public record FormatterConfig(
         WrapStyle wrapStyle,
         boolean closingParenOnNewLine,
         boolean trailingCommas,
-        LanguageLevel javaLanguageLevel) {
+        LanguageLevel javaLanguageLevel)
+        implements Serializable {
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     /** Validates component invariants; invoked by the canonical constructor. */
     public FormatterConfig {

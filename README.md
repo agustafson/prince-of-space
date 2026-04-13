@@ -20,3 +20,25 @@ A Java code formatter library that produces beautiful, readable output with a sm
 - Import organization (delegated to Spotless)
 - Maven/Gradle plugins (Spotless provides those)
 - Type resolution (not needed for formatting)
+
+## Spotless
+
+The `spotless` module publishes `io.princeofspace.spotless.PrinceOfSpaceStep`, a `com.diffplug.spotless.FormatterStep` that delegates to `io.princeofspace.Formatter`. It is serializable for Spotless classloader isolation.
+
+**Gradle (Kotlin DSL):** register the step inside `spotless { java { ... } }` and ensure the `prince-of-space-spotless` artifact (which pulls in `prince-of-space-core`) is on the classpath used by the Spotless plugin—for example via `buildscript` dependencies, a dedicated `buildSrc` dependency, or your Gradle version’s supported mechanism for extra formatter dependencies. Then:
+
+```kotlin
+import io.princeofspace.model.FormatterConfig
+import io.princeofspace.spotless.PrinceOfSpaceStep
+
+spotless {
+    java {
+        target("src/**/*.java")
+        addStep(PrinceOfSpaceStep.create(FormatterConfig.defaults()))
+    }
+}
+```
+
+Use `FormatterConfig.builder()` to tune language level, line lengths, and wrap style.
+
+**Maven:** add `prince-of-space-spotless` as a dependency of `spotless-maven-plugin` (see [Spotless Maven](https://github.com/diffplug/spotless/blob/main/plugin-maven/README.md) for plugin dependency scope), then configure a custom step that uses `PrinceOfSpaceStep.create(...)` per the plugin’s API for third-party `FormatterStep` implementations.
