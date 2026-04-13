@@ -6,19 +6,19 @@
 `.java` file satisfies `format(format(x)) == format(x)` (language level from path segments `java8`,
 `java17`, or `java21`).
 
-## Optional checkout (manual / CI with clone)
+## Optional checkout eval harness (manual / CI with clones)
 
-Set `PRINCE_REAL_WORLD_ROOT` to the absolute path of a Java project checkout. Run:
+Set `PRINCE_EVAL_ROOTS` to a comma-separated list of absolute checkout paths. Run:
 
 ```bash
-export PRINCE_REAL_WORLD_ROOT=/path/to/guava
-./gradlew :core:test --tests io.princeofspace.OptionalRealWorldCheckoutFormatTest
+export PRINCE_EVAL_ROOTS=/tmp/eval/guava,/tmp/eval/spring-framework
+export PRINCE_EVAL_REPORT_DIR=$(pwd)/docs/eval-results
+./gradlew :core:evalTest
 ```
 
-The test is skipped when the variable is unset. It skips obvious build output paths (`build/`, `.git/`).
-
-To batch against multiple projects, clone them under one parent and point the variable at that
-parent, or run the test multiple times with different roots.
+The eval test is skipped when `PRINCE_EVAL_ROOTS` is unset/blank. It scans `.java` files while
+skipping common build and generated paths (`build/`, `.gradle/`, `.git/`, `generated/`,
+`generated-sources/`) and writes a daily Markdown report under `docs/eval-results/`.
 
 ## Full-tree scripts
 
