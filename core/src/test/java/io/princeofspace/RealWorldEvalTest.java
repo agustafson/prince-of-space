@@ -195,6 +195,14 @@ class RealWorldEvalTest {
             } catch (FormatterException e) {
                 parseErrors.add(relativize(projectRoot, file) + ": " + e.getMessage());
                 continue;
+            } catch (RuntimeException e) {
+                parseErrors.add(
+                        relativize(projectRoot, file)
+                                + ": unexpected formatter error: "
+                                + e.getClass().getSimpleName()
+                                + ": "
+                                + e.getMessage());
+                continue;
             }
 
             // Idempotency: format the already-formatted output a second time.
@@ -206,6 +214,14 @@ class RealWorldEvalTest {
             } catch (FormatterException e) {
                 idempotencyFailures.add(
                         relativize(projectRoot, file) + " (second pass threw): " + e.getMessage());
+            } catch (RuntimeException e) {
+                idempotencyFailures.add(
+                        relativize(projectRoot, file)
+                                + " (second pass unexpected formatter error: "
+                                + e.getClass().getSimpleName()
+                                + ": "
+                                + e.getMessage()
+                                + ")");
             }
 
             // Over-long line warning: non-comment, non-directive lines only.
@@ -265,11 +281,25 @@ class RealWorldEvalTest {
 
     private static boolean noSkipSegment(Path path) {
         for (int i = 0; i < path.getNameCount(); i++) {
-            if (SKIP_DIRS.contains(path.getName(i).toString())) {
+            String segment = path.getName(i).toString();
+            if (SKIP_DIRS.contains(segment) || isUnsupportedVersionedJavaDir(segment)) {
                 return false;
             }
         }
         return true;
+    }
+
+    private static boolean isUnsupportedVersionedJavaDir(String segment) {
+        if (!segment.startsWith("java") || segment.length() <= 4) {
+            return false;
+        }
+        try {
+            int level = Integer.parseInt(segment.substring(4));
+            // Eval runs with FormatterConfig default language level (JAVA_17).
+            return level > 17;
+        } catch (NumberFormatException ignored) {
+            return false;
+        }
     }
 
     // ---------------------------------------------------------------------------
