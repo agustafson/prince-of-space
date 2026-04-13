@@ -21,6 +21,9 @@ public final class Formatter {
 
     private final FormattingEngine engine;
 
+    /**
+     * @param config formatting options; must not be {@code null}
+     */
     public Formatter(FormatterConfig config) {
         this.engine = new FormattingEngine(requireNonNull(config, "config"));
     }

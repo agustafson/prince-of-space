@@ -12,6 +12,16 @@ import com.github.javaparser.ParserConfiguration.LanguageLevel;
  * and {@link #continuationIndentSize()} are counts of space characters. When it is {@link
  * IndentStyle#TABS}, both are counts of tab characters for each indent step and for each continuation,
  * respectively. See {@code docs/02-formatting-decisions.md} (sections 1 and 3).
+ *
+ * @param indentStyle block indentation: spaces or tab characters per step
+ * @param indentSize number of {@link IndentStyle} units per logical indent level
+ * @param preferredLineLength soft target width before wrapping
+ * @param maxLineLength hard cap; output must not exceed this width
+ * @param continuationIndentSize {@link IndentStyle} units for each wrapped continuation line
+ * @param wrapStyle how aggressively to break lines when wrapping
+ * @param closingParenOnNewLine when argument lists wrap, whether the closing {@code )} is on its own line
+ * @param trailingCommas whether to emit trailing commas in enums/array literals when multi-line
+ * @param javaLanguageLevel language level passed to JavaParser
  */
 public record FormatterConfig(
         IndentStyle indentStyle,
@@ -24,6 +34,7 @@ public record FormatterConfig(
         boolean trailingCommas,
         LanguageLevel javaLanguageLevel) {
 
+    /** Validates component invariants; invoked by the canonical constructor. */
     public FormatterConfig {
         if (indentStyle == null) throw new IllegalArgumentException("indentStyle must not be null");
         if (wrapStyle == null) throw new IllegalArgumentException("wrapStyle must not be null");
@@ -45,12 +56,12 @@ public record FormatterConfig(
                             + preferredLineLength + ")");
     }
 
-    /** Returns a configuration with all default values. */
+    /** @return a configuration with all default values */
     public static FormatterConfig defaults() {
         return builder().build();
     }
 
-    /** Returns a new builder initialized with default values. */
+    /** @return a new builder initialized with default values */
     public static Builder builder() {
         return new Builder();
     }
@@ -70,51 +81,61 @@ public record FormatterConfig(
 
         private Builder() {}
 
+        /** @param indentStyle spaces or tabs for block indentation */
         public Builder indentStyle(IndentStyle indentStyle) {
             this.indentStyle = indentStyle;
             return this;
         }
 
+        /** @param indentSize {@link IndentStyle} units per logical indent level */
         public Builder indentSize(int indentSize) {
             this.indentSize = indentSize;
             return this;
         }
 
+        /** @param preferredLineLength soft wrap width */
         public Builder preferredLineLength(int preferredLineLength) {
             this.preferredLineLength = preferredLineLength;
             return this;
         }
 
+        /** @param maxLineLength hard maximum line width */
         public Builder maxLineLength(int maxLineLength) {
             this.maxLineLength = maxLineLength;
             return this;
         }
 
+        /** @param continuationIndentSize {@link IndentStyle} units for continuation lines */
         public Builder continuationIndentSize(int continuationIndentSize) {
             this.continuationIndentSize = continuationIndentSize;
             return this;
         }
 
+        /** @param wrapStyle line-wrapping strategy */
         public Builder wrapStyle(WrapStyle wrapStyle) {
             this.wrapStyle = wrapStyle;
             return this;
         }
 
+        /** @param closingParenOnNewLine whether {@code )} is on its own line when lists wrap */
         public Builder closingParenOnNewLine(boolean closingParenOnNewLine) {
             this.closingParenOnNewLine = closingParenOnNewLine;
             return this;
         }
 
+        /** @param trailingCommas trailing commas in enums / array literals when multi-line */
         public Builder trailingCommas(boolean trailingCommas) {
             this.trailingCommas = trailingCommas;
             return this;
         }
 
+        /** @param javaLanguageLevel Java language level for the parser */
         public Builder javaLanguageLevel(LanguageLevel javaLanguageLevel) {
             this.javaLanguageLevel = javaLanguageLevel;
             return this;
         }
 
+        /** @return a new immutable {@link FormatterConfig} */
         public FormatterConfig build() {
             return new FormatterConfig(
                     indentStyle,

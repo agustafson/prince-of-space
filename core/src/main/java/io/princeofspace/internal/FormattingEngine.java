@@ -26,10 +26,17 @@ public final class FormattingEngine {
 
     private final FormatterConfig config;
 
+    /**
+     * @param config parser and layout options
+     */
     public FormattingEngine(FormatterConfig config) {
         this.config = config;
     }
 
+    /**
+     * @param sourceCode Java source text to format
+     * @return formatted source (may differ only in whitespace and inserted braces)
+     */
     public String format(String sourceCode) {
         CompilationUnit cu = parse(sourceCode);
         transform(cu);

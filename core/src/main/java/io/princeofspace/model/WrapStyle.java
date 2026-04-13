@@ -10,7 +10,10 @@ package io.princeofspace.model;
  * </ul>
  */
 public enum WrapStyle {
+    /** Keep as much on one line as possible; only wrap what is needed. */
     WIDE,
+    /** Prefer one logical element per line when wrapping. */
     NARROW,
+    /** Either fits on one line, or each wrapped element gets its own line. */
     BALANCED
 }

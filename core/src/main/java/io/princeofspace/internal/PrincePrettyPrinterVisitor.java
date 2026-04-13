@@ -227,7 +227,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         return w;
     }
 
-    private void printArgumentsInline(NodeList<? extends Expression> args, Void arg) {
+    private void printArgumentsInline(NodeList<? extends Expression> args) {
         printer.print("(");
         for (Iterator<? extends Expression> i = args.iterator(); i.hasNext(); ) {
             printer.print(i.next().toString());
@@ -360,7 +360,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.print(".");
             printTypeArgs(mc, arg);
             mc.getName().accept(this, arg);
-            printArgumentsInline(mc.getArguments(), arg);
+            printArgumentsInline(mc.getArguments());
         }
     }
 
@@ -443,22 +443,6 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
         Expression last = args.get(args.size() - 1);
         return args.size() == 1 && last instanceof MethodCallExpr;
-    }
-
-    /** Greedy packing: start a new line before {@code .} when the segment would exceed preferred width. */
-    private void printChainWide(Expression base, List<MethodCallExpr> calls, Void arg) {
-        base.accept(this, arg);
-        for (MethodCallExpr mc : calls) {
-            int seg = 1 + mc.getName().asString().length() + 2 + argsFlatWidth(mc.getArguments()) + 1;
-            if (column() + seg > fmt.preferredLineLength()) {
-                printer.println();
-                printCont();
-            }
-            printer.print(".");
-            printTypeArgs(mc, arg);
-            mc.getName().accept(this, arg);
-            printArguments(mc.getArguments(), arg);
-        }
     }
 
     private static void collectSameOp(BinaryExpr.Operator op, Expression e, List<Expression> out) {
