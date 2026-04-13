@@ -386,6 +386,131 @@ public class FormatterShowcase
                 """.formatted(legacyField, items.size(), isValid() ? "valid" : "invalid");
     }
 
+    // Scenario 31: Long for-loop header
+    public int sumWithLongForHeader() {
+        int sum = 0;
+        for (int i = 0, j = 0; i < items.size()
+                && j < items.size()
+                && legacyField != null
+                && legacyField.length() > 0; i++, j++) {
+            sum += i + j;
+        }
+        return sum;
+    }
+
+    // Scenario 32: For-each with long element type
+    public void forEachLongElementType() {
+        for (java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> e : complexGenericField.entrySet()) {
+            if (e.getKey() != null) {
+                sumWithLongForHeader();
+            }
+        }
+    }
+
+    // Scenario 33: While with long condition
+    public int drainWhileLong(int start) {
+        int i = start;
+        while (i < items.size()
+                && legacyField != null
+                && !legacyField.isEmpty()
+                && items.stream().skip(i).findFirst().isPresent()
+                && complexGenericField != null) {
+            i++;
+        }
+        return i;
+    }
+
+    // Scenario 34: Standalone block lambda
+    public void standaloneLambda() {
+        java.lang.Runnable r = () -> {
+            loadData();
+            saveResult(processData());
+        };
+        r.run();
+    }
+
+    // Scenario 35: Lambda as last argument (non-chain call)
+    public void sortWithComparator() {
+        java.util.Collections.sort(items, (String a, String b) -> {
+            return a.compareToIgnoreCase(b);
+        });
+    }
+
+    // Scenario 36: Constructor chaining with long argument list
+    public FormatterShowcase(String legacyFieldOnly, List<String> itemsOnly, boolean validate) {
+        this(
+                legacyFieldOnly,
+                itemsOnly,
+                java.util.Collections.emptyMap(),
+                validate,
+                "en-US",
+                java.util.concurrent.ForkJoinPool.commonPool()
+        );
+    }
+
+    // Scenario 37: Multi-catch
+    public void multiCatch() {
+        try {
+            copyFile(java.nio.file.Paths.get("a"), java.nio.file.Paths.get("b"));
+        } catch (java.io.IOException | java.lang.IllegalStateException | java.lang.IllegalArgumentException | java.lang.UnsupportedOperationException e) {
+            logError("multi-catch", e);
+        }
+    }
+
+    // Scenario 38: Nested ternary
+    public String nestedTernary(int a, int b, int c) {
+        return a > 0 ? (b > 0 ? (c > 0 ? "all-positive" : "ab-only") : "a-only") : "non-positive-a";
+    }
+
+    // Scenario 39: Long assert message
+    public void longAssert() {
+        assert legacyField != null && items != null && !items.isEmpty() : "legacyField and items must be populated before calling longAssert in production systems with strict validation rules enabled";
+    }
+
+    // Scenario 40: Synchronized block
+    public void synchronizedBlock() {
+        synchronized (complexGenericField != null ? complexGenericField : java.util.Collections.emptyMap()) {
+            loadData();
+        }
+    }
+
+    // Scenario 41: Anonymous class
+    public java.util.Comparator<String> anonymousComparator() {
+        return new java.util.Comparator<String>() {
+            public int compare(String o1, String o2) {
+                return o1.length() - o2.length();
+            }
+        };
+    }
+
+    // Scenario 42: Do-while with long condition
+    public int doWhileLong(int n) {
+        int i = n;
+        do {
+            i--;
+        } while (i >= 0
+                && legacyField != null
+                && items != null
+                && !items.isEmpty()
+                && items.size() > i
+                && complexGenericField != null);
+        return i;
+    }
+
+    // Scenario 43: Long return expression
+    public String longReturnExpression() {
+        return items
+                .stream()
+                .filter(item -> item != null && !item.isEmpty())
+                .map(String::trim)
+                .sorted()
+                .findFirst()
+                .orElse("none")
+                .toUpperCase()
+                .concat("-")
+                .concat(legacyField != null ? legacyField : "x");
+    }
+
     // Placeholder methods
     private void validate(String locale) {}
 

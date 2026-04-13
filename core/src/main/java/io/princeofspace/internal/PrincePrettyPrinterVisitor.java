@@ -19,6 +19,7 @@ import com.github.javaparser.ast.expr.SwitchExpr;
 import com.github.javaparser.ast.expr.TextBlockLiteralExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.CatchClause;
+import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.stmt.SwitchEntry;
 import com.github.javaparser.ast.stmt.TryStmt;
@@ -1322,6 +1323,63 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.print("}");
         }
         printOrphanCommentsEnding(n);
+    }
+
+    @Override
+    public void visit(LambdaExpr n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        printLambdaParameters(n, arg);
+        printer.print(" -> ");
+        if (n.getBody() instanceof BlockStmt block) {
+            if (block.getStatements() == null || block.getStatements().isEmpty()) {
+                printer.print("{}");
+                printOrphanCommentsEnding(block);
+                printOrphanCommentsEnding(n);
+                return;
+            }
+            printer.print("{");
+            printer.println();
+            printer.indent();
+            Statement prev = null;
+            for (Statement s : block.getStatements()) {
+                if (prev != null && prev.getRange().isPresent() && s.getRange().isPresent()) {
+                    int prevEnd = prev.getRange().get().end.line;
+                    int curStart = s.getRange().get().begin.line;
+                    if (curStart > prevEnd + 1) {
+                        printer.println();
+                    }
+                }
+                s.accept(this, arg);
+                printer.println();
+                prev = s;
+            }
+            printOrphanCommentsEnding(block);
+            printer.unindent();
+            printer.print("}");
+        } else if (n.getBody() instanceof ExpressionStmt es) {
+            // Expression lambdas are stored as ExpressionStmt; must not print a statement terminator.
+            es.getExpression().accept(this, arg);
+        } else {
+            n.getBody().accept(this, arg);
+        }
+        printOrphanCommentsEnding(n);
+    }
+
+    private void printLambdaParameters(LambdaExpr n, Void arg) {
+        if (n.isEnclosingParameters()) {
+            printer.print("(");
+        }
+        NodeList<Parameter> ps = n.getParameters();
+        for (int i = 0; i < ps.size(); i++) {
+            ps.get(i).accept(this, arg);
+            if (i < ps.size() - 1) {
+                printer.print(", ");
+            }
+        }
+        if (n.isEnclosingParameters()) {
+            printer.print(")");
+        }
     }
 
     @Override
