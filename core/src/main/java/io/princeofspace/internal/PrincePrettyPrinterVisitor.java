@@ -364,46 +364,58 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
     }
 
+    /**
+     * Wrapped chains: one {@code .method()} per continuation line (leading-dot style), matching common
+     * Kotlin / Prettier habits and keeping diffs one segment per line. Exception: a <strong>single</strong>
+     * chained call with a {@link #isSimpleBase simple} receiver stays {@code Receiver.method(...)} on one
+     * line so trivial {@code items.stream()} does not become two lines.
+     */
     private void printChainBalancedOrNarrow(Expression base, List<MethodCallExpr> calls, Void arg) {
         base.accept(this, arg);
         int lineStartColumn = column() - est(base);
-        // When the base is a simple name, keep the first call on the same line
-        int start = 0;
-        if (!calls.isEmpty() && isSimpleBase(base)) {
-            MethodCallExpr first = calls.get(0);
+
+        if (calls.size() == 1 && isSimpleBase(base)) {
+            MethodCallExpr only = calls.get(0);
             printer.print(".");
-            printTypeArgs(first, arg);
-            first.getName().accept(this, arg);
-            if (hasBlockLambdaArgument(first.getArguments())) {
+            printTypeArgs(only, arg);
+            only.getName().accept(this, arg);
+            if (hasBlockLambdaArgument(only.getArguments())) {
                 printer.indentWithAlignTo(lineStartColumn + fmt.continuationIndentSize());
                 try {
-                    printArguments(first.getArguments(), arg);
+                    printArguments(only.getArguments(), arg);
                 } finally {
                     printer.unindent();
                 }
             } else {
-                printArguments(first.getArguments(), arg);
+                printArguments(only.getArguments(), arg);
             }
-            start = 1;
+            return;
         }
-        if (start < calls.size()) {
-            // Push indent to continuation column so lambda bodies are properly indented
-            printer.println();
-            printCont();
-            int contCol = column();
-            printer.indentWithAlignTo(contCol);
-            for (int i = start; i < calls.size(); i++) {
-                MethodCallExpr mc = calls.get(i);
-                if (i > start) {
-                    printer.println();
+
+        printer.println();
+        printCont();
+        int contCol = column();
+        printer.indentWithAlignTo(contCol);
+        for (int i = 0; i < calls.size(); i++) {
+            MethodCallExpr mc = calls.get(i);
+            if (i > 0) {
+                printer.println();
+            }
+            printer.print(".");
+            printTypeArgs(mc, arg);
+            mc.getName().accept(this, arg);
+            if (hasBlockLambdaArgument(mc.getArguments())) {
+                printer.indentWithAlignTo(lineStartColumn + fmt.continuationIndentSize());
+                try {
+                    printArguments(mc.getArguments(), arg);
+                } finally {
+                    printer.unindent();
                 }
-                printer.print(".");
-                printTypeArgs(mc, arg);
-                mc.getName().accept(this, arg);
+            } else {
                 printArguments(mc.getArguments(), arg);
             }
-            printer.unindent();
         }
+        printer.unindent();
     }
 
     private static boolean isSimpleBase(Expression base) {

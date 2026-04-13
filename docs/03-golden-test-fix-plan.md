@@ -42,6 +42,7 @@ Each test formats `examples/inputs/<level>/FormatterShowcase.java` with the pars
 - **Issues 1–2 (packing):** Greedy comma/parameter/binary packing now uses the real `SourcePrinter` column after continuation indent (removed synthetic `wideParameterOffset` / `wideTypeListOffset` / `columnWithOffset` heuristics). Wrapped parameter and argument lists adjust the last line’s budget using `closingParenOnNewLine` (extra width when `)` is on its own line; reserve for `) {` when it is not). See `PrincePrettyPrinterVisitor#printParametersList`, `#printGreedyCommaLines`, `#printBinaryGreedy`, `#printTypeListGreedy`, enum greedy constants.
 - **Issue 5 (goldens):** Showroom outputs were regenerated for java8/java17/java21; use `REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens` when the formatter changes intentionally.
 - **Issues 3–4 (docs):** `IMPLEMENTATION_PLAN.md` and `docs/02-formatting-decisions.md` updated for type-clause `{` + `closingParenOnNewLine`. NARROW `&&`/`||` use one operand per line (same as BALANCED for logical chains).
+- **Wrapped method chains:** Multi-segment chains use a leading dot per line (receiver alone on the first line); a single `.method()` after a simple receiver stays on one line (`items.stream()`). See `docs/02-formatting-decisions.md` § Method chaining.
 
 ## Open issues (work order for agents)
 

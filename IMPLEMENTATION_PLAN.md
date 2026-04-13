@@ -152,8 +152,9 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
    b. **Method chaining:**
       - Detect chains (sequential method calls on the result of the previous call)
-      - If chain doesn't fit on one line, put each `.method()` call on its own line
-      - Indent chained calls by `continuationIndentSize` from the chain start
+      - If the chain doesn't fit on one line, use **leading-dot** layout: receiver on one line, then each `.method(...)` on its own continuation line (Kotlin / Prettier-style; see `docs/02-formatting-decisions.md`)
+      - **Exception:** a **single** `.method()` after a **simple** receiver (`NameExpr`, field access, `this`/`super`) stays on the same line as the receiver (e.g. `items.stream()`)
+      - Indent continuation lines by `continuationIndentSize` from the statement start (not unbounded dot alignment)
       - Handle lambdas within chains specially (see below)
 
    c. **Lambda expressions:**
@@ -202,7 +203,7 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 - Lambda argument handling keeps opening `(` inline (never moved to a separate line due to lambda presence).
 - Ternary and binary operator wrapping place operators at the start of continuation lines.
-- Method chaining uses continuation indentation from chain start (no dot-alignment drift).
+- Wrapped multi-segment chains use leading dots with continuation indentation from the statement start; single-call chains on a simple receiver may stay on one line (see `docs/02-formatting-decisions.md`).
 - Type clauses (`implements`/`permits`/`extends`) do not use a closing `)`, but when wrapped they use the **`closingParenOnNewLine` setting to style the `{`** that opens the type body (same “delimiter on its own line” idea as wrapped parameters).
 
 ---

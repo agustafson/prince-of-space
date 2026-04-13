@@ -61,7 +61,8 @@ class WrappingFormattingTest {
 
         String out = f.format(input);
 
-        assertThat(out).contains("        return items.stream()\n");
+        assertThat(out).contains("        return items\n");
+        assertThat(out).contains("            .stream()\n");
         assertThat(out).contains("            .filter(item -> item.contains(query))\n");
         assertThat(out).contains("            .findFirst()\n");
         assertThat(out).contains("            .orElse(null);\n");
@@ -92,7 +93,8 @@ class WrappingFormattingTest {
 
         String out = f.format(input);
 
-        assertThat(out).contains("        var futures = urls.stream()\n");
+        assertThat(out).contains("        var futures = urls\n");
+        assertThat(out).contains("            .stream()\n");
         assertThat(out).contains("            .map(url -> executor.submit(() -> fetch(url)))\n");
         assertThat(out).contains("            .toList();\n");
     }
@@ -367,7 +369,8 @@ class WrappingFormattingTest {
 
         String out = f.format(input);
 
-        assertThat(out).contains("        CompletableFuture.supplyAsync(() -> {\n");
+        assertThat(out).contains("        CompletableFuture\n");
+        assertThat(out).contains(".supplyAsync(() -> {\n");
         assertThat(out).contains("                loadData();\n");
         assertThat(out).contains("                return processData();\n");
         assertThat(out).contains("            }, executorService)\n");

@@ -187,15 +187,26 @@ enum Status {
 
 ### Method Chaining (Fluent APIs / Builders / Streams)
 
+When a chain **wraps** (preferred line length exceeded, or a lambda-heavy chain forces wrapping), each **chained** call is placed on its **own** line with a **leading dot** (same idea as Kotlin’s fluent style and Prettier’s typical JS/TS chains). The **receiver** is alone on the first line; every `.method(...)` after it starts a continuation line. Continuation lines are indented with `continuationIndentSize` from the **statement** start (not dot-aligned into the horizon).
+
 ```java
-// Fixed continuation indent from chain start (uses continuationIndentSize)
-var result = list.stream()
+// Multi-segment chain (two or more .method() links after the receiver)
+var result = list
+        .stream()
         .filter(x -> x.isActive())
         .map(x -> x.getName())
         .collect(Collectors.toList());
 ```
 
-Chains use `continuationIndentSize` for the indent from the chain start. This avoids excessive right-drift from dot-alignment. Short chains that fit on one line stay on one line.
+**Single-segment chain:** If there is only **one** method call after a **simple** receiver (a name, `this`, `super`, or field access such as `obj.field`), it stays on one line with the receiver so trivial calls do not add an extra line:
+
+```java
+var s = items.stream();   // not split into "items" + ".stream()"
+```
+
+If the receiver is **not** “simple” (e.g. a parenthesized or nested expression), the lone `.method()` still begins on the next continuation line so layout stays consistent.
+
+**Rationale:** Leading-dot chains are easy to scan, produce **one method per line** in diffs when the chain changes, and align with common practice in Kotlin and in Prettier-style formatters. The single-call exception matches typical Java usage for `foo.bar()` and `items.stream()` without needless vertical sprawl.
 
 ---
 

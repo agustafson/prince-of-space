@@ -69,7 +69,8 @@ public class FormatterShowcase
 
     // Scenario 5: Method chaining with streams
     public List<String> getProcessedItems() {
-        return items.stream()
+        return items
+                .stream()
                 .filter(item -> item != null && !item.isBlank())
                 .map(String::trim)
                 .map(String::toLowerCase)
@@ -99,14 +100,16 @@ public class FormatterShowcase
     public void processWithCallbacks() {
         items.forEach(item -> System.out.println(item));
 
-        items.stream()
+        items
+                .stream()
                 .filter(item -> {
                     var trimmed = item.trim();
                     return !trimmed.isEmpty() && trimmed.length() > 3;
                 })
                 .forEach(item -> System.out.println(item));
 
-        CompletableFuture.supplyAsync(() -> {
+        CompletableFuture
+                .supplyAsync(() -> {
                     loadData();
                     return processData();
                 }, executorService)
@@ -158,7 +161,8 @@ public class FormatterShowcase
 
     // Scenario 11: Nested generics and long method calls
     public Map<String, List<String>> groupByFirstLetter() {
-        return items.stream()
+        return items
+                .stream()
                 .filter(item -> item != null && !item.isBlank())
                 .collect(Collectors.groupingBy(
                         item -> String.valueOf(item.charAt(0)).toUpperCase(),
@@ -177,7 +181,8 @@ public class FormatterShowcase
 
     // Scenario 13: Annotation placement (including JSpecify type-use)
     public @org.jspecify.annotations.Nullable String findItem(String query) {
-        return items.stream()
+        return items
+                .stream()
                 .filter(item -> item.contains(query))
                 .findFirst()
                 .orElse(null);
@@ -255,7 +260,8 @@ public class FormatterShowcase
             Function<T, R> transformer,
             java.util.function.BinaryOperator<R> combiner
     ) {
-        return source.stream()
+        return source
+                .stream()
                 .map(transformer)
                 .reduce(combiner)
                 .orElseThrow(() -> new IllegalStateException("Cannot transform empty list"));
@@ -399,7 +405,8 @@ public class FormatterShowcase
     // Scenario 28: Virtual threads
     public void processWithVirtualThreads(List<String> urls) throws Exception {
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            var futures = urls.stream()
+            var futures = urls
+                    .stream()
                     .map(url -> executor.submit(() -> fetchAndProcess(url)))
                     .toList();
             for (var future : futures) {

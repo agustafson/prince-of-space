@@ -67,7 +67,8 @@ public class FormatterShowcase
 
     // Scenario 5: Method chaining with streams
     public List<String> getProcessedItems() {
-        return items.stream()
+        return items
+                .stream()
                 .filter(item -> item != null && !item.isEmpty())
                 .map(String::trim)
                 .map(String::toLowerCase)
@@ -97,14 +98,16 @@ public class FormatterShowcase
     public void processWithCallbacks() {
         items.forEach(item -> System.out.println(item));
 
-        items.stream()
+        items
+                .stream()
                 .filter(item -> {
                     String trimmed = item.trim();
                     return !trimmed.isEmpty() && trimmed.length() > 3;
                 })
                 .forEach(item -> System.out.println(item));
 
-        CompletableFuture.supplyAsync(() -> {
+        CompletableFuture
+                .supplyAsync(() -> {
                     loadData();
                     return processData();
                 }, executorService)
@@ -156,7 +159,8 @@ public class FormatterShowcase
 
     // Scenario 11: Nested generics and long method calls
     public Map<String, List<String>> groupByFirstLetter() {
-        return items.stream()
+        return items
+                .stream()
                 .filter(item -> item != null && !item.isEmpty())
                 .collect(Collectors.groupingBy(
                         item -> String.valueOf(item.charAt(0)).toUpperCase(),
@@ -250,7 +254,8 @@ public class FormatterShowcase
             Function<T, R> transformer,
             java.util.function.BinaryOperator<R> combiner
     ) {
-        return source.stream()
+        return source
+                .stream()
                 .map(transformer)
                 .reduce(combiner)
                 .orElseThrow(() -> new IllegalStateException("Cannot transform empty list"));
