@@ -514,8 +514,12 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     public void visit(MethodCallExpr n, Void arg) {
         if (n.getScope().isEmpty()) {
             printOrphanCommentsBeforeThisChildNode(n);
-            printComment(n.getComment(), arg);
-            super.visit(n, arg);
+            if (n.getComment().isPresent() && n.getArguments().isEmpty()) {
+                printComment(n.getComment(), arg);
+            }
+            printTypeArgs(n, arg);
+            printer.print(n.getNameAsString());
+            printArguments(n.getArguments(), arg);
             return;
         }
         MethodCallExpr outer = outermostCall(n);
@@ -854,15 +858,20 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         int budget = fmt.preferredLineLength() - trailingWidth;
         Iterator<? extends Expression> iter = args.iterator();
         int remaining = args.size();
+        Expression previous = null;
         while (iter.hasNext()) {
             Expression e = iter.next();
             int need = est(e) + (first ? 0 : 2);
             boolean shouldWrapForLoneLastItem = avoidLoneLastItem && !first && remaining == 2;
+            boolean hasInterveningComment = previous != null && hasCommentBetweenNodes(previous, e);
+            boolean currentHasLeadingComment = e.getComment().isPresent();
             int lineBudget = budget + (extraLastLineBudget > 0 && remaining == 1 ? extraLastLineBudget : 0);
             if (!first
                     && (column() + need > lineBudget
                             || wouldExceedMaxLine(need)
-                            || shouldWrapForLoneLastItem)) {
+                            || shouldWrapForLoneLastItem
+                            || hasInterveningComment
+                            || currentHasLeadingComment)) {
                 printer.print(",");
                 printer.println();
                 printCont();
@@ -872,7 +881,33 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             e.accept(this, arg);
             first = false;
             remaining--;
+            previous = e;
         }
+    }
+
+    private static boolean hasCommentBetweenNodes(Node previous, Node current) {
+        if (previous.getRange().isEmpty() || current.getRange().isEmpty()) {
+            return false;
+        }
+        int prevEnd = previous.getRange().get().end.line;
+        int curStart = current.getRange().get().begin.line;
+        if (curStart <= prevEnd + 1) {
+            return false;
+        }
+        Optional<Node> parent = current.getParentNode();
+        if (parent.isEmpty()) {
+            return false;
+        }
+        for (Comment comment : parent.get().getAllContainedComments()) {
+            if (comment.getRange().isEmpty()) {
+                continue;
+            }
+            int line = comment.getRange().get().begin.line;
+            if (line >= prevEnd && line < curStart) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean paramsNeedWrap(NodeList<Parameter> ps) {
