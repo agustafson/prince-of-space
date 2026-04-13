@@ -196,6 +196,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             }
             Expression sc = c.getScope().get();
             if (sc instanceof MethodCallExpr mc) {
+                // For chains rooted at an unscoped call like make().step(), treat make() as base.
+                if (mc.getScope().isEmpty()) {
+                    break;
+                }
                 c = mc;
             } else {
                 break;
@@ -208,12 +212,15 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         return ord;
     }
 
-    private static Expression chainBase(MethodCallExpr outer) {
-        Expression e = outer.getScope().orElseThrow();
-        while (e instanceof MethodCallExpr mc) {
-            e = mc.getScope().orElseThrow();
+    private static Optional<Expression> chainBase(MethodCallExpr outer) {
+        if (outer.getScope().isEmpty()) {
+            return Optional.empty();
         }
-        return e;
+        Expression e = outer.getScope().get();
+        while (e instanceof MethodCallExpr mc && mc.getScope().isPresent()) {
+            e = mc.getScope().get();
+        }
+        return Optional.of(e);
     }
 
     private int chainOneLineWidth(Expression base, List<MethodCallExpr> calls) {
@@ -501,7 +508,12 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             return;
         }
         List<MethodCallExpr> calls = chainInOrder(outer);
-        Expression base = chainBase(outer);
+        Optional<Expression> baseOpt = chainBase(outer);
+        if (baseOpt.isEmpty()) {
+            super.visit(n, arg);
+            return;
+        }
+        Expression base = baseOpt.get();
         if (base instanceof TextBlockLiteralExpr) {
             printChainInlineWithInlineArgs(base, calls, arg);
             return;
@@ -544,8 +556,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
      * line so trivial {@code items.stream()} does not become two lines.
      */
     private void printChainBalancedOrNarrow(Expression base, List<MethodCallExpr> calls, Void arg) {
+        int lineStartColumn = column();
         base.accept(this, arg);
-        int lineStartColumn = column() - est(base);
 
         if (calls.size() == 1 && isSimpleBase(base)) {
             MethodCallExpr only = calls.get(0);
@@ -553,7 +565,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printTypeArgs(only, arg);
             only.getName().accept(this, arg);
             if (hasBlockLambdaArgument(only.getArguments())) {
-                printer.indentWithAlignTo(lineStartColumn + fmt.continuationIndentSize());
+                indentWithAlignToSafe(lineStartColumn + fmt.continuationIndentSize());
                 try {
                     printArguments(only.getArguments(), arg);
                 } finally {
@@ -568,7 +580,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printer.println();
         printCont();
         int contCol = column();
-        printer.indentWithAlignTo(contCol);
+        indentWithAlignToSafe(contCol);
         for (int i = 0; i < calls.size(); i++) {
             MethodCallExpr mc = calls.get(i);
             if (i > 0) {
@@ -578,7 +590,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printTypeArgs(mc, arg);
             mc.getName().accept(this, arg);
             if (hasBlockLambdaArgument(mc.getArguments())) {
-                printer.indentWithAlignTo(lineStartColumn + fmt.continuationIndentSize());
+                indentWithAlignToSafe(Math.max(contCol, lineStartColumn + fmt.continuationIndentSize()));
                 try {
                     printArguments(mc.getArguments(), arg);
                 } finally {
@@ -589,6 +601,15 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             }
         }
         printer.unindent();
+    }
+
+    private void indentWithAlignToSafe(int targetColumn) {
+        try {
+            printer.indentWithAlignTo(targetColumn);
+        } catch (IllegalStateException ex) {
+            // Defensive fallback for rare AST/layout combinations where alignment underflows.
+            printer.indent();
+        }
     }
 
     private static boolean isSimpleBase(Expression base) {

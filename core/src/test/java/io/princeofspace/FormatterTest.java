@@ -494,6 +494,34 @@ class FormatterTest {
     }
 
     @Test
+    void chainWithUnscopedBaseCall_formatsWithoutOptionalScopeFailure() {
+        String input = """
+                class T {
+                    Builder make() {
+                        return new Builder();
+                    }
+
+                    void m() {
+                        make().stepOne().stepTwo();
+                    }
+
+                    static final class Builder {
+                        Builder stepOne() {
+                            return this;
+                        }
+
+                        Builder stepTwo() {
+                            return this;
+                        }
+                    }
+                }
+                """;
+        String once = DEFAULT.format(input);
+        assertThat(once).contains("make().stepOne().stepTwo();");
+        assertThat(DEFAULT.format(once)).isEqualTo(once);
+    }
+
+    @Test
     void methodDeclaration_annotationsOnOwnLines_idempotentOnSecondFormat() {
         String input = """
                 class T implements Comparable<T> {
