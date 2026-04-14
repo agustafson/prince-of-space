@@ -34,12 +34,42 @@ public final class FormattingEngine {
     }
 
     /**
+     * Maximum additional passes beyond the initial format. Each extra pass re-parses the previous
+     * output and formats again. The loop exits early when consecutive outputs are identical
+     * (the fixed point). In practice, well-behaved inputs converge after one extra pass; the
+     * remaining budget handles edge cases where JavaParser comment re-attribution needs two
+     * rounds to stabilize.
+     */
+    private static final int MAX_CONVERGENCE_PASSES = 3;
+
+    /**
      * Parses and formats the given source, or returns a typed failure without throwing.
+     *
+     * <p>Internally applies up to {@value #MAX_CONVERGENCE_PASSES} additional format passes so that
+     * the returned source is a <em>fixed point</em>: formatting it again produces identical output.
+     * This guarantees idempotency ({@code format(format(x)).equals(format(x))}) even when
+     * JavaParser re-attaches comments differently after the first layout pass.
      *
      * @param sourceCode Java source text to format
      * @return {@link FormatResult.Success} with formatted source, or a {@link FormatResult.Failure}
      */
     public FormatResult format(String sourceCode) {
+        String current = sourceCode;
+        for (int pass = 0; pass <= MAX_CONVERGENCE_PASSES; pass++) {
+            FormatResult result = singlePassFormat(current);
+            if (!(result instanceof FormatResult.Success success)) {
+                return (pass == 0) ? result : new FormatResult.Success(current);
+            }
+            String next = success.formattedSource();
+            if (next.equals(current)) {
+                return success;
+            }
+            current = next;
+        }
+        return new FormatResult.Success(current);
+    }
+
+    private FormatResult singlePassFormat(String sourceCode) {
         ParserConfiguration parserConfig = new ParserConfiguration()
                 .setLanguageLevel(config.javaLanguageLevel());
         ParseResult<CompilationUnit> result = new JavaParser(parserConfig).parse(sourceCode);

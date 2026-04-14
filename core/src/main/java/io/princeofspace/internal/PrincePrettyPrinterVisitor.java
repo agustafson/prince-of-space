@@ -26,6 +26,7 @@ import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.expr.SwitchExpr;
 import com.github.javaparser.ast.expr.TextBlockLiteralExpr;
+import com.github.javaparser.ast.nodeTypes.NodeWithVariables;
 import com.github.javaparser.ast.stmt.AssertStmt;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.CatchClause;
@@ -33,7 +34,6 @@ import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.stmt.SwitchEntry;
 import com.github.javaparser.ast.stmt.TryStmt;
-import com.github.javaparser.ast.nodeTypes.NodeWithVariables;
 import com.github.javaparser.ast.type.ArrayType;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.ReferenceType;
@@ -42,6 +42,7 @@ import com.github.javaparser.ast.type.TypeParameter;
 import com.github.javaparser.ast.type.UnionType;
 import com.github.javaparser.printer.DefaultPrettyPrinterVisitor;
 import com.github.javaparser.printer.configuration.PrinterConfiguration;
+import com.github.javaparser.utils.PositionUtils;
 import com.github.javaparser.utils.StringEscapeUtils;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.IndentStyle;
@@ -69,6 +70,54 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     PrincePrettyPrinterVisitor(PrinterConfiguration configuration, FormatterConfig fmt) {
         super(configuration);
         this.fmt = fmt;
+    }
+
+    /**
+     * Overrides the default to {@link Comment#remove() remove} each orphan comment from the AST
+     * after it is printed. Without removal, the same orphan stays in the parent's children and
+     * orphan-comment lists and can be re-discovered by later printing passes (e.g.
+     * {@code drainOrphanCommentsBeforeFirstBodyElement} or {@code printOrphanCommentsEnding}),
+     * causing comment duplication that prevents idempotent formatting.
+     */
+    @Override
+    protected void printOrphanCommentsBeforeThisChildNode(final Node node) {
+        if (node instanceof Comment) {
+            return;
+        }
+        Node parent = node.getParentNode().orElse(null);
+        if (parent == null) {
+            return;
+        }
+        List<Node> everything = new ArrayList<>(parent.getChildNodes());
+        PositionUtils.sortByBeginPosition(everything);
+        int positionOfTheChild = -1;
+        for (int i = 0; i < everything.size(); i++) {
+            if (everything.get(i) == node) {
+                positionOfTheChild = i;
+                break;
+            }
+        }
+        if (positionOfTheChild == -1) {
+            return;
+        }
+        int positionOfPreviousChild = -1;
+        for (int i = positionOfTheChild - 1; i >= 0 && positionOfPreviousChild == -1; i--) {
+            if (!(everything.get(i) instanceof Comment)) {
+                positionOfPreviousChild = i;
+            }
+        }
+        List<Comment> toPrint = new ArrayList<>();
+        for (int i = positionOfPreviousChild + 1; i < positionOfTheChild; i++) {
+            if (everything.get(i) instanceof Comment c) {
+                toPrint.add(c);
+            }
+        }
+        for (Comment c : toPrint) {
+            c.accept(this, null);
+            if (c.isOrphan()) {
+                c.remove();
+            }
+        }
     }
 
     @Override
@@ -998,7 +1047,6 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             if (i > 0) {
                 printer.println();
             }
-            printOwnedOrphanComments(mc, arg);
             if (i == calls.size() - 1 && hoistedBaseComment.isPresent()) {
                 printComment(hoistedBaseComment, arg);
             }
@@ -1084,6 +1132,36 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         return false;
     }
 
+    private static boolean anyOperandHasTrailingLineOrBlockComment(List<Expression> parts) {
+        for (Expression p : parts) {
+            if (hasTrailingLineOrBlockComment(p)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Prints an expression, but if it carries a trailing line/block comment (same line in source),
+     * strips the comment from the node, prints the expression, then appends the comment on the same
+     * line. This keeps idioms like {@code "str" + // ...} stable: the comment stays <em>after</em>
+     * the expression rather than being flipped to leading position by {@code printComment()}.
+     *
+     * @return {@code true} if a trailing comment was emitted (line was ended by the comment)
+     */
+    private boolean printExprWithTrailingCommentAfter(Expression expr, Void arg) {
+        if (!hasTrailingLineOrBlockComment(expr)) {
+            expr.accept(this, arg);
+            return false;
+        }
+        Comment trailing = expr.getComment().get();
+        expr.setComment(null);
+        expr.accept(this, arg);
+        printer.print(" ");
+        trailing.accept(this, null);
+        return true;
+    }
+
     /**
      * Binary chain operands with leading line/block comments must not print {@code "|| //"} (or {@code "+ //"})
      * on one line: line comments end with a newline, so print orphan + owned comments first, then the
@@ -1124,6 +1202,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 flat += est(p) + 4;
             }
             if (!anyOperandHasLeadingLineOrBlockComment(parts)
+                    && !anyOperandHasTrailingLineOrBlockComment(parts)
                     && flat <= fmt.preferredLineLength()
                     && flat <= fmt.maxLineLength()) {
                 parts.get(0).accept(this, arg);
@@ -1138,18 +1217,20 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             }
             String os = n.getOperator().asString();
             if (fmt.wrapStyle() == WrapStyle.BALANCED || fmt.wrapStyle() == WrapStyle.NARROW) {
-                // One operand per continuation line (operator at line start); NARROW matches this for &&/||
-                parts.get(0).accept(this, arg);
+                boolean prevTrailing = printExprWithTrailingCommentAfter(parts.get(0), arg);
                 for (int i = 1; i < parts.size(); i++) {
                     boolean interOperandComment = hasCommentBetweenNodes(parts.get(i - 1), parts.get(i));
                     if (hasLeadingLineOrBlockComment(parts.get(i)) || interOperandComment) {
                         printBinaryChainOperandWithInterposedLeadingComments(parts.get(i), os, arg);
+                        prevTrailing = false;
                     } else {
-                        printer.println();
+                        if (!prevTrailing) {
+                            printer.println();
+                        }
                         printCont();
                         printer.print(os);
                         printer.print(" ");
-                        parts.get(i).accept(this, arg);
+                        prevTrailing = printExprWithTrailingCommentAfter(parts.get(i), arg);
                     }
                 }
             } else {
@@ -1166,6 +1247,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 flat += est(p) + 3;
             }
             if (!anyOperandHasLeadingLineOrBlockComment(parts)
+                    && !anyOperandHasTrailingLineOrBlockComment(parts)
                     && flat <= fmt.preferredLineLength()
                     && flat <= fmt.maxLineLength()) {
                 parts.get(0).accept(this, arg);
@@ -1176,15 +1258,18 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 return;
             }
             if (fmt.wrapStyle() == WrapStyle.NARROW) {
-                parts.get(0).accept(this, arg);
+                boolean prevTrailing = printExprWithTrailingCommentAfter(parts.get(0), arg);
                 for (int i = 1; i < parts.size(); i++) {
                     if (hasLeadingLineOrBlockComment(parts.get(i))) {
                         printBinaryChainOperandWithInterposedLeadingComments(parts.get(i), "+", arg);
+                        prevTrailing = false;
                     } else {
-                        printer.println();
+                        if (!prevTrailing) {
+                            printer.println();
+                        }
                         printCont();
                         printer.print("+ ");
-                        parts.get(i).accept(this, arg);
+                        prevTrailing = printExprWithTrailingCommentAfter(parts.get(i), arg);
                     }
                 }
             } else {
@@ -1201,7 +1286,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     private void printBinaryGreedy(List<Expression> parts, String op, Void arg, int budget) {
-        parts.get(0).accept(this, arg);
+        boolean prevTrailing = printExprWithTrailingCommentAfter(parts.get(0), arg);
         int used = column();
         for (int i = 1; i < parts.size(); i++) {
             int opLen = op.length() + 2; // " op "
@@ -1212,11 +1297,14 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             boolean overMax = used + opLen + partLen > fmt.maxLineLength();
             if (leadingComment || interOperandComment) {
                 printBinaryChainOperandWithInterposedLeadingComments(parts.get(i), op, arg);
+                prevTrailing = false;
                 used = column();
                 continue;
             }
-            if (overPreferred || overMax) {
-                printer.println();
+            if (prevTrailing || overPreferred || overMax) {
+                if (!prevTrailing) {
+                    printer.println();
+                }
                 printCont();
                 printer.print(op);
                 printer.print(" ");
@@ -1227,7 +1315,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 printer.print(" ");
                 used += opLen;
             }
-            parts.get(i).accept(this, arg);
+            prevTrailing = printExprWithTrailingCommentAfter(parts.get(i), arg);
             used = column();
         }
     }

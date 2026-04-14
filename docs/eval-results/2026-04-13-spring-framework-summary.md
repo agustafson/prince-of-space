@@ -1,104 +1,76 @@
-# Spring Framework Eval Analysis (2026-04-13)
+# Spring Framework Eval Summary
 
-Source run:
+Latest completed run:
 
-- Command: `PRINCE_EVAL_ROOTS=/Users/gus/dev/projects/spring-framework ./gradlew :core:evalTest --rerun-tasks`
-- Raw report: `docs/eval-results/2026-04-13.md`
+- Command: `PRINCE_EVAL_ROOTS=/Users/gus/dev/projects/spring-framework ./gradlew :core:evalTest`
+- Raw report: `docs/eval-results/2026-04-14.md`
+- Project: `spring-framework @ 1787d3e885`
 
-## Executive takeaways
+## Current status
 
-- The run was **not all failures**. A large subset of files format successfully.
-- Across all 9 configs:
-  - `9206` files scanned each run
-  - `3495` parse/runtime formatter failures each run
-  - `5711` files formatted successfully each run (`~62.0%` of total)
-  - `5651` to `5663` files were both parse-successful and idempotent (`~61.4% to ~61.5%` of total)
-- Primary blocker is a single dominant runtime failure shape: `NoSuchElementException: No value present`.
+- The latest completed Spring run is past the old runtime-crash phase.
+- **Parse errors: `0` in all 9 configs.**
+- The only remaining hard failures are **idempotency failures**.
+- Each config scanned and attempted `9198` files.
+- Each config reformatted `8760` files and found `438` already clean.
 
-## What succeeded
+## Progress snapshot
 
-For every config permutation:
+The evaluation is now in a much better place than the earlier `NoSuchElementException` / indent-underflow era:
 
-- **Parse+format success:** `5711 / 9206` files
-- **Parse+format+idempotent success:** `5651` to `5663` files
+- Earlier runs were blocked by large numbers of formatter runtime failures.
+- The latest completed run reports **no parse/runtime failures at all**.
+- Remaining work is now entirely about making already-formatted files stable on the second pass.
 
-Best idempotency result configs (same count):
+## Idempotency counts by config
 
-- `aggressive-balanced`
-- `aggressive-narrow`
-- `moderate-balanced`
-- `moderate-narrow`
-- `default-balanced`
-- `default-narrow`
+| Config | Idempotency failures |
+|---|---:|
+| `aggressive-wide` | `71` |
+| `aggressive-balanced` | `53` |
+| `aggressive-narrow` | `52` |
+| `moderate-wide` | `72` |
+| `moderate-balanced` | `54` |
+| `moderate-narrow` | `53` |
+| `default-wide` | `76` |
+| `default-balanced` | `55` |
+| `default-narrow` | `54` |
 
-Each of these yielded `5663` idempotent files.
+Totals:
 
-## Failure profile
+- **Total remaining idempotency failures across all configs:** `540`
+- **Best configs:** `aggressive-narrow` with `52`
+- **Worst config:** `default-wide` with `76`
 
-### 1) Parse/runtime failures (hard failures)
+## What this means
 
-- Count: `3495` per config (`31,455` entries across all 9 config runs)
-- Dominant error message frequencies from the failing test output:
-  - `31,433` — `unexpected formatter error: NoSuchElementException: No value present`
-  - `18` — `Parse failed: ...`
-  - `3` — `unexpected formatter error: IllegalStateException: Attempt to indent less than the previous indent.`
+- Spring is no longer blocked by parser support or formatter exceptions.
+- The formatter now completes a full pass over the Spring corpus in every config.
+- The remaining gap is second-pass stability, especially in `wide` wrapping modes.
 
-Interpretation:
+## Current leading files
 
-- The parse failure bucket is overwhelmingly a formatter runtime bug, not a broad JavaParser syntax support gap.
-- This likely indicates one or more AST shape assumptions that break repeatedly across Spring code.
+From the latest completed run, the first remaining aggressive-wide failures are:
 
-### 2) Idempotency failures (hard failures)
+1. `spring-r2dbc/src/test/java/org/springframework/r2dbc/connection/init/AbstractDatabasePopulatorTests.java`
+2. `spring-r2dbc/src/main/java/org/springframework/r2dbc/connection/init/DatabasePopulator.java`
+3. `spring-r2dbc/src/main/java/org/springframework/r2dbc/connection/ConnectionFactoryUtils.java`
+4. `spring-oxm/src/main/java/org/springframework/oxm/jaxb/Jaxb2Marshaller.java`
+5. `spring-orm/src/main/java/org/springframework/orm/jpa/SharedEntityManagerCreator.java`
 
-- `48` to `60` per config (on already parse-successful files)
-- These are much smaller than parse/runtime failures, but still release-blocking.
-- Current Markdown report contains counts but not full file lists for idempotency failures.
+## Recent wins reflected in this state
 
-### 3) Over-long non-comment lines (warning-only)
+The latest runs have already eliminated several earlier front-of-list failures, including:
 
-- Config-sensitive and expected to vary by width:
-  - `aggressive-*`: `2267` to `2922`
-  - `moderate-*`: `560` to `734`
-  - `default-*`: `54` to `74`
-- This is informational and not currently blocking.
-
-## Hotspot modules (parse/runtime failure concentration)
-
-Top root modules represented in parse/runtime failures:
-
-- `spring-test` (highest concentration)
-- `spring-web`
-- `spring-context`
-- `spring-core`
-- `spring-webmvc`
-- `spring-webflux`
-
-Many early-listed failures are in `spring-webflux` tests, making it a good first triage target.
-
-## Recommended fix plan (next steps)
-
-1. **Capture first full stack trace for `NoSuchElementException`**
-   - Temporarily add fail-fast debug mode in the eval harness (or run a focused reproduction test) to print stack for first offending file.
-   - Current harness intentionally records and continues, which hides call-site detail.
-
-2. **Minimize one representative Spring failure**
-   - Start with one `spring-webflux` file from the failing list and reduce to a minimal reproducer.
-   - Add a targeted regression test in `core/src/test/java/io/princeofspace/`.
-
-3. **Fix dominant runtime assumption in formatter visitor**
-   - Based on likely location, investigate optional-node access patterns in `PrincePrettyPrinterVisitor`.
-   - Re-run `:core:test` after each fix, then re-run `:core:evalTest` against Spring.
-
-4. **Expose detailed idempotency file list in report**
-   - Extend `EvalReport` to include `<details>` sections for parse errors and idempotency failures (possibly capped to top N plus total count).
-   - This will speed root-cause clustering for the remaining 48–60 idempotency regressions.
-
-5. **Then run Guava once clone completes**
-   - Validate whether the same dominant runtime failure reproduces on Guava or is Spring-specific.
+- `spring-webflux/src/test/java/org/springframework/web/reactive/FlushingIntegrationTests.java`
+- `spring-webflux/src/test/java/org/springframework/web/reactive/function/server/RouterFunctionsTests.java`
+- protobuf generated interfaces that were drifting comments onto declaration headers
+- several earlier comment-placement and chain/lambda runtime-failure clusters that no longer appear as parse/runtime blockers
 
 ## Bottom line
 
-The Spring eval produced actionable signal immediately:
+Spring evaluation is now in the **final stabilization phase**:
 
-- Formatter already handles about **61.5%** of files end-to-end (parse + idempotent) across all config families.
-- A **single dominant runtime exception class** accounts for almost all hard failures, which is a good sign for concentrated fixes rather than diffuse issues.
+- `0` parse/runtime failures
+- `540` remaining idempotency failures across 9 configs
+- failures are concentrated in formatting stability, not formatter crashes

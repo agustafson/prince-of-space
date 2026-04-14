@@ -1117,6 +1117,39 @@ class FormatterTest {
     }
 
     @Test
+    void idempotency_commentsInterspersedInMethodArguments_doNotReorder() {
+        Formatter f = new Formatter(
+                FormatterConfig.builder()
+                        .preferredLineLength(80)
+                        .maxLineLength(100)
+                        .wrapStyle(WrapStyle.WIDE)
+                        .build());
+        String input = """
+                class T {
+                    void m() {
+                        assertThat(events).containsExactly(
+
+                            // --- Config1 ---
+                            "Refreshed:Config1",
+                            // No BeforeTestClass, since EventPublishingTestExecutionListener
+                            // only publishes events for a context that has already been loaded.
+                            "AfterTestClass:Config1",
+
+                            // --- Config2 ---
+                            // Here we expect a BeforeTestClass event, since Config2
+                            // uses the same context as Config1.
+                            "BeforeTestClass:Config2",
+                            "AfterTestClass:Config2"
+                        );
+                    }
+                }
+                """;
+        String once = f.format(input);
+        String twice = f.format(once);
+        assertThat(twice).isEqualTo(once);
+    }
+
+    @Test
     void idempotency_endOfLineCommentAfterStatement_staysAttachedWithoutExtraBlankLine() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()
