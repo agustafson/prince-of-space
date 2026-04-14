@@ -38,7 +38,8 @@ intellijPlatform {
     pluginConfiguration {
         ideaVersion {
             sinceBuild = "233"
-            untilBuild = "252.*"
+            // Open upper bound so the plugin installs on current and future IDEs (e.g. 261+); verify APIs when upgrading the platform dependency.
+            untilBuild = "999.*"
         }
     }
 }
