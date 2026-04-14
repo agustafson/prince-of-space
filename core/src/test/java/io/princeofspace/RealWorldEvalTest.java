@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -29,6 +30,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * a Markdown report to {@code PRINCE_EVAL_REPORT_DIR} (default: {@code docs/eval-results/}).
  *
  * <p>Run with: {@code ./gradlew :core:evalTest}
+ *
+ * <p>Optional: {@code PRINCE_EVAL_CONFIG_NAMES=aggressive-wide,moderate-balanced} runs only those
+ * named configs (comma-separated), for faster iteration.
  */
 @Tag("eval")
 @EnabledIfEnvironmentVariable(named = "PRINCE_EVAL_ROOTS", matches = ".+")
@@ -63,6 +67,27 @@ class RealWorldEvalTest {
     /** Directory segments that indicate generated / build output — skip their subtrees. */
     private static final Set<String> SKIP_DIRS =
             Set.of("build", ".gradle", ".git", "generated", "generated-sources");
+
+    private static List<EvalConfig> activeConfigs() {
+        String raw = System.getenv("PRINCE_EVAL_CONFIG_NAMES");
+        if (raw == null || raw.isBlank()) {
+            return CONFIGS;
+        }
+        LinkedHashSet<String> want = new LinkedHashSet<>();
+        for (String part : raw.split(",", -1)) {
+            String name = part.strip();
+            if (!name.isEmpty()) {
+                want.add(name);
+            }
+        }
+        List<EvalConfig> picked = CONFIGS.stream().filter(c -> want.contains(c.name())).toList();
+        if (picked.isEmpty()) {
+            throw new IllegalStateException(
+                    "PRINCE_EVAL_CONFIG_NAMES matched no configs. Valid names: "
+                            + CONFIGS.stream().map(EvalConfig::name).toList());
+        }
+        return picked;
+    }
 
     // ---------------------------------------------------------------------------
     // Result types
@@ -119,7 +144,7 @@ class RealWorldEvalTest {
             System.out.printf("%nProject: %s (%s) — %d files%n", projectName, gitHash, files.size());
 
             List<ConfigRunResult> configResults = new ArrayList<>();
-            for (EvalConfig evalConfig : CONFIGS) {
+            for (EvalConfig evalConfig : activeConfigs()) {
                 System.out.printf("  Running config: %s ...%n", evalConfig.name());
                 ConfigRunResult result =
                         runConfig(project, evalConfig, files, evalConfig.toFormatterConfig());

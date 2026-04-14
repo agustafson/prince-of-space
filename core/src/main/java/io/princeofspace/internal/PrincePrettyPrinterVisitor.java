@@ -3,6 +3,7 @@ package io.princeofspace.internal;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.BodyDeclaration;
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.EnumConstantDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
@@ -18,7 +19,10 @@ import com.github.javaparser.ast.expr.BinaryExpr;
 import com.github.javaparser.ast.expr.ConditionalExpr;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.LambdaExpr;
+import com.github.javaparser.ast.expr.MemberValuePair;
 import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.NormalAnnotationExpr;
+import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.expr.SwitchExpr;
 import com.github.javaparser.ast.expr.TextBlockLiteralExpr;
@@ -46,7 +50,9 @@ import io.princeofspace.model.WrapStyle;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -80,6 +86,150 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printer.println();
     }
 
+    /**
+     * Orphan comments that appear before the first member (or enum constant) belong inside the type
+     * body. Leaving them for {@link #printOrphanCommentsEnding} places them before the closing brace,
+     * which re-parses differently when the source had {@code { // comment} on the opening line.
+     */
+    private void drainOrphanCommentsBeforeFirstBodyElement(
+            Node typeDecl,
+            NodeList<BodyDeclaration<?>> members,
+            NodeList<EnumConstantDeclaration> enumEntriesOrNull,
+            Void arg) {
+        if (typeDecl.getOrphanComments().isEmpty()) {
+            return;
+        }
+        int firstLine = Integer.MAX_VALUE;
+        for (BodyDeclaration<?> m : members) {
+            firstLine = Math.min(firstLine, m.getRange().map(r -> r.begin.line).orElse(Integer.MAX_VALUE));
+        }
+        if (enumEntriesOrNull != null) {
+            for (EnumConstantDeclaration e : enumEntriesOrNull) {
+                firstLine =
+                        Math.min(
+                                firstLine,
+                                e.getRange().map(r -> r.begin.line).orElse(Integer.MAX_VALUE));
+            }
+        }
+        List<Comment> move = new ArrayList<>();
+        for (Comment c : new ArrayList<>(typeDecl.getOrphanComments())) {
+            if (c.getRange().isEmpty()) {
+                continue;
+            }
+            if (c.getRange().get().begin.line < firstLine) {
+                move.add(c);
+            }
+        }
+        move.sort(
+                Comparator.comparingInt((Comment c) -> c.getRange().orElseThrow().begin.line)
+                        .thenComparingInt(c -> c.getRange().orElseThrow().begin.column));
+        for (Comment c : move) {
+            c.remove();
+            printComment(Optional.of(c), arg);
+        }
+    }
+
+    private void drainOrphanCommentsBeforeFirstBodyElement(
+            Node typeDecl, NodeList<BodyDeclaration<?>> members, Void arg) {
+        drainOrphanCommentsBeforeFirstBodyElement(typeDecl, members, null, arg);
+    }
+
+    /**
+     * JavaParser sometimes attaches a line comment that lexically follows {@code extends Type {}}
+     * as an orphan <em>before</em> the type's simple name (between {@code class} and the name).
+     * Relocate those comments into the type body so they are not printed twice and idempotency holds.
+     */
+    private static List<Comment> extractLineCommentsMisplacedBeforeTypeName(ClassOrInterfaceDeclaration n) {
+        if (n.getName().getRange().isEmpty()) {
+            return List.of();
+        }
+        int nameLine = n.getName().getRange().get().begin.line;
+        int nameCol = n.getName().getRange().get().begin.column;
+        List<Comment> out = new ArrayList<>();
+        for (Comment c : new ArrayList<>(n.getOrphanComments())) {
+            if (!(c instanceof LineComment)) {
+                continue;
+            }
+            if (c.getRange().isEmpty()) {
+                continue;
+            }
+            int cl = c.getRange().get().begin.line;
+            int cc = c.getRange().get().begin.column;
+            if (cl == nameLine && cc < nameCol) {
+                c.remove();
+                out.add(c);
+            }
+        }
+        out.sort(
+                Comparator.comparingInt((Comment c) -> c.getRange().orElseThrow().begin.line)
+                        .thenComparingInt(c -> c.getRange().orElseThrow().begin.column));
+        return out;
+    }
+
+    /**
+     * With {@code extends} / {@code implements}, JavaParser may duplicate the same opening-brace
+     * line comment as several orphan nodes on the header line. Strip the whole line's line-comment
+     * orphans and keep one copy per distinct comment text (rightmost wins).
+     */
+    private static List<Comment> extractAndDedupeLineCommentsOnTypeNameLine(ClassOrInterfaceDeclaration n) {
+        if (n.getName().getRange().isEmpty()) {
+            return List.of();
+        }
+        int headerLine = n.getName().getRange().get().begin.line;
+        List<LineComment> candidates = new ArrayList<>();
+        for (Comment c : new ArrayList<>(n.getOrphanComments())) {
+            if (c instanceof LineComment lc
+                    && c.getRange().isPresent()
+                    && c.getRange().get().begin.line == headerLine) {
+                c.remove();
+                candidates.add(lc);
+            }
+        }
+        candidates.sort(Comparator.comparingInt(c -> c.getRange().orElseThrow().begin.column));
+        Map<String, LineComment> uniqueByContent = new LinkedHashMap<>();
+        for (LineComment lc : candidates) {
+            uniqueByContent.put(lc.getContent(), lc);
+        }
+        List<Comment> out = new ArrayList<>(uniqueByContent.values());
+        out.sort(Comparator.comparingInt(c -> c.getRange().orElseThrow().begin.column));
+        return out;
+    }
+
+    /**
+     * Some headers carry the same trailing line comment on both the simple name and a type-clause
+     * entry (for example, both {@code OperatorNot} and {@code extends SpelNodeImpl}). Remove the
+     * duplicate from type-clause entries so we print it once and stay idempotent.
+     */
+    private static void pruneDuplicatedHeaderLineCommentsOnTypeClauses(ClassOrInterfaceDeclaration n) {
+        Optional<Comment> nameComment = n.getName().getComment();
+        if (nameComment.isEmpty() || !(nameComment.get() instanceof LineComment) || nameComment.get().getRange().isEmpty()) {
+            return;
+        }
+        Comment nc = nameComment.get();
+        String content = nc.getContent();
+        int line = nc.getRange().orElseThrow().begin.line;
+        for (ClassOrInterfaceType t : n.getExtendedTypes()) {
+            Optional<Comment> tc = t.getComment();
+            if (tc.isPresent()
+                    && tc.get() instanceof LineComment
+                    && tc.get().getRange().isPresent()
+                    && tc.get().getRange().orElseThrow().begin.line == line
+                    && Objects.equals(tc.get().getContent(), content)) {
+                tc.get().remove();
+            }
+        }
+        for (ClassOrInterfaceType t : n.getImplementedTypes()) {
+            Optional<Comment> tc = t.getComment();
+            if (tc.isPresent()
+                    && tc.get() instanceof LineComment
+                    && tc.get().getRange().isPresent()
+                    && tc.get().getRange().orElseThrow().begin.line == line
+                    && Objects.equals(tc.get().getContent(), content)) {
+                tc.get().remove();
+            }
+        }
+    }
+
     @Override
     public void visit(BlockStmt n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -93,7 +243,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 if (prev != null && prev.getRange().isPresent() && s.getRange().isPresent()) {
                     int prevEnd = prev.getRange().get().end.line;
                     int curStart = s.getRange().get().begin.line;
-                    boolean hasInterveningComment = hasCommentBetweenLines(n, prevEnd, curStart);
+                    boolean hasInterveningComment = hasCommentBetweenStatements(n, prev, s);
                     boolean currentStatementPrintsCommentBeforeCode =
                             hasLineOrBlockCommentPrintedBeforeNode(s);
                     if (curStart > prevEnd + 1
@@ -112,13 +262,22 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printer.print("}");
     }
 
-    private static boolean hasCommentBetweenLines(BlockStmt block, int startLineExclusive, int endLineExclusive) {
+    private static boolean hasCommentBetweenStatements(BlockStmt block, Statement previous, Statement current) {
+        if (previous.getRange().isEmpty() || current.getRange().isEmpty()) {
+            return false;
+        }
+        int startLineExclusive = previous.getRange().get().end.line;
+        int currentLine = current.getRange().get().begin.line;
+        int currentColumn = current.getRange().get().begin.column;
         for (Comment comment : block.getAllContainedComments()) {
             if (comment.getRange().isEmpty()) {
                 continue;
             }
             int line = comment.getRange().get().begin.line;
-            if (line > startLineExclusive && line < endLineExclusive) {
+            if (line > startLineExclusive && line < currentLine) {
+                return true;
+            }
+            if (line == currentLine && comment.getRange().get().end.column < currentColumn) {
                 return true;
             }
         }
@@ -126,15 +285,25 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     private static boolean hasLineOrBlockCommentPrintedBeforeNode(Node node) {
+        if (node.getRange().isEmpty()) {
+            return false;
+        }
+        int nodeBegin = node.getRange().get().begin.line;
         Optional<Comment> c = node.getComment();
-        if (c.isEmpty() || node.getRange().isEmpty() || c.get().getRange().isEmpty()) {
-            return false;
+        if (c.isPresent()
+                && (c.get() instanceof LineComment || c.get() instanceof BlockComment)
+                && c.get().getRange().isPresent()
+                && c.get().getRange().get().begin.line <= nodeBegin) {
+            return true;
         }
-        Comment comment = c.get();
-        if (!(comment instanceof LineComment || comment instanceof BlockComment)) {
-            return false;
+        for (Comment nested : node.getAllContainedComments()) {
+            if ((nested instanceof LineComment || nested instanceof BlockComment)
+                    && nested.getRange().isPresent()
+                    && nested.getRange().get().begin.line <= nodeBegin) {
+                return true;
+            }
         }
-        return comment.getRange().get().begin.line <= node.getRange().get().begin.line;
+        return false;
     }
 
     private static boolean hasAnyLineOrBlockCommentOnLambda(Node node) {
@@ -590,6 +759,66 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         return result;
     }
 
+    @Override
+    public void visit(SingleMemberAnnotationExpr n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        printer.print("@");
+        n.getName().accept(this, arg);
+        printer.print("(");
+        if (hasLeadingLineOrBlockComment(n.getMemberValue())) {
+            printer.println();
+            printCont();
+            n.getMemberValue().accept(this, arg);
+            printer.println();
+            printCont();
+        } else {
+            n.getMemberValue().accept(this, arg);
+        }
+        printer.print(")");
+    }
+
+    @Override
+    public void visit(NormalAnnotationExpr n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        printer.print("@");
+        n.getName().accept(this, arg);
+        NodeList<MemberValuePair> pairs = n.getPairs();
+        if (pairs.isEmpty()) {
+            return;
+        }
+        printer.print("(");
+        boolean hasCommentedPair = false;
+        for (MemberValuePair p : pairs) {
+            if (hasLineOrBlockComment(p)) {
+                hasCommentedPair = true;
+                break;
+            }
+        }
+        if (!hasCommentedPair) {
+            for (Iterator<MemberValuePair> i = pairs.iterator(); i.hasNext(); ) {
+                i.next().accept(this, arg);
+                if (i.hasNext()) {
+                    printer.print(", ");
+                }
+            }
+            printer.print(")");
+            return;
+        }
+        for (Iterator<MemberValuePair> i = pairs.iterator(); i.hasNext(); ) {
+            printer.println();
+            printCont();
+            i.next().accept(this, arg);
+            if (i.hasNext()) {
+                printer.print(",");
+            }
+        }
+        printer.println();
+        printCont();
+        printer.print(")");
+    }
+
     private NodeList<AnnotationExpr> inlineReturnTypeAnnotations(MethodDeclaration n) {
         if (n.getModifiers().isEmpty()) {
             return new NodeList<>();
@@ -639,13 +868,37 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         return hasLambdaArgument && chainOneLineWidth(base, calls) > 60;
     }
 
+    private static boolean hasAnyLineOrBlockComment(Node node) {
+        if (node.getComment().isPresent()
+                && (node.getComment().get() instanceof LineComment
+                        || node.getComment().get() instanceof BlockComment)) {
+            return true;
+        }
+        for (Comment c : node.getAllContainedComments()) {
+            if (c instanceof LineComment || c instanceof BlockComment) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean chainHasLineOrBlockComments(Expression base, List<MethodCallExpr> calls) {
+        if (hasAnyLineOrBlockComment(base)) {
+            return true;
+        }
+        for (MethodCallExpr mc : calls) {
+            if (hasAnyLineOrBlockComment(mc) || hasAnyLineOrBlockComment(mc.getName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public void visit(MethodCallExpr n, Void arg) {
         if (n.getScope().isEmpty()) {
             printOrphanCommentsBeforeThisChildNode(n);
-            if (n.getComment().isPresent() && n.getArguments().isEmpty()) {
-                printComment(n.getComment(), arg);
-            }
+            printComment(n.getComment(), arg);
             printTypeArgs(n, arg);
             printer.print(n.getNameAsString());
             printArguments(n.getArguments(), arg);
@@ -668,7 +921,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
         boolean wrap = mustHardWrapChain(base, calls)
                 || mustWrapChain(base, calls)
-                || shouldWrapLambdaHeavyChain(base, calls);
+                || shouldWrapLambdaHeavyChain(base, calls)
+                || chainHasLineOrBlockComments(base, calls);
         if (!wrap) {
             printOrphanCommentsBeforeThisChildNode(n);
             printChainInline(base, calls, arg);
@@ -713,7 +967,11 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             base.accept(this, arg);
         }
 
-        if (calls.size() == 1 && isSimpleBase(base)) {
+        if (calls.size() == 1
+                && isSimpleBase(base)
+                && !hasLineOrBlockComment(calls.get(0))
+                && !hasLineOrBlockComment(calls.get(0).getName())
+                && calls.get(0).getOrphanComments().isEmpty()) {
             MethodCallExpr only = calls.get(0);
             printer.print(".");
             printTypeArgs(only, arg);
@@ -827,10 +1085,11 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     /**
-     * Greedy {@code ||} / {@code &&} must not emit {@code "|| //"} on one line: line comments end with a
-     * newline, so print leading comments first, then the operator, then a comment-free clone of the operand.
+     * Binary chain operands with leading line/block comments must not print {@code "|| //"} (or {@code "+ //"})
+     * on one line: line comments end with a newline, so print orphan + owned comments first, then the
+     * operator, then a comment-free clone of the operand.
      */
-    private void printGreedyBinaryOperandWithInterposedLeadingComments(
+    private void printBinaryChainOperandWithInterposedLeadingComments(
             Expression operand, String op, Void arg) {
         printer.println();
         printCont();
@@ -882,11 +1141,16 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 // One operand per continuation line (operator at line start); NARROW matches this for &&/||
                 parts.get(0).accept(this, arg);
                 for (int i = 1; i < parts.size(); i++) {
-                    printer.println();
-                    printCont();
-                    printer.print(os);
-                    printer.print(" ");
-                    parts.get(i).accept(this, arg);
+                    boolean interOperandComment = hasCommentBetweenNodes(parts.get(i - 1), parts.get(i));
+                    if (hasLeadingLineOrBlockComment(parts.get(i)) || interOperandComment) {
+                        printBinaryChainOperandWithInterposedLeadingComments(parts.get(i), os, arg);
+                    } else {
+                        printer.println();
+                        printCont();
+                        printer.print(os);
+                        printer.print(" ");
+                        parts.get(i).accept(this, arg);
+                    }
                 }
             } else {
                 // WIDE: greedy packing (continuation indent affects only column position, not line budget)
@@ -914,10 +1178,14 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             if (fmt.wrapStyle() == WrapStyle.NARROW) {
                 parts.get(0).accept(this, arg);
                 for (int i = 1; i < parts.size(); i++) {
-                    printer.println();
-                    printCont();
-                    printer.print("+ ");
-                    parts.get(i).accept(this, arg);
+                    if (hasLeadingLineOrBlockComment(parts.get(i))) {
+                        printBinaryChainOperandWithInterposedLeadingComments(parts.get(i), "+", arg);
+                    } else {
+                        printer.println();
+                        printCont();
+                        printer.print("+ ");
+                        parts.get(i).accept(this, arg);
+                    }
                 }
             } else {
                 printBinaryGreedy(parts, "+", arg);
@@ -939,10 +1207,11 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             int opLen = op.length() + 2; // " op "
             int partLen = est(parts.get(i));
             boolean leadingComment = hasLeadingLineOrBlockComment(parts.get(i));
+            boolean interOperandComment = hasCommentBetweenNodes(parts.get(i - 1), parts.get(i));
             boolean overPreferred = used + opLen + partLen > budget;
             boolean overMax = used + opLen + partLen > fmt.maxLineLength();
-            if (leadingComment) {
-                printGreedyBinaryOperandWithInterposedLeadingComments(parts.get(i), op, arg);
+            if (leadingComment || interOperandComment) {
+                printBinaryChainOperandWithInterposedLeadingComments(parts.get(i), op, arg);
                 used = column();
                 continue;
             }
@@ -1310,6 +1579,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
         printer.println(" {");
         printer.indent();
+        drainOrphanCommentsBeforeFirstBodyElement(n, n.getMembers(), arg);
         if (!isNullOrEmpty(n.getMembers())) {
             printMembers(n.getMembers(), arg);
         }
@@ -1319,7 +1589,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     @Override
-    public void visit(com.github.javaparser.ast.body.ClassOrInterfaceDeclaration n, Void arg) {
+    public void visit(ClassOrInterfaceDeclaration n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
         if (!n.isCompact()) {
@@ -1330,6 +1600,11 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             } else {
                 printer.print("class ");
             }
+            pruneDuplicatedHeaderLineCommentsOnTypeClauses(n);
+            List<Comment> misplacedOpeningLineComments =
+                    !n.getExtendedTypes().isEmpty() || !n.getImplementedTypes().isEmpty()
+                            ? extractAndDedupeLineCommentsOnTypeNameLine(n)
+                            : extractLineCommentsMisplacedBeforeTypeName(n);
             n.getName().accept(this, arg);
             printTypeParameters(n.getTypeParameters(), arg);
             boolean typeClauseWrapped = false;
@@ -1350,6 +1625,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 printer.println(" {");
             }
             printer.indent();
+            for (Comment c : misplacedOpeningLineComments) {
+                printComment(Optional.of(c), arg);
+            }
+            drainOrphanCommentsBeforeFirstBodyElement(n, n.getMembers(), arg);
         }
         if (!isNullOrEmpty(n.getMembers())) {
             if (n.isCompact()) {
@@ -1758,6 +2037,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
         printer.println(" {");
         printer.indent();
+        drainOrphanCommentsBeforeFirstBodyElement(n, n.getMembers(), n.getEntries(), arg);
         if (n.getEntries().isNonEmpty()) {
             if (fmt.wrapStyle() == WrapStyle.WIDE && !hasBodies) {
                 // Greedy packing of constants
@@ -1909,8 +2189,21 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printer.print(" -> ");
         if (n.getBody() instanceof BlockStmt block) {
             if (block.getStatements() == null || block.getStatements().isEmpty()) {
-                printer.print("{}");
-                printOrphanCommentsEnding(block);
+                // Empty statement list but comments inside the block must stay between { and }, not
+                // after "{}", or the second parse re-attaches them and idempotency breaks.
+                if (block.getComment().isPresent() || !block.getOrphanComments().isEmpty()) {
+                    printOrphanCommentsBeforeThisChildNode(block);
+                    printComment(block.getComment(), arg);
+                    printer.print("{");
+                    printer.println();
+                    printer.indent();
+                    printOrphanCommentsEnding(block);
+                    printer.unindent();
+                    printer.print("}");
+                } else {
+                    printer.print("{}");
+                    printOrphanCommentsEnding(block);
+                }
                 printOrphanCommentsEnding(n);
                 return;
             }
@@ -2067,6 +2360,25 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         int commentEndColumn = comment.getRange().get().end.column;
         int nodeBeginColumn = node.getRange().get().begin.column;
         return commentEndColumn < nodeBeginColumn;
+    }
+
+    private static boolean hasTrailingLineOrBlockComment(Node node) {
+        Optional<Comment> c = node.getComment();
+        if (c.isEmpty() || node.getRange().isEmpty() || c.get().getRange().isEmpty()) {
+            return false;
+        }
+        Comment comment = c.get();
+        if (!(comment instanceof LineComment || comment instanceof BlockComment)) {
+            return false;
+        }
+        int commentLine = comment.getRange().get().begin.line;
+        int nodeLine = node.getRange().get().end.line;
+        if (commentLine != nodeLine) {
+            return false;
+        }
+        int commentBeginColumn = comment.getRange().get().begin.column;
+        int nodeEndColumn = node.getRange().get().end.column;
+        return commentBeginColumn > nodeEndColumn;
     }
 
 }

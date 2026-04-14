@@ -687,14 +687,7 @@ class FormatterTest {
     }
 
     @Test
-    void idempotency_wideOrChain_leadingCommentsBeforeLastOperand_doNotDrift() {
-        Formatter f =
-                new Formatter(
-                        FormatterConfig.builder()
-                                .preferredLineLength(80)
-                                .maxLineLength(100)
-                                .wrapStyle(WrapStyle.WIDE)
-                                .build());
+    void idempotency_longOrChain_leadingCommentsBeforeLastOperand_idempotentForAllWrapStyles() {
         String input =
                 """
                 class T {
@@ -723,8 +716,101 @@ class FormatterTest {
                     }
                 }
                 """;
-        String once = f.format(input);
-        assertThat(f.format(once)).isEqualTo(once);
+        for (WrapStyle wrap : WrapStyle.values()) {
+            Formatter f =
+                    new Formatter(
+                            FormatterConfig.builder()
+                                    .preferredLineLength(80)
+                                    .maxLineLength(100)
+                                    .wrapStyle(wrap)
+                                    .build());
+            String once = f.format(input);
+            assertThat(f.format(once))
+                    .as("wrapStyle=%s", wrap)
+                    .isEqualTo(once);
+        }
+    }
+
+    @Test
+    void idempotency_lineCommentOnSameLineAsClassOpeningBrace_staysInsideBody() {
+        String input =
+                """
+                package p;
+
+                class T {  // note on opening brace
+                    void m() {}
+                }
+                """;
+        for (WrapStyle wrap : WrapStyle.values()) {
+            Formatter f =
+                    new Formatter(
+                            FormatterConfig.builder()
+                                    .preferredLineLength(80)
+                                    .maxLineLength(100)
+                                    .wrapStyle(wrap)
+                                    .build());
+            String once = f.format(input);
+            assertThat(f.format(once))
+                    .as("wrapStyle=%s", wrap)
+                    .isEqualTo(once);
+        }
+    }
+
+    @Test
+    void idempotency_subclassOpeningBraceEndOfLineComment_likeSpringOperatorNot() {
+        String input =
+                """
+                package p;
+
+                class SpelNodeImpl {}
+
+                public class OperatorNot extends SpelNodeImpl {  // unary operator note
+                    public OperatorNot() {}
+                }
+                """;
+        for (WrapStyle wrap : WrapStyle.values()) {
+            Formatter f =
+                    new Formatter(
+                            FormatterConfig.builder()
+                                    .preferredLineLength(80)
+                                    .maxLineLength(100)
+                                    .wrapStyle(wrap)
+                                    .build());
+            String once = f.format(input);
+            assertThat(f.format(once))
+                    .as("wrapStyle=%s", wrap)
+                    .isEqualTo(once);
+        }
+    }
+
+    @Test
+    void idempotency_lambdaEmptyBlock_withOnlyLineComments_idempotentForAllWrapStyles() {
+        String input =
+                """
+                class T {
+                    void m(java.util.function.Consumer<java.nio.channels.Channel> c) {
+                        c.accept(
+                                channel -> {
+                                    // Do not close channel from here, rather wait for the callback
+                                    // and then complete after releasing the buffer.
+                                });
+                    }
+                }
+                """;
+        for (WrapStyle wrap : WrapStyle.values()) {
+            Formatter f =
+                    new Formatter(
+                            FormatterConfig.builder()
+                                    .preferredLineLength(80)
+                                    .maxLineLength(100)
+                                    .wrapStyle(wrap)
+                                    .build());
+            String once = f.format(input);
+            assertThat(f.format(once))
+                    .as("wrapStyle=%s", wrap)
+                    .isEqualTo(once);
+            assertThat(once).doesNotContain("{}//");
+        }
     }
 
     @Test
