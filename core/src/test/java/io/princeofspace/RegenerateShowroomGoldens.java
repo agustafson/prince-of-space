@@ -28,7 +28,7 @@ class RegenerateShowroomGoldens {
         Path inputs = root.resolve("examples/inputs");
         Path outputs = root.resolve("examples/outputs");
         LanguageLevel[] levels = {
-            LanguageLevel.JAVA_8, LanguageLevel.JAVA_17, LanguageLevel.JAVA_21
+            LanguageLevel.JAVA_8, LanguageLevel.JAVA_17, LanguageLevel.JAVA_21, LanguageLevel.JAVA_25
         };
         String[] goldens = {
             "balanced-cont4-closingparen-false.java",
@@ -63,6 +63,7 @@ class RegenerateShowroomGoldens {
             case JAVA_8 -> "java8";
             case JAVA_17 -> "java17";
             case JAVA_21 -> "java21";
+            case JAVA_25 -> "java25";
             default -> throw new IllegalArgumentException("Unsupported showcase language level: " + level);
         };
     }

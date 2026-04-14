@@ -2,8 +2,13 @@ package io.princeofspace.internal;
 
 import com.github.javaparser.Position;
 import com.github.javaparser.Range;
+import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.comments.LineComment;
+import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.LambdaExpr;
+import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.NameExpr;
+import com.github.javaparser.ast.stmt.BlockStmt;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -48,6 +53,28 @@ class CommentUtilsTest {
         expr.setComment(comment);
 
         assertThat(commentUtils.firstLineOrBlockCommentPrintedBeforeExpression(expr)).contains(comment);
+    }
+
+    @Test
+    void shouldGlueWrappedClosingParen_trueForSingleMethodCallArgument() {
+        NodeList<Expression> args = new NodeList<>(new MethodCallExpr(new NameExpr("x"), "call"));
+
+        assertThat(commentUtils.shouldGlueWrappedClosingParen(args)).isTrue();
+    }
+
+    @Test
+    void shouldGlueWrappedClosingParen_trueForBlockLambdaArgument() {
+        LambdaExpr lambda = new LambdaExpr(new NodeList<>(), new BlockStmt());
+        NodeList<Expression> args = new NodeList<>(lambda);
+
+        assertThat(commentUtils.shouldGlueWrappedClosingParen(args)).isTrue();
+    }
+
+    @Test
+    void shouldGlueWrappedClosingParen_falseForSimpleNonLambdaArguments() {
+        NodeList<Expression> args = new NodeList<>(new NameExpr("a"), new NameExpr("b"));
+
+        assertThat(commentUtils.shouldGlueWrappedClosingParen(args)).isFalse();
     }
 
     private static NameExpr expr(String name, int beginLine, int beginColumn, int endLine, int endColumn) {

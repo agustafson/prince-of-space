@@ -4,7 +4,7 @@
 
 `ExamplesCorpusFormatTest` walks `examples/outputs/**` and `examples/inputs/**` and asserts every
 `.java` file satisfies `format(format(x)) == format(x)` (language level from path segments `java8`,
-`java17`, or `java21`).
+`java17`, `java21`, or `java25`).
 
 ## Optional checkout eval harness (manual / CI with clones)
 

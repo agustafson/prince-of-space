@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -175,8 +176,9 @@ class RealWorldEvalTest {
         }
 
         // Write report before asserting so failures are visible even when the build fails.
-        String report = new EvalReport(LocalDate.now(), resolveFormatterVersion(), results).toMarkdown();
-        Path reportFile = reportDir.resolve(LocalDate.now() + ".md");
+        LocalDate reportDate = LocalDate.now(ZoneId.systemDefault());
+        String report = new EvalReport(reportDate, resolveFormatterVersion(), results).toMarkdown();
+        Path reportFile = reportDir.resolve(reportDate + ".md");
         Files.writeString(reportFile, report);
         System.out.println("\nReport written to: " + reportFile);
 

@@ -22,8 +22,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * against golden files under {@code examples/outputs/}. Prefer fixing the formatter to match; after
  * agreed behavior changes, regenerate with {@code RegenerateShowroomGoldens} (see {@code REGENERATE_SHOWROOM}).
  *
- * <p>Run with {@code ./gradlew :core:showroomGoldenTest} (excluded from the default {@code test} task
- * until showroom parity is complete).
+ * <p>Showroom goldens also run under the default {@code ./gradlew :core:test} task. To run only this
+ * suite: {@code ./gradlew :core:showroomGoldenTest}.
  */
 @Tag("showroom-golden")
 class FormatterShowcaseGoldenTest {
@@ -32,7 +32,9 @@ class FormatterShowcaseGoldenTest {
         Path root = repoRoot();
         Path inputs = root.resolve("examples/inputs");
         Path outputs = root.resolve("examples/outputs");
-        LanguageLevel[] levels = {LanguageLevel.JAVA_8, LanguageLevel.JAVA_17, LanguageLevel.JAVA_21};
+        LanguageLevel[] levels = {
+            LanguageLevel.JAVA_8, LanguageLevel.JAVA_17, LanguageLevel.JAVA_21, LanguageLevel.JAVA_25
+        };
         String[] goldens = {
             "balanced-cont4-closingparen-false.java",
             "balanced-cont4-closingparen-true.java",
@@ -101,6 +103,7 @@ class FormatterShowcaseGoldenTest {
             case JAVA_8 -> "java8";
             case JAVA_17 -> "java17";
             case JAVA_21 -> "java21";
+            case JAVA_25 -> "java25";
             default -> throw new IllegalArgumentException("Unsupported showcase language level: " + level);
         };
     }

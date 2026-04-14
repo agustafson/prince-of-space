@@ -387,7 +387,7 @@ These are lower priority and can be tackled after the core formatter is stable.
 1. **The `Formatter` class is the single entry point.** Everything flows through `format(String) -> String`.
 2. **Configuration is immutable.** Create a `FormatterConfig`, pass it to `Formatter`, done.
 3. **The pretty-printer is the hard part.** Phases 2-3 are where most of the complexity lives. Invest heavily in tests here.
-4. **Test against golden files.** The `examples/outputs/` directory provides 36 golden files across 3 Java levels and 12 config combinations. Use these as the primary test suite.
+4. **Test against golden files.** The `examples/outputs/` directory provides 48 showroom golden files across 4 Java levels and 12 config combinations. Use these as the primary test suite.
 5. **Idempotency is non-negotiable.** Every test must verify `format(format(x)) == format(x)`.
 6. **Comments are sacred.** Never lose, reorder, or corrupt a comment.
 

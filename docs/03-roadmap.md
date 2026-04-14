@@ -5,7 +5,7 @@ state to production readiness. Tasks are ordered by priority. An agent should wo
 them sequentially (top to bottom), completing each before moving to the next unless a task
 explicitly says it can be parallelised.
 
-**Current state (April 2026):** 165 tests (129 unit/integration + 36 showroom golden) all
+**Current state (April 2026):** 200+ tests in `core` (unit/integration + 48 showroom golden cases + corpus checks) all
 pass (2 optional tests skipped when env vars unset). `./gradlew build` is green (Spotless,
 Checkstyle, SpotBugs, Error Prone, NullAway).
 Phases 0–8 of `IMPLEMENTATION_PLAN.md` are complete. The core formatter handles the most
@@ -18,7 +18,7 @@ Golden tests run in the default `test` task.
 
 ## Task 1 — Enable golden tests in CI ✓ COMPLETE
 
-Golden tests now run in the default `test` task (no `excludeTags`). All 165 tests pass (2 skipped).
+Golden tests now run in the default `test` task (no `excludeTags`). All `core` tests pass (optional tagged tests may be skipped when env vars are unset).
 
 ---
 
@@ -85,7 +85,7 @@ Scenarios **31–43** are in all three `FormatterShowcase.java` inputs (long `fo
 `while`, standalone lambda, `Collections.sort` + lambda, constructor chaining, multi-catch,
 nested ternary, long `assert`, `synchronized`, anonymous class, long `do-while`, long
 `return`). Showroom goldens regenerated. Remaining optional coverage (e.g. multi-line
-Javadoc in the 36-way matrix) can be added later; comment preservation stays in
+Javadoc in the 48-way matrix) can be added later; comment preservation stays in
 `CommentPreservationTest`.
 
 ---
@@ -195,9 +195,9 @@ For debugging and golden test work, this maps showcase scenarios to visitor code
 | `core/src/main/java/io/princeofspace/internal/FormattingEngine.java` | Parse → transform → print pipeline |
 | `core/src/main/java/io/princeofspace/internal/BraceEnforcer.java` | Forced-brace AST transform |
 | `core/src/main/java/io/princeofspace/model/FormatterConfig.java` | 8-knob config record + builder |
-| `examples/inputs/<level>/FormatterShowcase.java` | Showroom inputs (java8, java17, java21) |
+| `examples/inputs/<level>/FormatterShowcase.java` | Showroom inputs (java8, java17, java21, java25) |
 | `examples/outputs/<level>/<config>.java` | Golden outputs (36 files) |
-| `core/src/test/java/io/princeofspace/FormatterShowcaseGoldenTest.java` | 36-way golden test harness |
+| `core/src/test/java/io/princeofspace/FormatterShowcaseGoldenTest.java` | 48-way golden test harness |
 | `core/src/test/java/io/princeofspace/WrappingFormattingTest.java` | Targeted wrapping regression tests |
 | `core/src/test/java/io/princeofspace/FormatterTest.java` | General formatter behavior tests |
 | `core/src/test/java/io/princeofspace/CommentPreservationTest.java` | Comment survival tests |

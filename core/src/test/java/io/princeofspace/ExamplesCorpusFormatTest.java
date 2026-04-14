@@ -49,6 +49,9 @@ class ExamplesCorpusFormatTest {
             if ("java21".equals(seg)) {
                 return LanguageLevel.JAVA_21;
             }
+            if ("java25".equals(seg)) {
+                return LanguageLevel.JAVA_25;
+            }
         }
         return LanguageLevel.JAVA_17;
     }

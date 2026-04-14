@@ -1,6 +1,7 @@
 package io.princeofspace.internal;
 
 import com.github.javaparser.ast.Node;
+import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.comments.BlockComment;
 import com.github.javaparser.ast.comments.Comment;
@@ -392,6 +393,31 @@ record CommentUtils() {
             }
         }
         return false;
+    }
+
+    /** Returns true when any argument is a lambda with a block body. */
+    boolean hasBlockLambdaArgument(NodeList<? extends Expression> args) {
+        for (Expression expression : args) {
+            if (expression instanceof LambdaExpr lambda && lambda.getBody() instanceof BlockStmt) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns true when wrapped argument formatting should avoid a lone closing-paren line (for
+     * example a single nested call or a block lambda argument).
+     */
+    boolean shouldGlueWrappedClosingParen(NodeList<? extends Expression> args) {
+        if (args.isEmpty()) {
+            return false;
+        }
+        if (hasBlockLambdaArgument(args)) {
+            return true;
+        }
+        Expression last = args.get(args.size() - 1);
+        return args.size() == 1 && last instanceof MethodCallExpr;
     }
 
     /** Returns true when comment is either line or block style. */

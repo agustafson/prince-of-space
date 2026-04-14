@@ -13,7 +13,6 @@ import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.expr.SuperExpr;
 import com.github.javaparser.ast.expr.TextBlockLiteralExpr;
 import com.github.javaparser.ast.expr.ThisExpr;
-import com.github.javaparser.ast.stmt.BlockStmt;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -208,7 +207,7 @@ final class MethodChainFormatter {
             ctx.print(".");
             ctx.printTypeArgs(only, arg);
             ctx.accept(only.getName(), arg);
-            if (hasBlockLambdaArgument(only.getArguments())) {
+            if (comments.hasBlockLambdaArgument(only.getArguments())) {
                 ctx.indentWithAlignToSafe(lineStartColumn + ctx.config().continuationIndentSize());
                 try {
                     ctx.printArguments(only.getArguments(), arg);
@@ -245,7 +244,7 @@ final class MethodChainFormatter {
             ctx.print(".");
             ctx.printTypeArgs(mc, arg);
             ctx.print(mc.getNameAsString());
-            if (hasBlockLambdaArgument(mc.getArguments())) {
+            if (comments.hasBlockLambdaArgument(mc.getArguments())) {
                 ctx.indentWithAlignToSafe(Math.max(contCol, lineStartColumn + ctx.config().continuationIndentSize()));
                 try {
                     ctx.printArguments(mc.getArguments(), arg);
@@ -266,28 +265,6 @@ final class MethodChainFormatter {
                 || base instanceof FieldAccessExpr
                 || base instanceof ThisExpr
                 || base instanceof SuperExpr;
-    }
-
-    /** Returns true when any argument is a lambda with a block body. */
-    private static boolean hasBlockLambdaArgument(NodeList<? extends Expression> args) {
-        for (Expression expression : args) {
-            if (expression instanceof LambdaExpr lambda && lambda.getBody() instanceof BlockStmt) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /** Returns true when wrapped argument formatting should avoid a lone closing-paren line. */
-    boolean shouldGlueWrappedClosingParen(NodeList<? extends Expression> args) {
-        if (args.isEmpty()) {
-            return false;
-        }
-        if (hasBlockLambdaArgument(args)) {
-            return true;
-        }
-        Expression last = args.get(args.size() - 1);
-        return args.size() == 1 && last instanceof MethodCallExpr;
     }
 
     /** Returns true when the chain exceeds preferred line length budget. */

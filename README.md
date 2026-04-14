@@ -28,7 +28,7 @@ java -jar cli/build/libs/prince-of-space-cli-*.jar --help
 ```
 
 Common flags: `--check` (no writes, exit 1 if any file would change), `--stdin` / `--stdout`,
-`--java-version 8|11|17|21`, `-r` to recurse into directories, `-v` for stderr progress.
+`--java-version 8|11|17|21|25`, `-r` to recurse into directories, `-v` for stderr progress.
 
 ## Non-goals
 

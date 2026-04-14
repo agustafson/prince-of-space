@@ -75,7 +75,7 @@ val evalTest by tasks.registering(Test::class) {
 tasks.register<Test>("showroomGoldenTest") {
     group = "verification"
     description =
-        "Assert Formatter output matches authoritative examples/outputs/**/FormatterShowcase goldens (not generated)"
+        "Assert Formatter output matches authoritative examples/outputs/**/FormatterShowcase goldens (java8/java17/java21/java25)"
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
     useJUnitPlatform {

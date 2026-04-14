@@ -459,7 +459,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             wrapped = argumentListFormatter.argsNeedWrap(args);
             argumentListFormatter.printCommaSeparatedExprs(args, arg);
         }
-        if (fmt.closingParenOnNewLine() && wrapped && !methodChainFormatter.shouldGlueWrappedClosingParen(args)) {
+        if (fmt.closingParenOnNewLine() && wrapped && !commentUtils.shouldGlueWrappedClosingParen(args)) {
             printer.println();
         }
         printer.print(")");
