@@ -20,7 +20,12 @@ A configurable Java code formatter. See `README.md` for an overview and `IMPLEME
 ./gradlew build               # full build: compile, test, Spotless, Checkstyle, SpotBugs
 ```
 
-Always run `:core:test` after any change to `core/`. A clean `./gradlew build` is required before a PR.
+Always run `:core:test` after any change to `modules/core/`. A clean `./gradlew build` is required before a PR.
+
+## Version control and showroom goldens
+
+- Whenever you create **new tracked files** (sources, tests, `examples/` goldens, IDE plugin files, `package-lock.json`, and so on), **stage them explicitly** with `git add` and confirm `git status` is clean for intended changes before committing. Do not leave new files untracked.
+- Showroom inputs are **`examples/inputs/<level>/FormatterShowcase.java` only**. After editing any of those files, refresh goldens with: `REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens`. See `docs/showroom-scenarios.md`.
 
 ## Key rules (detail in `ARCHITECTURE.md`)
 

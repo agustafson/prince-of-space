@@ -138,7 +138,7 @@ After all runs complete, write one Markdown report per invocation:
 ```markdown
 # Prince of Space — Eval Report
 Date: 2026-04-13
-Formatter version: (read from `core/build/resources/main/version.txt` if it exists, else "dev")
+Formatter version: (read from `modules/core/build/resources/main/version.txt` if it exists, else "dev")
 
 ## guava @ abc1234  (git rev-parse HEAD of the clone)
 
@@ -178,7 +178,7 @@ hash of each clone. If the command fails, fall back to `"unknown"`.
 
 ### 5. Gradle wiring
 
-No new module is needed — add a `evalTest` task to `core/build.gradle.kts`:
+No new module is needed — add a `evalTest` task to `modules/core/build.gradle.kts`:
 
 ```kotlin
 val evalTest by tasks.registering(Test::class) {

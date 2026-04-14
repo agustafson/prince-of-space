@@ -16,7 +16,6 @@ test-logger = "4.0.0"
 build-health = "3.7.0"
 spotbugs-gradle = "6.4.8"
 nyx = "3.1.8-alpha.1"
-
 [libraries]
 javaparser-core = { module = "com.github.javaparser:javaparser-core", version.ref = "javaparser" }
 picocli = { module = "info.picocli:picocli", version.ref = "picocli" }

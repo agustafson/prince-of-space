@@ -1,0 +1,63 @@
+{
+  "name": "prince-of-space",
+  "displayName": "Prince of Space",
+  "description": "Format Java with the Prince of Space formatter (CLI subprocess).",
+  "version": "0.1.0",
+  "publisher": "prince-of-space",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prince-of-space/prince-of-space.git",
+    "directory": "modules/vscode-extension"
+  },
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.85.0",
+    "node": ">=18"
+  },
+  "categories": [
+    "Formatters",
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:java"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Prince of Space",
+      "properties": {
+        "princeOfSpace.cliJar": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the prince-of-space-cli shadow JAR. Leave empty to search the workspace for modules/cli/build/libs/prince-of-space-cli-*.jar."
+        },
+        "princeOfSpace.javaExecutable": {
+          "type": "string",
+          "default": "java",
+          "description": "Java command used to run the CLI JAR."
+        },
+        "princeOfSpace.javaVersion": {
+          "type": "number",
+          "default": 17,
+          "description": "Java language level passed as --java-version to the CLI."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "princeOfSpace.formatDocument",
+        "title": "Prince of Space: Format Document"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "4.8.4"
+  }
+}

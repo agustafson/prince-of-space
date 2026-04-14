@@ -33,7 +33,7 @@ This plan is designed for AI agents or developers to pick up and execute sequent
 
 ### Tasks
 
-1. **Create `FormatterConfig.java`** in `core/src/main/java/io/princeofspace/model/`:
+1. **Create `FormatterConfig.java`** in `modules/core/src/main/java/io/princeofspace/model/`:
    ```
    - Immutable value class (record or final class with builder)
    - Fields matching docs/02-formatting-decisions.md Part 2:

@@ -6,7 +6,8 @@ build/
 # IDE
 .idea/
 *.iml
-.vscode/
+/.vscode/
+.intellijPlatform/
 *.swp
 *.swo
 *~

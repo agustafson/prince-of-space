@@ -18,4 +18,10 @@ dependencyResolutionManagement {
 
 rootProject.name = "prince-of-space"
 
-include(":core", ":core-bundled", ":spotless", ":cli")
+include(":core", ":core-bundled", ":spotless", ":cli", ":intellij-plugin")
+
+project(":core").projectDir = file("modules/core")
+project(":core-bundled").projectDir = file("modules/core-bundled")
+project(":spotless").projectDir = file("modules/spotless")
+project(":cli").projectDir = file("modules/cli")
+project(":intellij-plugin").projectDir = file("modules/intellij-plugin")

@@ -374,6 +374,33 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
         };
     }
 
+    // Scenario 46: Flexible constructor bodies (Java 25 / JEP 513) — statements before explicit super(...)
+    static class FlexibleConstructorParentScenario46 {
+
+        protected final String id;
+
+        FlexibleConstructorParentScenario46(String id) {
+            this.id = id;
+        }
+    }
+
+    public static final class FlexibleConstructorChildScenario46 extends FlexibleConstructorParentScenario46 {
+
+        private final int checksum;
+
+        public FlexibleConstructorChildScenario46(String id, int checksum) {
+            if (id == null) {
+                throw new IllegalArgumentException("id");
+            }
+            super(id.trim());
+            this.checksum = checksum;
+        }
+
+        public String describe() {
+            return id + ":" + checksum;
+        }
+    }
+
     // Placeholder methods
     private void validate(String locale) {}
     private List<String> getColumns() { return List.of("id", "name"); }

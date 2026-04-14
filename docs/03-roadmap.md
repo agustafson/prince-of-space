@@ -190,21 +190,21 @@ For debugging and golden test work, this maps showcase scenarios to visitor code
 
 | File | Role |
 |------|------|
-| `core/src/main/java/io/princeofspace/internal/PrincePrettyPrinterVisitor.java` | Primary formatting visitor |
-| `core/src/main/java/io/princeofspace/internal/BlankLineNormalizer.java` | Blank line post-processing |
-| `core/src/main/java/io/princeofspace/internal/FormattingEngine.java` | Parse → transform → print pipeline |
-| `core/src/main/java/io/princeofspace/internal/BraceEnforcer.java` | Forced-brace AST transform |
-| `core/src/main/java/io/princeofspace/model/FormatterConfig.java` | 8-knob config record + builder |
+| `modules/core/src/main/java/io/princeofspace/internal/PrincePrettyPrinterVisitor.java` | Primary formatting visitor |
+| `modules/core/src/main/java/io/princeofspace/internal/BlankLineNormalizer.java` | Blank line post-processing |
+| `modules/core/src/main/java/io/princeofspace/internal/FormattingEngine.java` | Parse → transform → print pipeline |
+| `modules/core/src/main/java/io/princeofspace/internal/BraceEnforcer.java` | Forced-brace AST transform |
+| `modules/core/src/main/java/io/princeofspace/model/FormatterConfig.java` | 8-knob config record + builder |
 | `examples/inputs/<level>/FormatterShowcase.java` | Showroom inputs (java8, java17, java21, java25) |
 | `examples/outputs/<level>/<config>.java` | Golden outputs (36 files) |
-| `core/src/test/java/io/princeofspace/FormatterShowcaseGoldenTest.java` | 48-way golden test harness |
-| `core/src/test/java/io/princeofspace/WrappingFormattingTest.java` | Targeted wrapping regression tests |
-| `core/src/test/java/io/princeofspace/FormatterTest.java` | General formatter behavior tests |
-| `core/src/test/java/io/princeofspace/CommentPreservationTest.java` | Comment survival tests |
+| `modules/core/src/test/java/io/princeofspace/FormatterShowcaseGoldenTest.java` | 48-way golden test harness |
+| `modules/core/src/test/java/io/princeofspace/WrappingFormattingTest.java` | Targeted wrapping regression tests |
+| `modules/core/src/test/java/io/princeofspace/FormatterTest.java` | General formatter behavior tests |
+| `modules/core/src/test/java/io/princeofspace/CommentPreservationTest.java` | Comment survival tests |
 
 ## Reference: verification checklist (every change)
 
 1. `./gradlew :core:test` — all tests pass (includes golden tests after Task 1; optional real-world test may skip).
 2. `./gradlew build` — full build green (Spotless, Checkstyle, SpotBugs, Error Prone).
 3. Idempotency: `format(format(x)) == format(x)` for every new test case.
-4. If goldens change: regenerate with `REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens`, then verify all 3 Java levels stay consistent for shared source fragments.
+4. If goldens change: regenerate with `REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens`, then verify all four Java levels stay consistent for shared source fragments.

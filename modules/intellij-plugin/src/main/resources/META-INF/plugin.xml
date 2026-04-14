@@ -1,0 +1,20 @@
+<idea-plugin>
+    <id>io.princeofspace.intellij</id>
+    <name>Prince of Space</name>
+    <vendor url="https://github.com/prince-of-space/prince-of-space">prince-of-space</vendor>
+    <description><![CDATA[Formats Java sources with the <a href="https://github.com/prince-of-space/prince-of-space">Prince of Space</a> formatter. Use <b>Code → Reformat with Prince of Space</b> (or the editor context menu) on a Java file.]]></description>
+    <change-notes><![CDATA[Initial release: format current editor from IntelliJ language level.]]></change-notes>
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.java</depends>
+
+    <actions>
+        <action
+                id="PrinceOfSpace.FormatEditor"
+                class="io.princeofspace.intellij.PrinceFormatAction"
+                text="Reformat with Prince of Space..."
+                description="Format the current Java file using the Prince of Space formatter">
+            <add-to-group group-id="CodeMenu" anchor="last"/>
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin>

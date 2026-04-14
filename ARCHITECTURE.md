@@ -12,7 +12,7 @@
 - **Entry point:** `Formatter.format(String sourceCode) -> String`
 - **Config:** `FormatterConfig` record with builder (`io.princeofspace.model`)
 
-## Package Structure (`core` module)
+## Package Structure (`:core` / `modules/core`)
 
 | Package | Visibility | Purpose |
 |---------|-----------|---------|
@@ -42,10 +42,14 @@
 
 ## Modules
 
-- `core` — Formatting engine (deps: javaparser, slf4j-api)
-- `core-bundled` — Shaded fat jar (no transitive deps)
-- `spotless` — Spotless FormatterStep integration
-- `cli` — Command-line tool (picocli)
+Gradle projects live under `modules/` (logical names unchanged: `:core`, `:cli`, …).
+
+- `modules/core` (`:core`) — Formatting engine (deps: javaparser, slf4j-api)
+- `modules/core-bundled` (`:core-bundled`) — Shaded fat jar (no transitive deps)
+- `modules/spotless` (`:spotless`) — Spotless FormatterStep integration
+- `modules/cli` (`:cli`) — Command-line tool (picocli); `--java-version` uses explicit levels 1–7 and `LanguageLevel.valueOf("JAVA_" + N)` for modern releases supported by the bundled JavaParser
+- `modules/intellij-plugin` (`:intellij-plugin`) — IntelliJ Platform plugin: **Code → Reformat with Prince of Space…** formats the current Java file using `PsiUtil` language level and `:core`’s `Formatter`. Develop with `./gradlew :intellij-plugin:runIde`, package with `./gradlew :intellij-plugin:buildPlugin`
+- `modules/vscode-extension/` — VS Code extension (Node/TypeScript; **not** a Gradle subproject): registers a **Java document formatting** provider and **Prince of Space: Format Document**; runs `java -jar` on the **CLI shadow JAR** (`:cli:shadowJar`), resolving `modules/cli/build/libs/prince-of-space-cli-*.jar` from the workspace unless `princeOfSpace.cliJar` is set
 
 ### `core` vs `core-bundled`
 
@@ -95,7 +99,7 @@ Parse → `LexicalPreservingPrinter.setup` (comment/token coherence for transfor
 
 ## Testing
 
-- Golden file tests: `examples/inputs/` → format → compare with `examples/outputs/` (all 48 showroom goldens asserted in CI via `./gradlew :core:test`)
+- Golden file tests: `examples/inputs/` → format → compare with `examples/outputs/` (all 48 showroom goldens asserted in CI via `./gradlew :core:test`); see `docs/showroom-scenarios.md` for how scenarios map to Java levels
 - Wrapping regressions: `WrappingFormattingTest` (method chains, logical AND, `implements` wrapping)
 - Comment preservation: `CommentPreservationTest` (line, block, Javadoc, EOL, between statements, type-use)
 - Idempotency fuzz: `IdempotencyFuzzTest` (randomized `FormatterConfig` over fixed snippets + AST-built CU)
