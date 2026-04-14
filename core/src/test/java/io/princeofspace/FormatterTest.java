@@ -854,6 +854,70 @@ class FormatterTest {
     }
 
     @Test
+    void idempotency_emptyLineCommentInReturnedWrappedChain_doesNotDriftAroundReturn() {
+        Formatter f = new Formatter(
+                FormatterConfig.builder()
+                        .preferredLineLength(80)
+                        .maxLineLength(100)
+                        .wrapStyle(WrapStyle.WIDE)
+                        .build());
+        String input = """
+                class T {
+                    Object m(Object connectionFactory) {
+                        return Mono.usingWhen(getConnection(connectionFactory), //
+                                this::populate, //
+                                connection -> releaseConnection(connection, connectionFactory), //
+                                (connection, err) -> releaseConnection(connection, connectionFactory),
+                                connection -> releaseConnection(connection, connectionFactory))
+                                .onErrorMap(ex -> !(ex instanceof ScriptException),
+                                        ex -> new UncategorizedScriptException("Failed to execute database script", ex));
+                    }
+
+                    Object populate(Object connection) {
+                        return connection;
+                    }
+
+                    static Object getConnection(Object connectionFactory) {
+                        return connectionFactory;
+                    }
+
+                    static Object releaseConnection(Object connection, Object connectionFactory) {
+                        return connection;
+                    }
+
+                    static class Mono {
+                        static Chain usingWhen(
+                                Object connection,
+                                java.util.function.Function<Object, Object> populate,
+                                java.util.function.Function<Object, Object> release,
+                                java.util.function.BiFunction<Object, Throwable, Object> releaseWithError,
+                                java.util.function.Function<Object, Object> releaseAgain
+                        ) {
+                            return null;
+                        }
+                    }
+
+                    interface Chain {
+                        Object onErrorMap(
+                                java.util.function.Predicate<Throwable> predicate,
+                                java.util.function.Function<Throwable, Throwable> mapper
+                        );
+                    }
+
+                    static class ScriptException extends RuntimeException {}
+
+                    static class UncategorizedScriptException extends RuntimeException {
+                        UncategorizedScriptException(String message, Throwable cause) {
+                            super(message, cause);
+                        }
+                    }
+                }
+                """;
+        String once = f.format(input);
+        assertThat(f.format(once)).isEqualTo(once);
+    }
+
+    @Test
     void idempotency_lineCommentBeforeSingleExtendedType_breaksAfterExtendsKeyword() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()

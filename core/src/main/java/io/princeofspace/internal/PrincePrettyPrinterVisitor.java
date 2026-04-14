@@ -224,6 +224,26 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printArguments(copies, arg);
     }
 
+    private static Optional<Comment> hoistableWrappedChainBaseComment(Expression base) {
+        Optional<Comment> comment = base.getComment();
+        if (comment.isPresent() && isEmptyLineOrBlockComment(comment.get())) {
+            return comment;
+        }
+        return Optional.empty();
+    }
+
+    private void printExpressionWithoutOwnComment(Expression expression, Void arg) {
+        Expression copy = expression.clone();
+        copy.removeComment();
+        copy.accept(this, arg);
+    }
+
+    private void printOwnedOrphanComments(Node node, Void arg) {
+        for (Comment comment : node.getOrphanComments()) {
+            printComment(Optional.of(comment), arg);
+        }
+    }
+
     @Override
     public void visit(TryStmt n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -635,7 +655,6 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (!outer.equals(n)) {
             return;
         }
-        printOrphanCommentsBeforeThisChildNode(n);
         List<MethodCallExpr> calls = chainInOrder(outer);
         Optional<Expression> baseOpt = chainBase(outer);
         if (baseOpt.isEmpty()) {
@@ -651,6 +670,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 || mustWrapChain(base, calls)
                 || shouldWrapLambdaHeavyChain(base, calls);
         if (!wrap) {
+            printOrphanCommentsBeforeThisChildNode(n);
             printChainInline(base, calls, arg);
             return;
         }
@@ -686,7 +706,12 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
      */
     private void printChainBalancedOrNarrow(Expression base, List<MethodCallExpr> calls, Void arg) {
         int lineStartColumn = column();
-        base.accept(this, arg);
+        Optional<Comment> hoistedBaseComment = hoistableWrappedChainBaseComment(base);
+        if (hoistedBaseComment.isPresent()) {
+            printExpressionWithoutOwnComment(base, arg);
+        } else {
+            base.accept(this, arg);
+        }
 
         if (calls.size() == 1 && isSimpleBase(base)) {
             MethodCallExpr only = calls.get(0);
@@ -714,6 +739,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             MethodCallExpr mc = calls.get(i);
             if (i > 0) {
                 printer.println();
+            }
+            printOwnedOrphanComments(mc, arg);
+            if (i == calls.size() - 1 && hoistedBaseComment.isPresent()) {
+                printComment(hoistedBaseComment, arg);
             }
             printOrphanCommentsBeforeThisChildNode(mc);
             Optional<Comment> hoistedComment = hoistableArgumentComment(mc);
