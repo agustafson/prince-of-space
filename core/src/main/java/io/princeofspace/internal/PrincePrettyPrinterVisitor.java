@@ -969,6 +969,24 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             args.get(0).accept(this, arg);
             return;
         }
+        if (args.size() > 1 && hasLineOrBlockComment(args.get(0))) {
+            printer.println();
+            printCont();
+            if (fmt.wrapStyle() == WrapStyle.WIDE) {
+                int extraLastLine = fmt.closingParenOnNewLine() ? 2 : 0;
+                printGreedyCommaLines(args, arg, 0, false, extraLastLine);
+            } else {
+                for (Iterator<? extends Expression> i = args.iterator(); i.hasNext(); ) {
+                    i.next().accept(this, arg);
+                    if (i.hasNext()) {
+                        printer.print(",");
+                        printer.println();
+                        printCont();
+                    }
+                }
+            }
+            return;
+        }
         if (!argsNeedWrap(args)) {
             for (Iterator<? extends Expression> i = args.iterator(); i.hasNext(); ) {
                 i.next().accept(this, arg);

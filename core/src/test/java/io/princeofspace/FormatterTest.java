@@ -918,6 +918,30 @@ class FormatterTest {
     }
 
     @Test
+    void idempotency_firstCommentedArgumentInScopedCall_doesNotDriftOntoQualifier() {
+        Formatter f = new Formatter(
+                FormatterConfig.builder()
+                        .preferredLineLength(80)
+                        .maxLineLength(100)
+                        .wrapStyle(WrapStyle.WIDE)
+                        .build());
+        String input = """
+                import java.util.Set;
+
+                class T {
+                    private static final Set<Integer> CODES = Set.of(
+                            1,     // Oracle
+                            301,   // SAP HANA
+                            1062
+                    );
+                }
+                """;
+        String once = f.format(input);
+        assertThat(f.format(once)).isEqualTo(once);
+        assertThat(once).doesNotContain("Set.of(// Oracle");
+    }
+
+    @Test
     void idempotency_lineCommentBeforeSingleExtendedType_breaksAfterExtendsKeyword() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()
