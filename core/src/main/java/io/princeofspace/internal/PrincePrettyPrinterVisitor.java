@@ -44,6 +44,7 @@ import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.WrapStyle;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -146,6 +147,81 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
         Comment comment = c.get();
         return comment instanceof LineComment || comment instanceof BlockComment;
+    }
+
+    private static boolean hasLineOrBlockComment(Node node) {
+        Optional<Comment> c = node.getComment();
+        if (c.isEmpty()) {
+            return false;
+        }
+        Comment comment = c.get();
+        return comment instanceof LineComment || comment instanceof BlockComment;
+    }
+
+    private static Optional<Comment> hoistableArgumentComment(MethodCallExpr mc) {
+        if (mc.getArguments().isEmpty()) {
+            return Optional.empty();
+        }
+        if (mc.getArguments().size() > 1) {
+            for (Expression argument : mc.getArguments()) {
+                Optional<Comment> comment = argument.getComment();
+                if (comment.isPresent() && isEmptyLineOrBlockComment(comment.get())) {
+                    return comment;
+                }
+            }
+            return Optional.empty();
+        }
+        Expression only = mc.getArguments().get(0);
+        if (only instanceof LambdaExpr) {
+            return Optional.empty();
+        }
+        if (hasLineOrBlockComment(only)) {
+            return only.getComment();
+        }
+        return firstLineOrBlockCommentPrintedBeforeExpression(only);
+    }
+
+    private static boolean isEmptyLineOrBlockComment(Comment comment) {
+        return (comment instanceof LineComment || comment instanceof BlockComment)
+                && comment.getContent().trim().isEmpty();
+    }
+
+    private static Optional<Comment> firstLineOrBlockCommentPrintedBeforeExpression(Expression expression) {
+        if (expression.getRange().isEmpty()) {
+            return Optional.empty();
+        }
+        int expressionBeginLine = expression.getRange().get().begin.line;
+        int expressionBeginColumn = expression.getRange().get().begin.column;
+        List<Comment> comments = new ArrayList<>();
+        expression.getComment().ifPresent(comments::add);
+        comments.addAll(expression.getAllContainedComments());
+        return comments.stream()
+                .filter(
+                        comment ->
+                                (comment instanceof LineComment || comment instanceof BlockComment)
+                                        && comment.getRange().isPresent()
+                                        && (comment.getRange().get().begin.line < expressionBeginLine
+                                                || (comment.getRange().get().begin.line
+                                                                == expressionBeginLine
+                                                        && comment.getRange().get().end.column
+                                                                < expressionBeginColumn)))
+                .min(
+                        Comparator.comparingInt((Comment comment) -> comment.getRange().orElseThrow().begin.line)
+                                .thenComparingInt(
+                                        comment -> comment.getRange().orElseThrow().begin.column));
+    }
+
+    private void printArgumentsWithoutComments(NodeList<? extends Expression> arguments, Void arg) {
+        NodeList<Expression> copies = new NodeList<>();
+        for (Expression expression : arguments) {
+            Expression copy = expression.clone();
+            copy.removeComment();
+            for (Comment comment : new ArrayList<>(copy.getAllContainedComments())) {
+                comment.remove();
+            }
+            copies.add(copy);
+        }
+        printArguments(copies, arg);
     }
 
     @Override
@@ -639,6 +715,15 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             if (i > 0) {
                 printer.println();
             }
+            printOrphanCommentsBeforeThisChildNode(mc);
+            Optional<Comment> hoistedComment = hoistableArgumentComment(mc);
+            if (hasLineOrBlockComment(mc)) {
+                printComment(mc.getComment(), arg);
+            } else if (hasLineOrBlockComment(mc.getName())) {
+                printComment(mc.getName().getComment(), arg);
+            } else if (hoistedComment.isPresent()) {
+                printComment(hoistedComment, arg);
+            }
             printer.print(".");
             printTypeArgs(mc, arg);
             printer.print(mc.getNameAsString());
@@ -649,6 +734,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 } finally {
                     printer.unindent();
                 }
+            } else if (hoistedComment.isPresent()) {
+                printArgumentsWithoutComments(mc.getArguments(), arg);
             } else {
                 printArguments(mc.getArguments(), arg);
             }

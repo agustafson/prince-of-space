@@ -780,6 +780,80 @@ class FormatterTest {
     }
 
     @Test
+    void idempotency_emptyLineCommentBetweenWrappedChainSegments_doesNotDriftIntoNextArgs() {
+        Formatter f = new Formatter(
+                FormatterConfig.builder()
+                        .preferredLineLength(80)
+                        .maxLineLength(100)
+                        .wrapStyle(WrapStyle.WIDE)
+                        .build());
+        String input = """
+                class T {
+                    void m(DatabasePopulator databasePopulator) {
+                        databasePopulator.populate(getConnectionFactory()) //
+                                .as(StepVerifier::create) //
+                                .verifyComplete();
+                    }
+
+                    Object getConnectionFactory() {
+                        return null;
+                    }
+
+                    interface DatabasePopulator {
+                        Result populate(Object connectionFactory);
+                    }
+
+                    interface Result {
+                        Result as(java.util.function.Function<Object, Object> fn);
+
+                        Result verifyComplete();
+                    }
+
+                    static class StepVerifier {
+                        static Object create(Object value) {
+                            return value;
+                        }
+                    }
+                }
+                """;
+        String once = f.format(input);
+        assertThat(f.format(once)).isEqualTo(once);
+        assertThat(once).doesNotContain(".as(//");
+    }
+
+    @Test
+    void idempotency_emptyLineCommentAfterWrappedMultiArgCall_doesNotDriftIntoArgs() {
+        Formatter f = new Formatter(
+                FormatterConfig.builder()
+                        .preferredLineLength(80)
+                        .maxLineLength(100)
+                        .wrapStyle(WrapStyle.WIDE)
+                        .build());
+        String input = """
+                class T {
+                    void m(Client client, Object lastName) {
+                        client.sql("select count(0) from users where last_name = :name") //
+                                .bind("name", lastName) //
+                                .map((row, metadata) -> row.get(0));
+                    }
+
+                    interface Client {
+                        Chain sql(String sql);
+                    }
+
+                    interface Chain {
+                        Chain bind(String name, Object value);
+
+                        Chain map(java.util.function.BiFunction<Object, Object, Object> mapper);
+                    }
+                }
+                """;
+        String once = f.format(input);
+        assertThat(f.format(once)).isEqualTo(once);
+        assertThat(once).doesNotContain(".bind(\"name\", //");
+    }
+
+    @Test
     void idempotency_lineCommentBeforeSingleExtendedType_breaksAfterExtendsKeyword() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()
