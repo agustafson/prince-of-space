@@ -817,6 +817,42 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
     }
 
+    private static boolean anyOperandHasLeadingLineOrBlockComment(List<Expression> parts) {
+        for (Expression p : parts) {
+            if (hasLeadingLineOrBlockComment(p)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Greedy {@code ||} / {@code &&} must not emit {@code "|| //"} on one line: line comments end with a
+     * newline, so print leading comments first, then the operator, then a comment-free clone of the operand.
+     */
+    private void printGreedyBinaryOperandWithInterposedLeadingComments(
+            Expression operand, String op, Void arg) {
+        printer.println();
+        printCont();
+        printOrphanCommentsBeforeThisChildNode(operand);
+        printComment(operand.getComment(), arg);
+        printer.print(op);
+        printer.print(" ");
+        Expression stripped = operand.clone();
+        removeAllCommentsFromTree(stripped);
+        stripped.accept(this, arg);
+    }
+
+    private static void removeAllCommentsFromTree(Node node) {
+        new ArrayList<>(node.getOrphanComments()).forEach(Comment::remove);
+        node.getComment().ifPresent(Comment::remove);
+        for (Node child : new ArrayList<>(node.getChildNodes())) {
+            if (!(child instanceof Comment)) {
+                removeAllCommentsFromTree(child);
+            }
+        }
+    }
+
     @Override
     public void visit(BinaryExpr n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -828,7 +864,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             for (Expression p : parts) {
                 flat += est(p) + 4;
             }
-            if (flat <= fmt.preferredLineLength() && flat <= fmt.maxLineLength()) {
+            if (!anyOperandHasLeadingLineOrBlockComment(parts)
+                    && flat <= fmt.preferredLineLength()
+                    && flat <= fmt.maxLineLength()) {
                 parts.get(0).accept(this, arg);
                 String os = n.getOperator().asString();
                 for (int i = 1; i < parts.size(); i++) {
@@ -863,7 +901,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             for (Expression p : parts) {
                 flat += est(p) + 3;
             }
-            if (flat <= fmt.preferredLineLength() && flat <= fmt.maxLineLength()) {
+            if (!anyOperandHasLeadingLineOrBlockComment(parts)
+                    && flat <= fmt.preferredLineLength()
+                    && flat <= fmt.maxLineLength()) {
                 parts.get(0).accept(this, arg);
                 for (int i = 1; i < parts.size(); i++) {
                     printer.print(" + ");
@@ -898,8 +938,14 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         for (int i = 1; i < parts.size(); i++) {
             int opLen = op.length() + 2; // " op "
             int partLen = est(parts.get(i));
+            boolean leadingComment = hasLeadingLineOrBlockComment(parts.get(i));
             boolean overPreferred = used + opLen + partLen > budget;
             boolean overMax = used + opLen + partLen > fmt.maxLineLength();
+            if (leadingComment) {
+                printGreedyBinaryOperandWithInterposedLeadingComments(parts.get(i), op, arg);
+                used = column();
+                continue;
+            }
             if (overPreferred || overMax) {
                 printer.println();
                 printCont();

@@ -687,6 +687,47 @@ class FormatterTest {
     }
 
     @Test
+    void idempotency_wideOrChain_leadingCommentsBeforeLastOperand_doNotDrift() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(80)
+                                .maxLineLength(100)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .build());
+        String input =
+                """
+                class T {
+                    boolean m(Object o) {
+                        return (o == Boolean.class
+                                || o == Byte.class
+                                || o == Character.class
+                                || o == Short.class
+                                || o == Integer.class
+                                || o == Long.class
+                                || o == Float.class
+                                || o == Double.class
+                                || o == String.class
+                                || o == Class.class
+                                || o == java.io.File.class
+                                || o == java.math.BigInteger.class
+                                || o == java.math.BigDecimal.class
+                                || o == java.util.Date.class
+                                || o == java.util.Calendar.class
+                                || o == javax.xml.datatype.Duration.class
+                                || o == javax.xml.datatype.XMLGregorianCalendar.class
+                                || o == javax.activation.DataHandler.class
+                                // Source and subclasses of Source are supported as well.
+                                // o == javax.xml.transform.Source.class ||
+                                || o == java.util.UUID.class);
+                    }
+                }
+                """;
+        String once = f.format(input);
+        assertThat(f.format(once)).isEqualTo(once);
+    }
+
+    @Test
     void idempotency_lineCommentBeforeLambdaInitializer_breaksAfterEquals() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()
