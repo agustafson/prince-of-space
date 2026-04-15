@@ -1138,4 +1138,72 @@ class WrappingFormattingTest {
         assertThat(out).contains("\"\"\"");
         assertThat(f.format(out)).isEqualTo(out);
     }
+
+    @Test
+    void lambdaBody_bitwiseChains_wrapWithoutDeepAlignment() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .build());
+        String input =
+                """
+                class T {
+                    void m(java.util.List actualMethods, java.util.Set forcePublic) {
+                        java.util.List methods = CollectionUtils.transform(actualMethods, value -> {
+                            Method method = (Method) value;
+                            int modifiers = Constants.ACC_FINAL
+                                | (method.getModifiers()
+                                & ~Constants.ACC_ABSTRACT
+                                & ~Constants.ACC_NATIVE
+                                & ~Constants.ACC_SYNCHRONIZED);
+                            if (forcePublic.contains(MethodWrapper.create(method))) {
+                                modifiers = (modifiers & ~Constants.ACC_PROTECTED) | Constants.ACC_PUBLIC;
+                            }
+                            return ReflectUtils.getMethodInfo(method, modifiers);
+                        });
+                    }
+                }
+                """;
+        String out = f.format(input);
+        assertNoLineLongerThan(out, 150);
+        assertThat(out).contains("        int modifiers = Constants.ACC_FINAL\n");
+        assertThat(out).contains("            | (method.getModifiers()\n");
+        assertThat(out).contains("                & ~Constants.ACC_ABSTRACT\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void nonChainSingleScopedCall_blockLambdaArgument_usesContinuationIndentNotDeepAlign() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(70)
+                                .maxLineLength(120)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .build());
+        String input =
+                """
+                class T {
+                    void m(java.util.List actualMethods, java.util.Set forcePublic) {
+                        java.util.List methods = CollectionUtils.transform(actualMethods, value -> {
+                            Method method = (Method) value;
+                            int modifiers = Constants.ACC_FINAL | (method.getModifiers() & ~Constants.ACC_ABSTRACT & ~Constants.ACC_NATIVE & ~Constants.ACC_SYNCHRONIZED);
+                            return ReflectUtils.getMethodInfo(method, modifiers);
+                        });
+                    }
+                }
+                """;
+        String out = f.format(input);
+        assertNoLineLongerThan(out, 120);
+        assertThat(out).contains("CollectionUtils.transform(\n");
+        assertThat(out).contains("            actualMethods,\n");
+        assertThat(out).contains("            value -> {\n");
+        assertThat(out).contains("                Method method = (Method) value;\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
 }

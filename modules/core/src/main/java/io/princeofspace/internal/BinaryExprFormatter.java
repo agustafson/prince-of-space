@@ -73,6 +73,52 @@ final class BinaryExprFormatter {
             }
             return;
         }
+        if (n.getOperator() == BinaryExpr.Operator.BINARY_AND
+                || n.getOperator() == BinaryExpr.Operator.BINARY_OR
+                || n.getOperator() == BinaryExpr.Operator.XOR) {
+            List<Expression> parts = new ArrayList<>();
+            collectSameOp(n.getOperator(), (Expression) n, parts);
+            int flat = ctx.column();
+            for (Expression p : parts) {
+                flat += ctx.est(p) + 4;
+            }
+            if (!comments.anyOperandHasLeadingLineOrBlockComment(parts)
+                    && !comments.anyOperandHasTrailingLineOrBlockComment(parts)
+                    && flat <= ctx.config().preferredLineLength()
+                    && flat <= ctx.config().maxLineLength()) {
+                ctx.accept(parts.get(0), arg);
+                String os = n.getOperator().asString();
+                for (int i = 1; i < parts.size(); i++) {
+                    ctx.print(" ");
+                    ctx.print(os);
+                    ctx.print(" ");
+                    ctx.accept(parts.get(i), arg);
+                }
+                return;
+            }
+            String os = n.getOperator().asString();
+            if (ctx.config().wrapStyle() == WrapStyle.BALANCED || ctx.config().wrapStyle() == WrapStyle.NARROW) {
+                boolean prevTrailing = printExprWithTrailingCommentAfter(parts.get(0), arg);
+                for (int i = 1; i < parts.size(); i++) {
+                    boolean interOperandComment = comments.hasCommentBetweenNodes(parts.get(i - 1), parts.get(i));
+                    if (comments.hasLeadingLineOrBlockComment(parts.get(i)) || interOperandComment) {
+                        printBinaryChainOperandWithInterposedLeadingComments(parts.get(i), os, arg);
+                        prevTrailing = false;
+                    } else {
+                        if (!prevTrailing) {
+                            ctx.println();
+                        }
+                        ctx.printCont();
+                        ctx.print(os);
+                        ctx.print(" ");
+                        prevTrailing = printExprWithTrailingCommentAfter(parts.get(i), arg);
+                    }
+                }
+            } else {
+                printBinaryGreedy(parts, os, arg);
+            }
+            return;
+        }
         if (n.getOperator() == BinaryExpr.Operator.PLUS) {
             List<Expression> parts = new ArrayList<>();
             collectSameOp(BinaryExpr.Operator.PLUS, (Expression) n, parts);

@@ -351,4 +351,3 @@ Formatter version: dev
 |---------|--------|-------------|----------------------|-----------------|
 | guava | default-balanced | 0 | 0 | 70 |
 | spring-framework | default-balanced | 0 | 0 | 241 |
-

@@ -374,6 +374,20 @@ public class FormatterShowcase
         cmp.apply(null, null);
     }
 
+    // Scenario 45: Wrapped non-chain call with block lambda argument
+    public void transformMethodsWithBlockLambda(java.util.List actualMethods, java.util.Set forcePublic) {
+        java.util.List methods = CollectionUtils.transform(actualMethods, value -> {
+            java.lang.reflect.Method method = (java.lang.reflect.Method) value;
+            int modifiers = Constants.ACC_FINAL
+                    | (method.getModifiers() & ~Constants.ACC_ABSTRACT & ~Constants.ACC_NATIVE
+                    & ~Constants.ACC_SYNCHRONIZED);
+            if (forcePublic.contains(MethodWrapper.create(method))) {
+                modifiers = (modifiers & ~Constants.ACC_PROTECTED) | Constants.ACC_PUBLIC;
+            }
+            return ReflectUtils.getMethodInfo(method, modifiers);
+        });
+    }
+
     // Placeholder methods
     private void validate(String locale) {
     }

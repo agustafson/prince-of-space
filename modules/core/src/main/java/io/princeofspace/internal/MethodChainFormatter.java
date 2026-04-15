@@ -13,6 +13,7 @@ import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.expr.SuperExpr;
 import com.github.javaparser.ast.expr.TextBlockLiteralExpr;
 import com.github.javaparser.ast.expr.ThisExpr;
+import com.github.javaparser.ast.stmt.BlockStmt;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -144,9 +145,29 @@ final class MethodChainFormatter {
                 w += 2;
             }
             first = false;
-            w += ctx.est(a);
+            if (a instanceof LambdaExpr lambda && lambda.getBody() instanceof BlockStmt) {
+                w += lambdaHeaderWidth(lambda);
+            } else {
+                w += ctx.est(a);
+            }
         }
         return w;
+    }
+
+    /**
+     * One-line estimate for a block lambda when used in argument-wrap decisions.
+     * We only need header width here; counting the whole block body causes spurious wrapping.
+     */
+    private static int lambdaHeaderWidth(LambdaExpr lambda) {
+        int paramsWidth;
+        if (lambda.isEnclosingParameters()) {
+            paramsWidth = 2 + lambda.getParameters().toString().length(); // "(a, b)"
+        } else if (lambda.getParameters().size() == 1) {
+            paramsWidth = lambda.getParameter(0).toString().length();
+        } else {
+            paramsWidth = 2 + lambda.getParameters().toString().length();
+        }
+        return paramsWidth + " -> { }".length();
     }
 
     /** Prints call arguments exactly as inline text without applying wrapping rules. */
@@ -207,16 +228,7 @@ final class MethodChainFormatter {
             ctx.print(".");
             ctx.printTypeArgs(only, arg);
             ctx.accept(only.getName(), arg);
-            if (comments.hasBlockLambdaArgument(only.getArguments())) {
-                ctx.indentWithAlignToSafe(lineStartColumn + ctx.config().continuationIndentSize());
-                try {
-                    ctx.printArguments(only.getArguments(), arg);
-                } finally {
-                    ctx.unindent();
-                }
-            } else {
-                ctx.printArguments(only.getArguments(), arg);
-            }
+            ctx.printArguments(only.getArguments(), arg);
             return;
         }
 

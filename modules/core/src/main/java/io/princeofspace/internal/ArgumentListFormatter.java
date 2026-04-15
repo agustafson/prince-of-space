@@ -3,6 +3,8 @@ package io.princeofspace.internal;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.LambdaExpr;
+import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.ast.type.TypeParameter;
 import io.princeofspace.model.FormatterConfig;
@@ -65,7 +67,7 @@ final class ArgumentListFormatter {
                 printGreedyCommaLines(args, arg, 0, false, extraLastLine);
             } else {
                 for (Iterator<? extends Expression> i = args.iterator(); i.hasNext(); ) {
-                    ctx.accept(i.next(), arg);
+                    printArgumentWithOptionalBlockLambdaIndent(i.next(), arg);
                     if (i.hasNext()) {
                         ctx.print(",");
                         ctx.println();
@@ -96,11 +98,25 @@ final class ArgumentListFormatter {
             for (Iterator<? extends Expression> i = args.iterator(); i.hasNext(); ) {
                 ctx.println();
                 ctx.printCont();
-                ctx.accept(i.next(), arg);
+                printArgumentWithOptionalBlockLambdaIndent(i.next(), arg);
                 if (i.hasNext()) {
                     ctx.print(",");
                 }
             }
+        }
+    }
+
+    private void printArgumentWithOptionalBlockLambdaIndent(Expression expression, Void arg) {
+        if (expression instanceof LambdaExpr lambda && lambda.getBody() instanceof BlockStmt) {
+            int lambdaColumn = ctx.column();
+            ctx.indentWithAlignToSafe(lambdaColumn);
+            try {
+                ctx.accept(expression, arg);
+            } finally {
+                ctx.unindent();
+            }
+        } else {
+            ctx.accept(expression, arg);
         }
     }
 

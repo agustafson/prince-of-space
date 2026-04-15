@@ -62,12 +62,12 @@ public record FormatterConfig(
                             + preferredLineLength + ")");
     }
 
-    /** @return a configuration with all default values */
+    /** Returns a configuration with all default values. */
     public static FormatterConfig defaults() {
         return builder().build();
     }
 
-    /** @return a new builder initialized with default values */
+    /** Returns a new builder initialized with default values. */
     public static Builder builder() {
         return new Builder();
     }
@@ -87,61 +87,97 @@ public record FormatterConfig(
 
         private Builder() {}
 
-        /** @param indentStyle spaces or tabs for block indentation */
+        /**
+         * Sets spaces or tabs for block indentation.
+         *
+         * @param indentStyle spaces or tabs for block indentation
+         */
         public Builder indentStyle(IndentStyle indentStyle) {
             this.indentStyle = indentStyle;
             return this;
         }
 
-        /** @param indentSize {@link IndentStyle} units per logical indent level */
+        /**
+         * Sets the number of {@link IndentStyle} units per logical indent level.
+         *
+         * @param indentSize {@link IndentStyle} units per logical indent level
+         */
         public Builder indentSize(int indentSize) {
             this.indentSize = indentSize;
             return this;
         }
 
-        /** @param preferredLineLength soft wrap width */
+        /**
+         * Sets the soft wrap width.
+         *
+         * @param preferredLineLength soft wrap width
+         */
         public Builder preferredLineLength(int preferredLineLength) {
             this.preferredLineLength = preferredLineLength;
             return this;
         }
 
-        /** @param maxLineLength hard maximum line width */
+        /**
+         * Sets the hard maximum line width.
+         *
+         * @param maxLineLength hard maximum line width
+         */
         public Builder maxLineLength(int maxLineLength) {
             this.maxLineLength = maxLineLength;
             return this;
         }
 
-        /** @param continuationIndentSize {@link IndentStyle} units for continuation lines */
+        /**
+         * Sets the number of {@link IndentStyle} units for continuation lines.
+         *
+         * @param continuationIndentSize {@link IndentStyle} units for continuation lines
+         */
         public Builder continuationIndentSize(int continuationIndentSize) {
             this.continuationIndentSize = continuationIndentSize;
             return this;
         }
 
-        /** @param wrapStyle line-wrapping strategy */
+        /**
+         * Sets the line-wrapping strategy.
+         *
+         * @param wrapStyle line-wrapping strategy
+         */
         public Builder wrapStyle(WrapStyle wrapStyle) {
             this.wrapStyle = wrapStyle;
             return this;
         }
 
-        /** @param closingParenOnNewLine whether {@code )} is on its own line when lists wrap */
+        /**
+         * Sets whether {@code )} is on its own line when lists wrap.
+         *
+         * @param closingParenOnNewLine whether {@code )} is on its own line when lists wrap
+         */
         public Builder closingParenOnNewLine(boolean closingParenOnNewLine) {
             this.closingParenOnNewLine = closingParenOnNewLine;
             return this;
         }
 
-        /** @param trailingCommas trailing commas in enums / array literals when multi-line */
+        /**
+         * Sets whether trailing commas are emitted in multi-line enums and array literals.
+         *
+         * @param trailingCommas trailing commas in enums / array literals when multi-line
+         */
         public Builder trailingCommas(boolean trailingCommas) {
             this.trailingCommas = trailingCommas;
             return this;
         }
 
-        /** @param javaLanguageLevel Java language level for the parser */
+        /**
+         * Sets the Java language level for the parser.
+         *
+         * @param javaLanguageLevel Java language level for the parser
+         */
         public Builder javaLanguageLevel(LanguageLevel javaLanguageLevel) {
             this.javaLanguageLevel = javaLanguageLevel;
             return this;
         }
 
-        /** @return a new immutable {@link FormatterConfig} */
+        /** Builds a new immutable {@link FormatterConfig}. */
         public FormatterConfig build() {
             return new FormatterConfig(
                     indentStyle,
