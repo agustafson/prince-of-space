@@ -53,6 +53,20 @@ record EvalReport(
                             .append(String.join(", ", buckets.knownOutlierFiles()))
                             .append('\n');
                 }
+                int fmtLong = run.overLongLines().size();
+                int srcLong = run.sourceOverLongLineCount();
+                int net = fmtLong - srcLong;
+                sb.append("- Over-long lines vs source: formatted=").append(fmtLong)
+                        .append(", source=").append(srcLong)
+                        .append(", net change (formatted−source)=")
+                        .append(net >= 0 ? "+" : "")
+                        .append(net)
+                        .append('\n');
+                sb.append("- Files with more over-long lines after format: ")
+                        .append(run.filesWhereLongLinesWorsened())
+                        .append("; fewer: ")
+                        .append(run.filesWhereLongLinesImproved())
+                        .append('\n');
                 sb.append("- Time: ").append(formatSeconds(run.elapsedMs()))
                         .append(" (").append(formatOneDecimal(avgMs)).append(" ms/file avg)\n\n");
 
@@ -75,15 +89,22 @@ record EvalReport(
         }
 
         sb.append("## Summary\n\n");
-        sb.append("| Project | Config | Parse errors | Idempotency failures | Over-long lines |\n");
-        sb.append("|---------|--------|-------------|----------------------|-----------------|\n");
+        sb.append("| Project | Config | Parse errors | Idempotency failures | Over-long (fmt) | Over-long (src) | Net Δ | Files worse | Files better |\n");
+        sb.append("|---------|--------|-------------|----------------------|----------------|-----------------|-------|------------|-------------|\n");
         for (RealWorldEvalTest.ProjectEvalResult project : results) {
             for (RealWorldEvalTest.ConfigRunResult run : project.configResults()) {
+                int fmtLong = run.overLongLines().size();
+                int srcLong = run.sourceOverLongLineCount();
+                int net = fmtLong - srcLong;
                 sb.append("| ").append(project.name())
                         .append(" | ").append(run.config().name())
                         .append(" | ").append(run.parseErrors().size())
                         .append(" | ").append(run.idempotencyFailures().size())
-                        .append(" | ").append(run.overLongLines().size())
+                        .append(" | ").append(fmtLong)
+                        .append(" | ").append(srcLong)
+                        .append(" | ").append(net >= 0 ? "+" : "").append(net)
+                        .append(" | ").append(run.filesWhereLongLinesWorsened())
+                        .append(" | ").append(run.filesWhereLongLinesImproved())
                         .append(" |\n");
             }
         }

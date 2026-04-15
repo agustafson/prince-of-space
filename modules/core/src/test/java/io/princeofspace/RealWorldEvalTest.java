@@ -102,6 +102,12 @@ class RealWorldEvalTest {
             List<String> parseErrors,
             List<String> idempotencyFailures,
             List<OverLongLine> overLongLines,
+            /** Total count of over-long non-comment lines in the original sources (same rules as formatted). */
+            int sourceOverLongLineCount,
+            /** Files where formatted output had strictly more over-long lines than the source. */
+            int filesWhereLongLinesWorsened,
+            /** Files where formatted output had strictly fewer over-long lines than the source. */
+            int filesWhereLongLinesImproved,
             int reformatted,
             int alreadyClean,
             long elapsedMs) {}
@@ -163,13 +169,20 @@ class RealWorldEvalTest {
                             "    WARN over-long non-comment line: %s:%d (%d chars)%n",
                             w.path(), w.lineNumber(), w.length());
                 }
+                int fmtLong = result.overLongLines().size();
+                int srcLong = result.sourceOverLongLineCount();
+                int net = fmtLong - srcLong;
                 System.out.printf(
                         "  Done: %d files, %d parse errors, %d idempotency failures,"
-                                + " %d over-long, %d ms%n",
+                                + " over-long fmt=%d src=%d (net %+d), files worse=%d better=%d, %d ms%n",
                         result.totalFiles(),
                         result.parseErrors().size(),
                         result.idempotencyFailures().size(),
-                        result.overLongLines().size(),
+                        fmtLong,
+                        srcLong,
+                        net,
+                        result.filesWhereLongLinesWorsened(),
+                        result.filesWhereLongLinesImproved(),
                         result.elapsedMs());
             }
             results.add(new ProjectEvalResult(projectName, gitHash, configResults));
@@ -203,6 +216,9 @@ class RealWorldEvalTest {
         List<String> parseErrors = new ArrayList<>();
         List<String> idempotencyFailures = new ArrayList<>();
         List<OverLongLine> overLongLines = new ArrayList<>();
+        int sourceOverLongLineCount = 0;
+        int filesWhereLongLinesWorsened = 0;
+        int filesWhereLongLinesImproved = 0;
         int reformatted = 0;
         int alreadyClean = 0;
         long startNs = System.nanoTime();
@@ -251,9 +267,21 @@ class RealWorldEvalTest {
                                 + ")");
             }
 
+            String relative = relativize(projectRoot, file);
+            int max = config.maxLineLength();
+            int srcLong = countOverLongLines(source, max);
+            sourceOverLongLineCount += srcLong;
+
             // Over-long line warning: non-comment, non-directive lines only.
-            checkOverLongLines(
-                    relativize(projectRoot, file), once, config.maxLineLength(), overLongLines);
+            int beforeFmtWarnings = overLongLines.size();
+            checkOverLongLines(relative, once, max, overLongLines);
+            int fmtLong = overLongLines.size() - beforeFmtWarnings;
+
+            if (fmtLong > srcLong) {
+                filesWhereLongLinesWorsened++;
+            } else if (fmtLong < srcLong) {
+                filesWhereLongLinesImproved++;
+            }
 
             if (once.equals(source)) {
                 alreadyClean++;
@@ -269,9 +297,24 @@ class RealWorldEvalTest {
                 parseErrors,
                 idempotencyFailures,
                 overLongLines,
+                sourceOverLongLineCount,
+                filesWhereLongLinesWorsened,
+                filesWhereLongLinesImproved,
                 reformatted,
                 alreadyClean,
                 elapsedMs);
+    }
+
+    /** Same rules as {@link #checkOverLongLines}: over-long lines excluding comments and import/package. */
+    private static int countOverLongLines(String text, int maxLineLength) {
+        String[] lines = text.split("\n", -1);
+        int n = 0;
+        for (String line : lines) {
+            if (isOverLongNonCommentNonDirectiveLine(line, maxLineLength)) {
+                n++;
+            }
+        }
+        return n;
     }
 
     private static void checkOverLongLines(
@@ -279,17 +322,20 @@ class RealWorldEvalTest {
         String[] lines = formatted.split("\n", -1);
         for (int i = 0; i < lines.length; i++) {
             String line = lines[i];
-            if (line.length() <= maxLineLength) {
-                continue;
-            }
-            String trimmed = line.stripLeading();
-            boolean isComment = trimmed.startsWith("//") || trimmed.startsWith("*");
-            boolean isDirective =
-                    trimmed.startsWith("import ") || trimmed.startsWith("package ");
-            if (!isComment && !isDirective) {
+            if (isOverLongNonCommentNonDirectiveLine(line, maxLineLength)) {
                 sink.add(new OverLongLine(relativePath, i + 1, line.length()));
             }
         }
+    }
+
+    private static boolean isOverLongNonCommentNonDirectiveLine(String line, int maxLineLength) {
+        if (line.length() <= maxLineLength) {
+            return false;
+        }
+        String trimmed = line.stripLeading();
+        boolean isComment = trimmed.startsWith("//") || trimmed.startsWith("*");
+        boolean isDirective = trimmed.startsWith("import ") || trimmed.startsWith("package ");
+        return !isComment && !isDirective;
     }
 
     // ---------------------------------------------------------------------------
