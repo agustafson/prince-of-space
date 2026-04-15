@@ -382,7 +382,8 @@ public class FormatterShowcase
                 =============
                 Items: %d
                 Status: %s
-                """.formatted(legacyField, items.size(), isValid() ? "valid" : "invalid");
+                """
+                .formatted(legacyField, items.size(), isValid() ? "valid" : "invalid");
     }
 
     // Scenario 26: Record patterns in switch
@@ -534,6 +535,14 @@ public class FormatterShowcase
     public void longExceptionMessage() {
         throw new IllegalStateException("Component scan for configuration class [%s] could not be used with conditions in REGISTER_BEAN phase: %s"
                 .formatted(legacyField, items));
+    }
+
+    // Scenario 39c: Text block with formatted arguments
+    public void textBlockFormattedMessage(String a, String b, String c) {
+        throw new IllegalStateException("""
+                Package-private method [%s] declared in class [%s] cannot be advised by CGLIB-proxied handler class [%s], because it is effectively private.
+                """
+                .formatted(a, b, c));
     }
 
     // Scenario 40: Synchronized block

@@ -1262,4 +1262,33 @@ class WrappingFormattingTest {
         assertThat(out).contains(".formatted(\"a\", \"b\")");
         assertThat(f.format(out)).isEqualTo(out);
     }
+
+    @Test
+    void textBlockFormattedCall_wrapsArgumentsWhenLineWouldExceedMax() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(120)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .build());
+        String input =
+                """
+                class T {
+                    void m(String a, String b, String c) {
+                        throw new IllegalStateException(\"\"\"
+                                Package-private method [%s] declared in class [%s] cannot be advised by \
+                                CGLIB-proxied handler class [%s], because it is effectively private.
+                                \"\"\".formatted(a.toLowerCase(), b.stripTrailing(), c.replace("-", "_")));
+                    }
+                }
+                """;
+        String out = f.format(input);
+        assertThat(out).contains("\n            .formatted(");
+        assertThat(out).contains("a.toLowerCase()");
+        assertThat(out).contains("b.stripTrailing()");
+        assertThat(out).contains("c.replace(\"-\", \"_\")");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
 }

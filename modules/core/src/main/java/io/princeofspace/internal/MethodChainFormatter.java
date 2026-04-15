@@ -11,12 +11,10 @@ import com.github.javaparser.ast.expr.LambdaExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.expr.SuperExpr;
-import com.github.javaparser.ast.expr.TextBlockLiteralExpr;
 import com.github.javaparser.ast.expr.ThisExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -57,10 +55,6 @@ final class MethodChainFormatter {
             return;
         }
         Expression base = baseOpt.get();
-        if (base instanceof TextBlockLiteralExpr) {
-            printChainInlineWithInlineArgs(base, calls, arg);
-            return;
-        }
         boolean wrap = mustHardWrapChain(base, calls)
                 || mustWrapChain(base, calls)
                 || shouldWrapLambdaHeavyChain(base, calls)
@@ -170,18 +164,6 @@ final class MethodChainFormatter {
         return paramsWidth + " -> { }".length();
     }
 
-    /** Prints call arguments exactly as inline text without applying wrapping rules. */
-    void printArgumentsInline(NodeList<? extends Expression> args) {
-        ctx.print("(");
-        for (Iterator<? extends Expression> i = args.iterator(); i.hasNext(); ) {
-            ctx.print(i.next().toString());
-            if (i.hasNext()) {
-                ctx.print(", ");
-            }
-        }
-        ctx.print(")");
-    }
-
     /** Prints a chain on one physical line. */
     void printChainInline(Expression base, List<MethodCallExpr> calls, Void arg) {
         ctx.accept(base, arg);
@@ -190,17 +172,6 @@ final class MethodChainFormatter {
             ctx.printTypeArgs(mc, arg);
             ctx.print(mc.getNameAsString());
             ctx.printArguments(mc.getArguments(), arg);
-        }
-    }
-
-    /** Prints a chain inline while forcing inline rendering of argument payload text. */
-    void printChainInlineWithInlineArgs(Expression base, List<MethodCallExpr> calls, Void arg) {
-        ctx.accept(base, arg);
-        for (MethodCallExpr mc : calls) {
-            ctx.print(".");
-            ctx.printTypeArgs(mc, arg);
-            ctx.print(mc.getNameAsString());
-            printArgumentsInline(mc.getArguments());
         }
     }
 

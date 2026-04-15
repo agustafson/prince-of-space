@@ -383,6 +383,13 @@ public class FormatterShowcase
             .formatted(legacyField, items));
     }
 
+    // Scenario 39c: Text block with formatted arguments
+    public void textBlockFormattedMessage(String a, String b, String c) {
+        throw new IllegalStateException(("Package-private method [%s] declared in class [%s] cannot be advised by "
+            + "CGLIB-proxied handler class [%s], because it is effectively private.")
+            .formatted(a, b, c));
+    }
+
     // Scenario 40: Synchronized block
     public void synchronizedBlock() {
         synchronized (complexGenericField != null ? complexGenericField : java.util.Collections.emptyMap()) {
