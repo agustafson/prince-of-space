@@ -11,19 +11,22 @@ import io.princeofspace.model.FormatterConfig;
  */
 public final class PrinceOfSpaceStep {
 
-    public static final String NAME = "prince-of-space-java";
+    private static final String NAME = "prince-of-space-java";
 
-    private PrinceOfSpaceStep() {}
+    private PrinceOfSpaceStep() {
+    }
 
     /**
+     * Creates {@link FormatterStep} based on the provided {@link FormatterConfig}.
+     *
      * @param config formatter options (must be {@link java.io.Serializable})
+     * @return {@link FormatterStep} based on the provided {@link FormatterConfig}
      */
     public static FormatterStep create(FormatterConfig config) {
         return FormatterStep.create(NAME, config, PrinceOfSpaceStep::formatterFunc);
     }
 
     private static FormatterFunc formatterFunc(FormatterConfig config) {
-        return FormatterFunc.needsFile(
-                (unix, file) -> new Formatter(config).format(unix, file.toPath()));
+        return FormatterFunc.needsFile((unix, file) -> new Formatter(config).format(unix, file.toPath()));
     }
 }
