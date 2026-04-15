@@ -1071,4 +1071,27 @@ class WrappingFormattingTest {
         assertNoLineLongerThan(out, max);
         assertThat(f.format(out)).isEqualTo(out);
     }
+
+    @Test
+    void fieldInitializer_longStringLiteral_wrapsAfterEqualsWhenPreferredExceeded() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .build());
+        String input =
+                """
+                class BootstrapUtils {
+                    private static final String DEFAULT_CACHE_AWARE_CONTEXT_LOADER_DELEGATE_CLASS_NAME = "org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate";
+                }
+                """;
+        String out = f.format(input);
+        assertNoLineLongerThan(out, 120);
+        assertThat(out).contains("DEFAULT_CACHE_AWARE_CONTEXT_LOADER_DELEGATE_CLASS_NAME =\n");
+        assertThat(out).contains("\"org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate\"");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
 }

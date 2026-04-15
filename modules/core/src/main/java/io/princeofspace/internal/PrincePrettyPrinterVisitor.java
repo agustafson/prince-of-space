@@ -649,7 +649,22 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 printer.println();
                 printCont();
             } else {
-                printer.print(" ");
+                // Break before a long string literal initializer when the combined line would exceed
+                // limits (e.g. "private static final String NAME = \"...\""). Only StringLiteralExpr:
+                // est(init) for array/object initializers is the whole subtree and would spuriously wrap.
+                if (init instanceof StringLiteralExpr) {
+                    int tailWidth = 1 + ctx.est(init);
+                    boolean overMax = ctx.column() + tailWidth > fmt.maxLineLength();
+                    boolean overPreferred = ctx.column() + tailWidth > fmt.preferredLineLength();
+                    if (overMax || overPreferred) {
+                        printer.println();
+                        printCont();
+                    } else {
+                        printer.print(" ");
+                    }
+                } else {
+                    printer.print(" ");
+                }
             }
             init.accept(this, arg);
         }

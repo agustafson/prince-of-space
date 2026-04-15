@@ -100,8 +100,10 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         JBLabel hint =
                 new JBLabel(
                         "<html><body style='width:420px;'>"
-                                + "These options match the formatter&apos;s public configuration (see project documentation). "
-                                + "Manual <b>Code → Reformat with Prince of Space…</b> uses the same settings."
+                                + "These options match the formatter's public configuration<br/>"
+                                + "(see project documentation).<br/><br/>"
+                                + "Manual <b>Code → Reformat with Prince of Space…</b> uses the same "
+                                + "settings."
                                 + "</body></html>");
         hint.setCopyable(true);
         root.add(hint, BorderLayout.NORTH);
