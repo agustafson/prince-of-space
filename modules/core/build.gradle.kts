@@ -62,6 +62,9 @@ tasks.test {
 val evalTest by tasks.registering(Test::class) {
     description = "Runs the real-world evaluation harness (requires PRINCE_EVAL_ROOTS to be set)."
     group = "verification"
+    // Reads PRINCE_EVAL_* from the invoking environment; must not be frozen by configuration cache
+    // (otherwise PRINCE_EVAL_CONFIG_NAMES from an earlier run can stick and subset configs silently).
+    notCompatibleWithConfigurationCache("eval harness uses environment variables")
     useJUnitPlatform {
         includeTags("eval")
     }
@@ -69,6 +72,7 @@ val evalTest by tasks.registering(Test::class) {
     classpath = sourceSets["test"].runtimeClasspath
     environment("PRINCE_EVAL_ROOTS", System.getenv("PRINCE_EVAL_ROOTS") ?: "")
     environment("PRINCE_EVAL_REPORT_DIR", System.getenv("PRINCE_EVAL_REPORT_DIR") ?: "")
+    environment("PRINCE_EVAL_CONFIG_NAMES", System.getenv("PRINCE_EVAL_CONFIG_NAMES") ?: "")
     dependsOn(tasks.testClasses)
 }
 
