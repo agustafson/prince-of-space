@@ -48,7 +48,7 @@ Gradle projects live under `modules/` (logical names unchanged: `:core`, `:cli`,
 - `modules/core-bundled` (`:core-bundled`) — Shaded fat jar (no transitive deps)
 - `modules/spotless` (`:spotless`) — Spotless FormatterStep integration
 - `modules/cli` (`:cli`) — Command-line tool (picocli); `--java-version` uses explicit levels 1–7 and `LanguageLevel.valueOf("JAVA_" + N)` for modern releases supported by the bundled JavaParser
-- `modules/intellij-plugin` (`:intellij-plugin`) — IntelliJ Platform plugin: **Code → Reformat with Prince of Space…** formats the current Java file using `PsiUtil` language level and `:core`’s `Formatter`. Develop with `./gradlew :intellij-plugin:runIde`, package with `./gradlew :intellij-plugin:buildPlugin`
+- `modules/intellij-plugin` (`:intellij-plugin`) — IntelliJ Platform plugin: **Settings → Tools → Prince of Space** persists full `FormatterConfig` (workspace-scoped), optional format-on-save, and language level from the module or a fixed release; **Code → Reformat with Prince of Space…** uses the same configuration. Develop with `./gradlew :intellij-plugin:runIde`, package with `./gradlew :intellij-plugin:buildPlugin`
 - `modules/vscode-extension/` — VS Code extension (Node/TypeScript; **not** a Gradle subproject): registers a **Java document formatting** provider and **Prince of Space: Format Document**; runs `java -jar` on the **CLI shadow JAR** (`:cli:shadowJar`), resolving `modules/cli/build/libs/prince-of-space-cli-*.jar` from the workspace unless `princeOfSpace.cliJar` is set
 
 ### `core` vs `core-bundled`
