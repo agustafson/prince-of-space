@@ -1235,4 +1235,31 @@ class WrappingFormattingTest {
         assertThat(out).contains("        (o1, o2) ->");
         assertThat(f.format(out)).isEqualTo(out);
     }
+
+    @Test
+    void maxLineLength_enforcedForLongStringLiteralInMethodArgument() {
+        int max = 120;
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(max)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .build());
+        String input =
+                """
+                class T {
+                    void m() {
+                        throw new IllegalStateException("Component scan for configuration class [%s] could not be used with conditions in REGISTER_BEAN phase: %s".formatted("a", "b"));
+                    }
+                }
+                """;
+        String out = f.format(input);
+        assertNoLineLongerThan(out, max);
+        assertThat(out).contains("throw new IllegalStateException(\"");
+        assertThat(out).contains("+ \"");
+        assertThat(out).contains(".formatted(\"a\", \"b\")");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
 }

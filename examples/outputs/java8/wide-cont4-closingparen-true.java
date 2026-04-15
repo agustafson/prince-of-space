@@ -331,6 +331,12 @@ public class FormatterShowcase
             "legacyField and items must be populated before calling longAssert in production systems with strict validation rules enabled";
     }
 
+    // Scenario 39b: Long string literal in method argument
+    public void longExceptionMessage() {
+        throw new IllegalStateException("Component scan for configuration class [%s] could not be used with conditions in REGISTER_BEAN phase: %s"
+            .formatted(legacyField, items));
+    }
+
     // Scenario 40: Synchronized block
     public void synchronizedBlock() {
         synchronized (complexGenericField != null ? complexGenericField : java.util.Collections.emptyMap()) {

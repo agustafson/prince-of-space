@@ -756,6 +756,18 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     @Override
+    public void visit(StringLiteralExpr n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        if (column() + n.toString().length() > fmt.maxLineLength()) {
+            printWrappedStringLiteralChunks(n.getValue());
+        } else {
+            super.visit(n, arg);
+        }
+        printOrphanCommentsEnding(n);
+    }
+
+    @Override
     public void visit(SwitchExpr n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
