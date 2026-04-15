@@ -101,6 +101,8 @@ Parse → `LexicalPreservingPrinter.setup` (comment/token coherence for transfor
 ## Testing
 
 - Golden file tests: `examples/inputs/` → format → compare with `examples/outputs/` (all 48 showroom goldens asserted in CI via `./gradlew :core:test`); see `docs/showroom-scenarios.md` for how scenarios map to Java levels
+- Whenever formatting behavior changes, add/update a corresponding showroom scenario in `examples/inputs/`
+  and regenerate `examples/outputs/` to keep examples as a developer-facing regression artifact.
 - Wrapping regressions: `WrappingFormattingTest` (method chains, logical AND, `implements` wrapping)
 - Comment preservation: `CommentPreservationTest` (line, block, Javadoc, EOL, between statements, type-use)
 - Idempotency fuzz: `IdempotencyFuzzTest` (randomized `FormatterConfig` over fixed snippets + AST-built CU)

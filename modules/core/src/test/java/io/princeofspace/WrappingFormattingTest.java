@@ -1206,4 +1206,33 @@ class WrappingFormattingTest {
         assertThat(out).contains("                Method method = (Method) value;\n");
         assertThat(f.format(out)).isEqualTo(out);
     }
+
+    @Test
+    void longFieldLambdaInitializers_breakAfterEquals_likeSpringConfigurationClassParser() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .build());
+        String input =
+                """
+                import java.util.Comparator;
+                import java.util.function.Predicate;
+
+                class T {
+                    private static final Predicate<Condition> REGISTER_BEAN_CONDITION_FILTER = condition -> (condition instanceof ConfigurationCondition configurationCondition && ConfigurationPhase.REGISTER_BEAN.equals(configurationCondition.getConfigurationPhase()));
+                    private static final Comparator<DeferredImportSelectorHolder> DEFERRED_IMPORT_COMPARATOR = (o1, o2) -> AnnotationAwareOrderComparator.INSTANCE.compare(o1.getImportSelector(), o2.getImportSelector());
+                }
+                """;
+        String out = f.format(input);
+        assertNoLineLongerThan(out, 150);
+        assertThat(out).contains("REGISTER_BEAN_CONDITION_FILTER =\n");
+        assertThat(out).contains("DEFERRED_IMPORT_COMPARATOR =\n");
+        assertThat(out).contains("        condition ->");
+        assertThat(out).contains("        (o1, o2) ->");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
 }

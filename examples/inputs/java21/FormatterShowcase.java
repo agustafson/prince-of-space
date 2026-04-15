@@ -26,6 +26,8 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
     private final List<String> items;
     private final Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField;
     private final ExecutorService executorService;
+    // Scenario 2b: Long field lambda initializer
+    private static final java.util.function.Predicate<String> LONG_FIELD_LAMBDA_FILTER = value -> value != null && value.trim().length() > 3 && value.startsWith("prefix");
 
     // Scenario 3: Constructor with many parameters
     public FormatterShowcase(String legacyField, List<String> items, Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField, boolean validateOnConstruction, String defaultLocale, ExecutorService executorService) {

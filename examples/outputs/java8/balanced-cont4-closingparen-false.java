@@ -29,6 +29,9 @@ public class FormatterShowcase
     private final List<String> items;
     private final Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField;
     private final ExecutorService executorService;
+    // Scenario 2b: Long field lambda initializer
+    private static final java.util.function.Predicate<String> LONG_FIELD_LAMBDA_FILTER =
+        value -> value != null && value.trim().length() > 3 && value.startsWith("prefix");
 
     // Scenario 3: Constructor with many parameters
     public FormatterShowcase(
@@ -417,7 +420,8 @@ public class FormatterShowcase
         java.util.function.BiFunction<
             java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>>,
             java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>>,
-            Integer> cmp = (
+            Integer> cmp =
+            (
             java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> left,
             java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> right) -> left
             .getKey()

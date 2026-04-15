@@ -881,6 +881,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (stripped instanceof StringLiteralExpr || stripped instanceof TextBlockLiteralExpr) {
             return 1 + flatExprSourceWidth(stripped);
         }
+        if (stripped instanceof LambdaExpr) {
+            return 1 + flatExprSourceWidth(stripped);
+        }
         if (stripped instanceof BinaryExpr b
                 && b.getOperator() == BinaryExpr.Operator.PLUS
                 && isTopLevelStringConcatChain(stripped)) {
