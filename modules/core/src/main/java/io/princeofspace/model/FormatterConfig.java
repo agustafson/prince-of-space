@@ -62,12 +62,20 @@ public record FormatterConfig(
                             + preferredLineLength + ")");
     }
 
-    /** Returns a configuration with all default values. */
+    /**
+     * Returns a configuration with all default values.
+     *
+     * @return default formatter configuration
+     */
     public static FormatterConfig defaults() {
         return builder().build();
     }
 
-    /** Returns a new builder initialized with default values. */
+    /**
+     * Returns a new builder initialized with default values.
+     *
+     * @return new builder with default values
+     */
     public static Builder builder() {
         return new Builder();
     }
@@ -91,6 +99,7 @@ public record FormatterConfig(
          * Sets spaces or tabs for block indentation.
          *
          * @param indentStyle spaces or tabs for block indentation
+         * @return this builder
          */
         public Builder indentStyle(IndentStyle indentStyle) {
             this.indentStyle = indentStyle;
@@ -101,6 +110,7 @@ public record FormatterConfig(
          * Sets the number of {@link IndentStyle} units per logical indent level.
          *
          * @param indentSize {@link IndentStyle} units per logical indent level
+         * @return this builder
          */
         public Builder indentSize(int indentSize) {
             this.indentSize = indentSize;
@@ -111,6 +121,7 @@ public record FormatterConfig(
          * Sets the soft wrap width.
          *
          * @param preferredLineLength soft wrap width
+         * @return this builder
          */
         public Builder preferredLineLength(int preferredLineLength) {
             this.preferredLineLength = preferredLineLength;
@@ -121,6 +132,7 @@ public record FormatterConfig(
          * Sets the hard maximum line width.
          *
          * @param maxLineLength hard maximum line width
+         * @return this builder
          */
         public Builder maxLineLength(int maxLineLength) {
             this.maxLineLength = maxLineLength;
@@ -131,6 +143,7 @@ public record FormatterConfig(
          * Sets the number of {@link IndentStyle} units for continuation lines.
          *
          * @param continuationIndentSize {@link IndentStyle} units for continuation lines
+         * @return this builder
          */
         public Builder continuationIndentSize(int continuationIndentSize) {
             this.continuationIndentSize = continuationIndentSize;
@@ -141,6 +154,7 @@ public record FormatterConfig(
          * Sets the line-wrapping strategy.
          *
          * @param wrapStyle line-wrapping strategy
+         * @return this builder
          */
         public Builder wrapStyle(WrapStyle wrapStyle) {
             this.wrapStyle = wrapStyle;
@@ -151,6 +165,7 @@ public record FormatterConfig(
          * Sets whether {@code )} is on its own line when lists wrap.
          *
          * @param closingParenOnNewLine whether {@code )} is on its own line when lists wrap
+         * @return this builder
          */
         public Builder closingParenOnNewLine(boolean closingParenOnNewLine) {
             this.closingParenOnNewLine = closingParenOnNewLine;
@@ -161,6 +176,7 @@ public record FormatterConfig(
          * Sets whether trailing commas are emitted in multi-line enums and array literals.
          *
          * @param trailingCommas trailing commas in enums / array literals when multi-line
+         * @return this builder
          */
         public Builder trailingCommas(boolean trailingCommas) {
             this.trailingCommas = trailingCommas;
@@ -171,13 +187,18 @@ public record FormatterConfig(
          * Sets the Java language level for the parser.
          *
          * @param javaLanguageLevel Java language level for the parser
+         * @return this builder
          */
         public Builder javaLanguageLevel(LanguageLevel javaLanguageLevel) {
             this.javaLanguageLevel = javaLanguageLevel;
             return this;
         }
 
-        /** Builds a new immutable {@link FormatterConfig}. */
+        /**
+         * Builds a new immutable {@link FormatterConfig}.
+         *
+         * @return immutable formatter configuration
+         */
         public FormatterConfig build() {
             return new FormatterConfig(
                     indentStyle,

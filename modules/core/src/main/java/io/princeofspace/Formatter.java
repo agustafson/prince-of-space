@@ -24,6 +24,8 @@ public final class Formatter {
     private final FormattingEngine engine;
 
     /**
+     * Creates a formatter with the provided configuration.
+     *
      * @param config formatting options; must not be {@code null}
      */
     public Formatter(FormatterConfig config) {

@@ -12,13 +12,21 @@ import java.util.List;
  */
 public sealed interface FormatResult permits FormatResult.Success, FormatResult.Failure {
 
-    /** Formatted Java source (normalized line endings and layout per {@link io.princeofspace.model.FormatterConfig}). */
+    /**
+     * Formatted Java source.
+     *
+     * @param formattedSource normalized source text laid out per {@link io.princeofspace.model.FormatterConfig}
+     */
     record Success(String formattedSource) implements FormatResult {}
 
     /** Could not produce formatted output. */
     sealed interface Failure extends FormatResult permits ParseFailure, EmptyCompilationUnit {
 
-        /** Message suitable for {@link FormatterException} or logging. */
+        /**
+         * Returns a human-readable failure message suitable for {@link FormatterException} or logging.
+         *
+         * @return failure message text
+         */
         String message();
     }
 
@@ -28,6 +36,7 @@ public sealed interface FormatResult permits FormatResult.Success, FormatResult.
      * @param problemMessages one entry per {@link com.github.javaparser.Problem}, usually {@link Object#toString()}
      */
     record ParseFailure(List<String> problemMessages) implements Failure {
+        /** Creates an immutable parse-failure payload from parser problem messages. */
         public ParseFailure {
             problemMessages = List.copyOf(problemMessages);
         }

@@ -27,6 +27,8 @@ public final class FormattingEngine {
     private final FormatterConfig config;
 
     /**
+     * Creates a formatting engine bound to a formatter configuration.
+     *
      * @param config parser and layout options
      */
     public FormattingEngine(FormatterConfig config) {

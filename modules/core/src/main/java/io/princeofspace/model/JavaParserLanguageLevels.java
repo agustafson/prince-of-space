@@ -12,7 +12,12 @@ public final class JavaParserLanguageLevels {
 
     private JavaParserLanguageLevels() {}
 
-    /** Resolve a Java feature release to JavaParser's {@link LanguageLevel}. */
+    /**
+     * Resolves a Java feature release number to JavaParser's {@link LanguageLevel}.
+     *
+     * @param v Java feature release number (for example, {@code 17})
+     * @return matching JavaParser language level
+     */
     public static LanguageLevel fromRelease(int v) {
         return switch (v) {
             case 1 -> LanguageLevel.JAVA_1_0;
