@@ -1094,4 +1094,48 @@ class WrappingFormattingTest {
         assertThat(out).contains("\"org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate\"");
         assertThat(f.format(out)).isEqualTo(out);
     }
+
+    @Test
+    void fieldInitializer_stringConcatLiteralsOnly_wrapsAfterEqualsWhenPreferredExceeded() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .build());
+        String half = "x".repeat(52);
+        String input =
+                "class T {\n    private static final String P = \"" + half + "\" + \"" + half + "\";\n}\n";
+        String out = f.format(input);
+        assertNoLineLongerThan(out, 120);
+        assertThat(out).contains("P =\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void fieldInitializer_textBlock_wrapsAfterEqualsWhenPreferredExceeded() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .build());
+        String input =
+                "class T {\n"
+                        + "    private static final String DOC = \"\"\"\n"
+                        + "        "
+                        + "y".repeat(95)
+                        + "\n"
+                        + "        \"\"\";\n"
+                        + "}\n";
+        String out = f.format(input);
+        assertNoLineLongerThan(out, 120);
+        assertThat(out).contains("DOC =\n");
+        assertThat(out).contains("\"\"\"");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
 }

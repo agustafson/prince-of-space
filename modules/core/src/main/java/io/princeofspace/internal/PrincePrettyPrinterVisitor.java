@@ -13,7 +13,9 @@ import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.BinaryExpr;
+import com.github.javaparser.ast.expr.CharLiteralExpr;
 import com.github.javaparser.ast.expr.ConditionalExpr;
+import com.github.javaparser.ast.expr.EnclosedExpr;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.LambdaExpr;
 import com.github.javaparser.ast.expr.MemberValuePair;
@@ -649,19 +651,15 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 printer.println();
                 printCont();
             } else {
-                // Break before a long string literal initializer when the combined line would exceed
-                // limits (e.g. "private static final String NAME = \"...\""). Only StringLiteralExpr:
-                // est(init) for array/object initializers is the whole subtree and would spuriously wrap.
-                if (init instanceof StringLiteralExpr) {
-                    int tailWidth = 1 + ctx.est(init);
-                    boolean overMax = ctx.column() + tailWidth > fmt.maxLineLength();
-                    boolean overPreferred = ctx.column() + tailWidth > fmt.preferredLineLength();
-                    if (overMax || overPreferred) {
-                        printer.println();
-                        printCont();
-                    } else {
-                        printer.print(" ");
-                    }
+                // Break before long string-like initializers when the combined line would exceed limits.
+                // Restrict to string literals, text blocks, and literal-only "+" chains so array/object
+                // initializers are not mis-measured via toString().
+                int tailWidth = tailWidthAfterEqualsForInitializerBreakHeuristic(init);
+                if (tailWidth >= 0
+                        && (ctx.column() + tailWidth > fmt.maxLineLength()
+                                || ctx.column() + tailWidth > fmt.preferredLineLength())) {
+                    printer.println();
+                    printCont();
                 } else {
                     printer.print(" ");
                 }
@@ -822,6 +820,73 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.print(" ");
             stmts.get(0).accept(this, arg);
         }
+    }
+
+    private static Expression stripParens(Expression e) {
+        while (e instanceof EnclosedExpr enc) {
+            e = enc.getInner();
+        }
+        return e;
+    }
+
+    private static void collectPlusOperands(Expression e, List<Expression> out) {
+        e = stripParens(e);
+        if (e instanceof BinaryExpr b && b.getOperator() == BinaryExpr.Operator.PLUS) {
+            collectPlusOperands(b.getLeft(), out);
+            collectPlusOperands(b.getRight(), out);
+        } else {
+            out.add(e);
+        }
+    }
+
+    private static boolean isStringConcatChainLeaf(Expression e) {
+        return e instanceof StringLiteralExpr
+                || e instanceof CharLiteralExpr
+                || e instanceof TextBlockLiteralExpr;
+    }
+
+    /**
+     * True for {@code "a" + "b"}, parenthesized variants, and char/string/text-block operands only
+     * (no identifiers or calls).
+     */
+    private static boolean isTopLevelStringConcatChain(Expression init) {
+        Expression root = stripParens(init);
+        if (!(root instanceof BinaryExpr b) || b.getOperator() != BinaryExpr.Operator.PLUS) {
+            return false;
+        }
+        List<Expression> parts = new ArrayList<>();
+        collectPlusOperands(b, parts);
+        if (parts.size() < 2) {
+            return false;
+        }
+        for (Expression p : parts) {
+            if (!isStringConcatChainLeaf(p)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Single-line width estimate (line breaks treated as spaces) for line-budget heuristics. */
+    private static int flatExprSourceWidth(Expression e) {
+        return e.toString().replaceAll("\\R", " ").length();
+    }
+
+    /**
+     * When non-negative, adding this to the column after printing {@code "="} is compared to line
+     * limits for break-before-initializer layout.
+     */
+    private static int tailWidthAfterEqualsForInitializerBreakHeuristic(Expression init) {
+        Expression stripped = stripParens(init);
+        if (stripped instanceof StringLiteralExpr || stripped instanceof TextBlockLiteralExpr) {
+            return 1 + flatExprSourceWidth(stripped);
+        }
+        if (stripped instanceof BinaryExpr b
+                && b.getOperator() == BinaryExpr.Operator.PLUS
+                && isTopLevelStringConcatChain(stripped)) {
+            return 1 + flatExprSourceWidth(stripped);
+        }
+        return -1;
     }
 
 }
