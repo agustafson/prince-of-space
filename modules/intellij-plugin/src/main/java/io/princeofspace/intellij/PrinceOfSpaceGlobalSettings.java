@@ -1,13 +1,10 @@
 package io.princeofspace.intellij;
 
 import com.github.javaparser.ParserConfiguration.LanguageLevel;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
-import com.intellij.openapi.components.StoragePathMacros;
-import com.intellij.openapi.project.Project;
-import com.intellij.psi.PsiJavaFile;
-import com.intellij.psi.util.PsiUtil;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.IndentStyle;
@@ -17,36 +14,22 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 
-/**
- * Per-project Prince of Space options (workspace file). Mirrors {@link FormatterConfig} knobs plus
- * {@link #formatOnSave} and language-level source selection.
- */
-@State(
-        name = "PrinceOfSpaceProjectSettings",
-        storages = @Storage(StoragePathMacros.WORKSPACE_FILE))
-public final class PrinceOfSpaceProjectSettings implements PersistentStateComponent<PrinceOfSpaceProjectSettings.State> {
+/** Application-wide Prince of Space formatter defaults shared across projects. */
+@State(name = "PrinceOfSpaceGlobalSettings", storages = @Storage("prince-of-space.xml"))
+public final class PrinceOfSpaceGlobalSettings
+        implements PersistentStateComponent<PrinceOfSpaceGlobalSettings.State> {
 
     private State state = new State();
 
-    public static PrinceOfSpaceProjectSettings getInstance(@NotNull Project project) {
-        return project.getService(PrinceOfSpaceProjectSettings.class);
+    public static @NotNull PrinceOfSpaceGlobalSettings getInstance() {
+        return ApplicationManager.getApplication().getService(PrinceOfSpaceGlobalSettings.class);
     }
 
-    /** Builds a {@link FormatterConfig} from saved options and the given Java file (for language level). */
-    public @NotNull FormatterConfig toFormatterConfig(@NotNull PsiJavaFile javaFile) {
+    public @NotNull FormatterConfig toFormatterConfig() {
         State s = state;
-        if (s.useGlobalFormatterSettings) {
-            return PrinceOfSpaceGlobalSettings.getInstance().toFormatterConfig();
-        }
         IndentStyle indentStyle = IndentStyle.valueOf(s.indentStyle);
         WrapStyle wrapStyle = WrapStyle.valueOf(s.wrapStyle);
-        LanguageLevel languageLevel;
-        if (s.useProjectLanguageLevel) {
-            int release = PrinceFormatRunner.intellijLanguageLevelToRelease(PsiUtil.getLanguageLevel(javaFile));
-            languageLevel = JavaParserLanguageLevels.fromRelease(release);
-        } else {
-            languageLevel = JavaParserLanguageLevels.fromRelease(s.javaRelease);
-        }
+        LanguageLevel languageLevel = JavaParserLanguageLevels.fromRelease(s.javaRelease);
         return FormatterConfig.builder()
                 .indentStyle(indentStyle)
                 .indentSize(s.indentSize)
@@ -60,14 +43,6 @@ public final class PrinceOfSpaceProjectSettings implements PersistentStateCompon
                 .build();
     }
 
-    public boolean isFormatOnSave() {
-        return state.formatOnSave;
-    }
-
-    public void setFormatOnSave(boolean formatOnSave) {
-        state.formatOnSave = formatOnSave;
-    }
-
     @Override
     public @NotNull State getState() {
         return state;
@@ -79,18 +54,12 @@ public final class PrinceOfSpaceProjectSettings implements PersistentStateCompon
         state.normalizeAfterLoad();
     }
 
-    /** Replaces persisted state (e.g. from the settings UI) after validation. */
     public void replaceState(@NotNull State newState) {
         XmlSerializerUtil.copyBean(newState, state);
         state.normalizeAfterLoad();
     }
 
     public static final class State {
-        /** Default on so new installs get save-time formatting without extra steps. */
-        public boolean formatOnSave = true;
-        /** If true, use IDE-global formatter settings instead of this project's formatter settings. */
-        public boolean useGlobalFormatterSettings = false;
-
         public @NotNull String indentStyle = IndentStyle.SPACES.name();
         public int indentSize = 4;
         public int preferredLineLength = 120;
@@ -99,14 +68,6 @@ public final class PrinceOfSpaceProjectSettings implements PersistentStateCompon
         public @NotNull String wrapStyle = WrapStyle.BALANCED.name();
         public boolean closingParenOnNewLine = true;
         public boolean trailingCommas = false;
-
-        /**
-         * When {@code true}, JavaParser's language level follows the IDE language level for the file. When
-         * {@code false}, {@link #javaRelease} is used.
-         */
-        public boolean useProjectLanguageLevel = true;
-
-        /** Feature-release number (e.g. 17, 21) when {@link #useProjectLanguageLevel} is false. */
         public int javaRelease = 17;
 
         void normalizeAfterLoad() {
@@ -127,15 +88,12 @@ public final class PrinceOfSpaceProjectSettings implements PersistentStateCompon
                 return false;
             }
             State state = (State) o;
-            return formatOnSave == state.formatOnSave
-                    && useGlobalFormatterSettings == state.useGlobalFormatterSettings
-                    && indentSize == state.indentSize
+            return indentSize == state.indentSize
                     && preferredLineLength == state.preferredLineLength
                     && maxLineLength == state.maxLineLength
                     && continuationIndentSize == state.continuationIndentSize
                     && closingParenOnNewLine == state.closingParenOnNewLine
                     && trailingCommas == state.trailingCommas
-                    && useProjectLanguageLevel == state.useProjectLanguageLevel
                     && javaRelease == state.javaRelease
                     && Objects.equals(indentStyle, state.indentStyle)
                     && Objects.equals(wrapStyle, state.wrapStyle);
@@ -144,8 +102,6 @@ public final class PrinceOfSpaceProjectSettings implements PersistentStateCompon
         @Override
         public int hashCode() {
             return Objects.hash(
-                    formatOnSave,
-                    useGlobalFormatterSettings,
                     indentStyle,
                     indentSize,
                     preferredLineLength,
@@ -154,7 +110,6 @@ public final class PrinceOfSpaceProjectSettings implements PersistentStateCompon
                     wrapStyle,
                     closingParenOnNewLine,
                     trailingCommas,
-                    useProjectLanguageLevel,
                     javaRelease);
         }
     }

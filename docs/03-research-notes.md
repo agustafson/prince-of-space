@@ -1,5 +1,8 @@
 # Research Notes
 
+> **Status:** Historical reference.
+> Stable product/architecture decisions are tracked in `docs/technical-decision-register.md`.
+
 ## Sources
 
 - [Why are there no decent code formatters for Java?](https://jqno.nl/post/2024/08/24/why-are-there-no-decent-code-formatters-for-java/) - Jan Ouwens

@@ -1,5 +1,6 @@
 ## Build & Compatibility
 
+- **Decision log:** `docs/technical-decision-register.md` (canonical why/rationale)
 - **Source code:** Java 21 (use modern language features)
 - **Target:** Compile to Java 17 bytecode (`--release 17`)
 - **Build tool:** Gradle (multi-module)

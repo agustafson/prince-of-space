@@ -89,4 +89,17 @@ class BlankLineNormalizerTest {
         assertThat(BlankLineNormalizer.normalize(input))
                 .isEqualTo("{\n    x();\n}");
     }
+
+    @Test
+    void blankLineBetweenImports_preserved() {
+        String input =
+                """
+                import java.util.List;
+
+                import java.util.Map;
+
+                class T {}
+                """;
+        assertThat(BlankLineNormalizer.normalize(input)).isEqualTo(input);
+    }
 }

@@ -10,11 +10,11 @@ A Java code formatter library that produces beautiful, readable output with a sm
 
 ## Key Documents
 
-- `IMPLEMENTATION_PLAN.md` — Phased implementation plan with detailed tasks
-- `docs/01-project-priorities.md` — Project goals, architecture, module structure
+- `docs/technical-decision-register.md` — Canonical log of architectural/product decisions and rationale
 - `docs/02-formatting-decisions.md` — All formatting rules, 8 configuration options, and decided behaviors
-- `docs/03-roadmap.md` — Prioritized backlog and verification checklist
-- `docs/03-research-notes.md` — Research on other formatters, AST parsers, Spotless integration
+- `ARCHITECTURE.md` — Current architecture, module structure, coding conventions, and test strategy
+- `docs/03-research-notes.md` — Historical research notes (archival reference)
+- `docs/01-project-priorities.md` — Historical priorities snapshot (archival reference)
 - `docs/benchmarks.md` — Throughput smoke tests and future JMH notes
 - `docs/robustness-harness.md` — Optional real-world directory formatting
 

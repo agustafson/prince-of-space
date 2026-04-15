@@ -9,7 +9,7 @@ This mirrors `.claude/CLAUDE.md` for Cursor. Project-specific automation also li
 
 ## What is this project?
 
-A configurable Java code formatter. See `README.md` for an overview and `IMPLEMENTATION_PLAN.md` for the phased task list.
+A configurable Java code formatter. See `README.md` for an overview and `docs/technical-decision-register.md` for decision rationale/history.
 
 ## Before writing any code, read
 
@@ -17,7 +17,7 @@ A configurable Java code formatter. See `README.md` for an overview and `IMPLEME
 |----------|---------------|
 | `ARCHITECTURE.md` | Package layout, coding conventions, module structure, config options |
 | `CONTRIBUTING.md` | Commit conventions, build requirements, PR checks |
-| `IMPLEMENTATION_PLAN.md` | Phased tasks — always check current phase before starting |
+| `docs/technical-decision-register.md` | Canonical log of technical/product decisions and rationale |
 | `docs/02-formatting-decisions.md` | All formatting rules and the 8 config knobs |
 
 ## Build commands

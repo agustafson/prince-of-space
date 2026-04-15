@@ -40,14 +40,21 @@ final class BlankLineNormalizer {
     }
 
     private static boolean shouldKeep(List<String> emitted, String[] input, int blankIndex) {
+        // Preserve spacing groups inside import sections.
+        String prevNonBlank = lastNonBlank(emitted).trim();
+        String nextNonBlank = firstNonBlankAfter(input, blankIndex + 1).trim();
+        if (isImportLine(prevNonBlank) && isImportLine(nextNonBlank)) {
+            return true;
+        }
+
         // Rule 1: no blank immediately after "{", EXCEPT after class/interface/enum/record opening braces
-        String prevLine = lastNonBlank(emitted).trim();
+        String prevLine = prevNonBlank;
         if (prevLine.endsWith("{") && !isTypeDeclarationBrace(emitted)) {
             return false;
         }
 
         // Rule 2: no blank immediately before "}"
-        if (firstNonBlankAfter(input, blankIndex + 1).trim().startsWith("}")) {
+        if (nextNonBlank.startsWith("}")) {
             return false;
         }
 
@@ -57,6 +64,10 @@ final class BlankLineNormalizer {
         }
 
         return true;
+    }
+
+    private static boolean isImportLine(String trimmedLine) {
+        return trimmedLine.startsWith("import ");
     }
 
     private static String lastNonBlank(List<String> lines) {

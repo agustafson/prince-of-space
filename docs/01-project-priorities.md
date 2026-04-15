@@ -1,5 +1,8 @@
 # Prince of Space - Project Priorities
 
+> **Status:** Historical priorities snapshot.
+> The current canonical decision log is `docs/technical-decision-register.md`.
+
 ## Mission
 
 Create a Java code formatter that is beautiful, ergonomic, configurable (within reason), and easy to integrate into any Java project.

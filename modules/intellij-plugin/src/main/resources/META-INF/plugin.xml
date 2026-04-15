@@ -8,6 +8,7 @@
     <depends>com.intellij.java</depends>
 
     <extensions defaultExtensionNs="com.intellij">
+        <applicationService serviceImplementation="io.princeofspace.intellij.PrinceOfSpaceGlobalSettings"/>
         <projectService serviceImplementation="io.princeofspace.intellij.PrinceOfSpaceProjectSettings"/>
         <projectConfigurable
                 parentId="tools"
