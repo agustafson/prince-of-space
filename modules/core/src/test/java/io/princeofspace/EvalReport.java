@@ -1,8 +1,11 @@
 package io.princeofspace;
 
 import java.time.LocalDate;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 record EvalReport(
         LocalDate date,
@@ -37,7 +40,19 @@ record EvalReport(
                         .append(" (").append(formatPercent(reformattedPct)).append(")\n");
                 sb.append("- Already clean: ").append(run.alreadyClean())
                         .append(" (").append(formatPercent(cleanPct)).append(")\n");
-                sb.append("- Over-long non-comment lines: ").append(run.overLongLines().size()).append('\n');
+                OverLongBuckets buckets = bucketOverLongLines(run.overLongLines());
+                sb.append("- Over-long non-comment lines: ").append(run.overLongLines().size())
+                        .append(" (main=").append(buckets.main())
+                        .append(", test=").append(buckets.test())
+                        .append(", other=").append(buckets.other())
+                        .append(")\n");
+                if (buckets.knownOutlierWarnings() > 0) {
+                    sb.append("- Known outlier warnings: ").append(buckets.knownOutlierWarnings())
+                            .append(" across ").append(buckets.knownOutlierFiles().size())
+                            .append(" file(s): ")
+                            .append(String.join(", ", buckets.knownOutlierFiles()))
+                            .append('\n');
+                }
                 sb.append("- Time: ").append(formatSeconds(run.elapsedMs()))
                         .append(" (").append(formatOneDecimal(avgMs)).append(" ms/file avg)\n\n");
 
@@ -94,4 +109,33 @@ record EvalReport(
     private static String formatOneDecimal(double value) {
         return String.format(Locale.ROOT, "%.1f", value);
     }
+
+    private static OverLongBuckets bucketOverLongLines(List<RealWorldEvalTest.OverLongLine> warnings) {
+        int main = 0;
+        int test = 0;
+        int other = 0;
+        Map<String, Integer> knownOutlierCounts = new LinkedHashMap<>();
+        for (RealWorldEvalTest.OverLongLine warning : warnings) {
+            String path = warning.path();
+            if (path.contains("/src/test/")) {
+                test++;
+            } else if (path.contains("/src/main/")) {
+                main++;
+            } else {
+                other++;
+            }
+            if (path.endsWith("/PublicSuffixPatterns.java")) {
+                knownOutlierCounts.merge(path, 1, Integer::sum);
+            }
+        }
+        List<String> knownOutlierFiles = knownOutlierCounts.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
+                .map(Map.Entry::getKey)
+                .toList();
+        int knownOutlierWarnings = knownOutlierCounts.values().stream().mapToInt(Integer::intValue).sum();
+        return new OverLongBuckets(main, test, other, knownOutlierWarnings, knownOutlierFiles);
+    }
+
+    private record OverLongBuckets(
+            int main, int test, int other, int knownOutlierWarnings, List<String> knownOutlierFiles) {}
 }
