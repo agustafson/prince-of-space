@@ -1265,6 +1265,28 @@ class WrappingFormattingTest {
     }
 
     @Test
+    void emptyStringLiteral_doesNotCrashWhenChunkPathIsSelected() {
+        int max = 60;
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(50)
+                                .maxLineLength(max)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .build());
+        String input =
+                """
+                class T {
+                    String reallyLongPrefixNameForLineLengthPressure = "";
+                }
+                """;
+        String out = f.format(input);
+        assertNoLineLongerThan(out, max);
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
     void veryLongStringLiteral_idempotent_whenChunkedThenBinaryExpr() {
         Formatter f =
                 new Formatter(

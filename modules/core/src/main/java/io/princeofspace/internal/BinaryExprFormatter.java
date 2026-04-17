@@ -138,7 +138,9 @@ final class BinaryExprFormatter {
                     int max = ctx.config().maxLineLength();
                     int mergedQuotedLen = StringEscapeUtils.escapeJava(merged).length() + 2;
                     boolean mergedWouldOverflowSingleLiteral = ctx.column() + mergedQuotedLen > max;
+                    boolean hasEscapesSensitiveToBoundaryPlacement = merged.indexOf('\\') >= 0;
                     if (mergedWouldOverflowSingleLiteral
+                            && !hasEscapesSensitiveToBoundaryPlacement
                             && concatLeaves.size() >= MIN_LEAVES_FOR_FORCED_STRING_RECHUNK) {
                         ctx.emitChunkedStringLiteral(merged);
                         return;

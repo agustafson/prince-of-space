@@ -635,6 +635,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     private static List<String> splitRawIntoStringPieces(String raw, int maxRoom) {
         List<String> pieces = new ArrayList<>();
+        if (raw.isEmpty()) {
+            pieces.add("");
+            return pieces;
+        }
         int i = 0;
         while (i < raw.length()) {
             int grow = growPieceEndIndexForChunking(raw, i, maxRoom);
@@ -942,7 +946,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
         int quotedLen = StringEscapeUtils.escapeJava(n.getValue()).length() + 2;
-        if (column() + quotedLen > fmt.maxLineLength()) {
+        if (column() + quotedLen > fmt.maxLineLength() && !isInsideStringConcatChain(n)) {
             emitChunkedStringLiteral(n.getValue());
         } else {
             // Do not call super.visit: DefaultPrettyPrinterVisitor would print orphan + comment again.
@@ -951,6 +955,12 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.print("\"");
         }
         printOrphanCommentsEnding(n);
+    }
+
+    private static boolean isInsideStringConcatChain(StringLiteralExpr n) {
+        return n.getParentNode()
+                .filter(p -> p instanceof BinaryExpr b && b.getOperator() == BinaryExpr.Operator.PLUS)
+                .isPresent();
     }
 
     @Override

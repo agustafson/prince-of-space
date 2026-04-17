@@ -43,7 +43,8 @@ public final class FormattingEngine {
      * remaining budget handles edge cases where JavaParser comment re-attribution needs two
      * rounds to stabilize.
      */
-    private static final int MAX_CONVERGENCE_PASSES = 64;
+    private static final int DEFAULT_MAX_CONVERGENCE_PASSES = 3;
+    private static final int MAX_CONVERGENCE_PASSES = resolveMaxConvergencePasses();
 
     /**
      * Parses and formats the given source, or returns a typed failure without throwing.
@@ -70,6 +71,18 @@ public final class FormattingEngine {
             current = next;
         }
         return new FormatResult.Success(current);
+    }
+
+    private static int resolveMaxConvergencePasses() {
+        String raw = System.getProperty("prince.maxConvergencePasses");
+        if (raw == null || raw.isBlank()) {
+            return DEFAULT_MAX_CONVERGENCE_PASSES;
+        }
+        try {
+            return Math.max(0, Integer.parseInt(raw.strip()));
+        } catch (NumberFormatException ignored) {
+            return DEFAULT_MAX_CONVERGENCE_PASSES;
+        }
     }
 
     private FormatResult singlePassFormat(String sourceCode) {
