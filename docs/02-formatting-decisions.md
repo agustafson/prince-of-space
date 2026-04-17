@@ -26,7 +26,7 @@ With **`spaces`**, `indentSize` is how many space characters make up one indent 
 Rather than a single hard limit, we use a two-threshold approach:
 
 - **`preferredLineLength`** (soft limit): The formatter *tries* to keep lines at or below this length. This is where wrapping decisions are first triggered.
-- **`maxLineLength`** (hard limit): The formatter does not exceed this length for code layout decisions (method/constructor signatures, chains, operators, type clauses, switch labels/guards, lambda params, generic type arguments, etc.). Lines between preferred and max are allowed when wrapping at the preferred length would produce ugly results (e.g., a single-token continuation line, or breaking an expression that's only slightly over). Comment and text-block content are preserved verbatim.
+- **`maxLineLength`** (hard target): The formatter tries not to exceed this length for code layout decisions (method/constructor signatures, chains, operators, type clauses, switch labels/guards, lambda params, generic type arguments, etc.). Lines between preferred and max are allowed when wrapping at the preferred length would produce ugly results (e.g., a single-token continuation line, or breaking an expression that's only slightly over). Some constructs cannot be wrapped — such as very long string literals, generated data files, or deeply nested expressions with no safe break point — and will exceed `maxLineLength` when no wrap point exists. Comment and text-block content are preserved verbatim.
 
 This is similar to how Prettier treats `printWidth` as a guide rather than a hard wall, and how rustfmt has per-construct widths alongside `max_width`.
 
@@ -41,7 +41,7 @@ var result = someService.processRequest(requestId, userName, Optional.of(default
 var result = someService.processRequest(
         requestId, userName, Optional.of(defaultConfig), additionalParams);
 
-// Line is 155 chars. Over max, must wrap regardless:
+// Line is 155 chars. Over max; wraps if a clean break point exists:
 var result = someService.processRequest(
         requestId,
         userName,
@@ -173,7 +173,7 @@ enum Status {
 | `indentStyle` | `spaces` \| `tabs` | `spaces` | Use tabs or spaces for indentation |
 | `indentSize` | integer | `4` | Number of spaces or tabs per indent level |
 | `preferredLineLength` | integer | `120` | Soft line width target; wrapping is triggered here |
-| `maxLineLength` | integer | `150` | Hard line width limit; never exceeded |
+| `maxLineLength` | integer | `150` | Hard line width target; exceeded only when no wrap point exists |
 | `continuationIndentSize` | integer | `4` | Spaces or tabs for continuation lines (same unit convention as `indentSize`) |
 | `wrapStyle` | `wide` \| `narrow` \| `balanced` | `balanced` | How to handle line wrapping |
 | `closingParenOnNewLine` | boolean | `true` | Whether closing `)` goes on its own line in multi-line params/args |
