@@ -55,6 +55,7 @@ public final class Formatter {
         if (result instanceof FormatResult.Success success) {
             return success.formattedSource();
         }
+        // FormatResult is sealed: Success | Failure — the cast is exhaustive.
         throw new FormatterException(((FormatResult.Failure) result).message());
     }
 
@@ -71,6 +72,7 @@ public final class Formatter {
         if (result instanceof FormatResult.Success success) {
             return success.formattedSource();
         }
+        // FormatResult is sealed: Success | Failure — the cast is exhaustive.
         throw new FormatterException(filePath + ": " + ((FormatResult.Failure) result).message());
     }
 }
