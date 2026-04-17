@@ -38,8 +38,10 @@ intellijPlatform {
     pluginConfiguration {
         ideaVersion {
             sinceBuild = "233"
-            // Open upper bound so the plugin installs on current and future IDEs (e.g. 261+); verify APIs when upgrading the platform dependency.
-            untilBuild = "999.*"
+            // Omit upper bound so the plugin installs on current and future IDEs.
+            // provider { null } tells the Gradle plugin not to emit an until-build attribute,
+            // which is the Marketplace-compliant way to leave the upper bound open.
+            untilBuild = provider { null }
         }
     }
 }
