@@ -2,45 +2,64 @@
 
 A beautiful, configurable Java code formatter.
 
-> **Under Construction** — This project is in active development and not yet ready for use.
+## Why another formatter?
 
-## What is this project?
+Existing Java formatters fall into two camps: **unconfigurable** (google-java-format) or **hundreds of knobs** (Eclipse/IntelliJ built-in). Prince of Space sits in between — 8 meaningful options that cover what teams actually argue about, with opinionated defaults that produce readable output out of the box.
 
-A Java code formatter library that produces beautiful, readable output with a small set of meaningful configuration options. It aims to solve the problems with existing formatters (google-java-format, palantir-java-format, etc.) which are either unconfigurable or produce ugly output.
+## Features
 
-## Key Documents
+- **8 configuration options** covering indentation, line length, wrapping, and trailing commas
+- **Two-threshold line length** — a soft preferred width and a hard maximum target, so wrapping looks natural
+- **Idempotent** — formatting already-formatted code produces identical output (`format(format(x)) == format(x)`)
+- **Java 8 through 25+** — parses any Java language level; runs on JDK 17+
+- **Multiple integrations** — library API, CLI, Spotless plugin, IntelliJ plugin, VS Code extension
 
-- `docs/technical-decision-register.md` — Canonical log of architectural/product decisions and rationale
-- `docs/02-formatting-decisions.md` — All formatting rules, 8 configuration options, and decided behaviors
-- `ARCHITECTURE.md` — Current architecture, module structure, coding conventions, and test strategy
-- `docs/03-research-notes.md` — Historical research notes (archival reference)
-- `docs/01-project-priorities.md` — Historical priorities snapshot (archival reference)
-- `docs/benchmarks.md` — Throughput smoke tests and future JMH notes
-- `docs/robustness-harness.md` — Optional real-world directory formatting
+## Quick Start
 
-## CLI
+### Library (Gradle)
 
-Build the shaded JAR, then run Picocli help:
+```kotlin
+dependencies {
+    implementation("io.princeofspace:prince-of-space-core:VERSION")
+}
+```
+
+```java
+import io.princeofspace.Formatter;
+import io.princeofspace.model.FormatterConfig;
+
+Formatter formatter = new Formatter(FormatterConfig.defaults());
+String formatted = formatter.format(sourceCode);
+```
+
+### Library (Maven)
+
+```xml
+<dependency>
+    <groupId>io.princeofspace</groupId>
+    <artifactId>prince-of-space-core</artifactId>
+    <version>VERSION</version>
+</dependency>
+```
+
+### CLI
 
 ```bash
 ./gradlew :cli:shadowJar
-java -jar cli/build/libs/prince-of-space-cli-*.jar --help
+java -jar modules/cli/build/libs/prince-of-space-cli-*.jar --help
 ```
 
-Common flags: `--check` (no writes, exit 1 if any file would change), `--stdin` / `--stdout`,
-`--java-version 8|11|17|21|25`, `-r` to recurse into directories, `-v` for stderr progress.
+Common flags:
 
-## Non-goals
+| Flag | Description |
+|------|-------------|
+| `--check` | Exit 1 if any file would change (no writes) |
+| `--stdin` / `--stdout` | Read from stdin, write to stdout |
+| `--java-version N` | Java language level (8, 11, 17, 21, 25, etc.) |
+| `-r` | Recurse into directories |
+| `-v` | Verbose progress on stderr |
 
-- Import organization (delegated to Spotless)
-- Maven/Gradle plugins (Spotless provides those)
-- Type resolution (not needed for formatting)
-
-## Spotless
-
-The `spotless` module publishes `io.princeofspace.spotless.PrinceOfSpaceStep`, a `com.diffplug.spotless.FormatterStep` that delegates to `io.princeofspace.Formatter`. It is serializable for Spotless classloader isolation.
-
-**Gradle (Kotlin DSL):** register the step inside `spotless { java { ... } }` and ensure the `prince-of-space-spotless` artifact (which pulls in `prince-of-space-core`) is on the classpath used by the Spotless plugin—for example via `buildscript` dependencies, a dedicated `buildSrc` dependency, or your Gradle version’s supported mechanism for extra formatter dependencies. Then:
+### Spotless
 
 ```kotlin
 import io.princeofspace.model.FormatterConfig
@@ -54,6 +73,145 @@ spotless {
 }
 ```
 
-Use `FormatterConfig.builder()` to tune language level, line lengths, and wrap style.
+Ensure `prince-of-space-spotless` (which transitively pulls in `prince-of-space-core`) is on the Spotless plugin classpath — via `buildscript` dependencies, a dedicated `buildSrc` dependency, or your Gradle version's supported mechanism.
 
-**Maven:** add `prince-of-space-spotless` as a dependency of `spotless-maven-plugin` (see [Spotless Maven](https://github.com/diffplug/spotless/blob/main/plugin-maven/README.md) for plugin dependency scope), then configure a custom step that uses `PrinceOfSpaceStep.create(...)` per the plugin’s API for third-party `FormatterStep` implementations.
+For Maven, add `prince-of-space-spotless` as a dependency of `spotless-maven-plugin` and configure a custom step using `PrinceOfSpaceStep.create(...)`.
+
+### IntelliJ Plugin
+
+**Settings > Tools > Prince of Space** — configure all 8 options, choose a fixed Java level or inherit from the module, and optionally enable format-on-save. Format via **Code > Reformat with Prince of Space...**
+
+```bash
+./gradlew :intellij-plugin:runIde      # develop
+./gradlew :intellij-plugin:buildPlugin  # package
+```
+
+### VS Code Extension
+
+The `modules/vscode-extension/` directory contains a TypeScript extension that registers a Java formatting provider. It delegates to the CLI shadow JAR, resolving `modules/cli/build/libs/prince-of-space-cli-*.jar` from the workspace unless `princeOfSpace.cliJar` is set.
+
+## Configuration
+
+| Option | Default | Description                                           |
+|--------|---------|-------------------------------------------------------|
+| `wrapStyle` | `balanced` | `wide`, `balanced`, or `narrow` wrapping              |
+| `indentStyle` | `spaces` | `spaces` or `tabs`                                    |
+| `indentSize` | `4` | Units per indent level (spaces or tabs)               |
+| `preferredLineLength` | `120` | Soft target — wrapping starts here                    |
+| `maxLineLength` | `150` | Hard target — exceeded only when no wrap point exists |
+| `continuationIndentSize` | `4` | Units for continuation lines                          |
+| `closingParenOnNewLine` | `true` | Closing `)` on its own line when args wrap            |
+| `trailingCommas` | `false` | Trailing commas in multi-line enums/arrays            |
+
+### Wrap style
+
+`wrapStyle` controls how elements are distributed across lines once wrapping is triggered. It is the most consequential option — the same code looks very different across styles.
+
+**`balanced`** (default) — All-or-nothing: either everything fits on one line, or each element gets its own line. This is [Prettier's approach](https://prettier.io/docs/option-philosophy): it avoids the messy middle ground where some arguments are on one line and others on the next.
+
+```java
+// fits on one line — left alone
+doSomething(name, age, active);
+
+// does not fit — every element gets its own line
+doSomething(
+        name,
+        age,
+        active
+);
+```
+
+**`wide`** — Keep as much on one line as possible; only wrap what is needed to stay within the line length limits.
+
+```java
+doSomething(name, age,
+        active, extraParam);
+```
+
+**`narrow`** — If any wrapping is needed, put every element on its own line immediately.
+
+```java
+doSomething(
+        name,
+        age,
+        active
+);
+```
+
+The `javaLanguageLevel` (default: `17`) controls which Java syntax the parser accepts. Set via `FormatterConfig.builder().javaLanguageLevel(JavaLanguageLevel.of(21))` in the API, or `--java-version 21` on the CLI.
+
+## Examples
+
+The `examples/` directory is the best way to evaluate how options affect real output:
+
+- **`examples/inputs/java{8,17,21,25}/FormatterShowcase.java`** — a single unformatted source file covering 46+ scenarios: constructors, method chains, lambdas, binary operators, generics, switch expressions, records, sealed types, text blocks, and more.
+- **`examples/outputs/java{8,17,21,25}/`** — 12 formatted versions per Java level (48 total), one for each combination of `wrapStyle`, `continuationIndentSize`, and `closingParenOnNewLine`.
+
+For an interactive side-by-side diff, open **[`examples/compare.html`](examples/compare.html)** in a browser (or visit the hosted version at the GitHub Pages URL for this repo) — pick a Java version and two configurations to compare. For a narrated walkthrough of the key differences, see **[docs/output-showcase.md](docs/output-showcase.md)**.
+
+## API
+
+The public API consists of four types:
+
+| Type | Description |
+|------|-------------|
+| `Formatter` | Entry point — `format(String)` throws on failure, `formatResult(String)` returns a sealed result |
+| `FormatterConfig` | Immutable record with builder for all 8 options + language level |
+| `FormatResult` | Sealed interface: `Success` or `Failure` (`ParseFailure`, `EmptyCompilationUnit`) |
+| `FormatterException` | Thrown by `Formatter.format()` on parse or pipeline failure |
+
+Supporting value types: `IndentStyle`, `WrapStyle`, `JavaLanguageLevel`.
+
+### Non-throwing API
+
+```java
+FormatResult result = formatter.formatResult(sourceCode);
+if (result instanceof FormatResult.Success success) {
+    System.out.println(success.formattedSource());
+} else if (result instanceof FormatResult.ParseFailure failure) {
+    System.err.println(failure.message());
+}
+```
+
+## Artifacts
+
+| Artifact | When to use |
+|----------|-------------|
+| `prince-of-space-core` | Default — small footprint, you manage JavaParser/SLF4J versions |
+| `prince-of-space-bundled` | Single fat JAR with relocated dependencies — no transitive conflicts |
+| `prince-of-space-spotless` | Spotless `FormatterStep` integration |
+| `prince-of-space-cli` | Shadow JAR for command-line use |
+
+## Non-goals
+
+- Import organization (delegated to Spotless)
+- First-party Maven/Gradle plugins (Spotless provides those)
+- Type resolution (not needed for formatting)
+
+## Building from source
+
+Requires JDK 21+. Published bytecode targets Java 17 via `--release 17`.
+
+```bash
+./gradlew build                # full build: compile, test, Spotless, Checkstyle, SpotBugs
+./gradlew :core:test           # fast feedback loop for core changes
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for commit conventions and PR requirements.
+
+## Documentation
+
+| Document | Contents |
+|----------|----------|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Package layout, coding conventions, module structure |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Commit conventions, build requirements, PR checks |
+| [CHANGELOG.md](CHANGELOG.md) | Release history |
+| [SECURITY.md](SECURITY.md) | Vulnerability reporting |
+| [docs/02-formatting-decisions.md](docs/02-formatting-decisions.md) | All formatting rules and configuration options |
+| [docs/output-showcase.md](docs/output-showcase.md) | Side-by-side output comparison across wrap styles and indent options |
+| [docs/technical-decision-register.md](docs/technical-decision-register.md) | Architectural decision log |
+| [docs/showroom-scenarios.md](docs/showroom-scenarios.md) | Showroom golden test scenarios |
+
+## License
+
+[Apache License 2.0](LICENSE)
