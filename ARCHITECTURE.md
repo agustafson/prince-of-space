@@ -18,7 +18,7 @@
 | Package | Visibility | Purpose |
 |---------|-----------|---------|
 | `io.princeofspace` | public | Public API: `Formatter`, `FormatterException` |
-| `io.princeofspace.model` | public | Immutable value types: `FormatterConfig`, `IndentStyle`, `WrapStyle` |
+| `io.princeofspace.model` | public | Immutable value types: `FormatterConfig`, `IndentStyle`, `WrapStyle`, `JavaLanguageLevel`, `JavaParserLanguageLevels` |
 | `io.princeofspace.internal` | internal | All implementation classes (see rules below) |
 
 ## Coding Conventions
@@ -48,7 +48,7 @@ Gradle projects live under `modules/` (logical names unchanged: `:core`, `:cli`,
 - `modules/core` (`:core`) — Formatting engine (deps: javaparser, slf4j-api)
 - `modules/core-bundled` (`:core-bundled`) — Shaded fat jar (no transitive deps)
 - `modules/spotless` (`:spotless`) — Spotless FormatterStep integration
-- `modules/cli` (`:cli`) — Command-line tool (picocli); `--java-version` uses explicit levels 1–7 and `LanguageLevel.valueOf("JAVA_" + N)` for modern releases supported by the bundled JavaParser
+- `modules/cli` (`:cli`) — Command-line tool (picocli); `--java-version N` creates `JavaLanguageLevel.of(N)` which is translated to a JavaParser `LanguageLevel` internally via `JavaParserLanguageLevels.toLanguageLevel()`
 - `modules/intellij-plugin` (`:intellij-plugin`) — IntelliJ Platform plugin: **Settings → Tools → Prince of Space** persists full `FormatterConfig` (workspace-scoped), optional format-on-save, and language level from the module or a fixed release; **Code → Reformat with Prince of Space…** uses the same configuration. Develop with `./gradlew :intellij-plugin:runIde`, package with `./gradlew :intellij-plugin:buildPlugin`
 - `modules/vscode-extension/` — VS Code extension (Node/TypeScript; **not** a Gradle subproject): registers a **Java document formatting** provider and **Prince of Space: Format Document**; runs `java -jar` on the **CLI shadow JAR** (`:cli:shadowJar`), resolving `modules/cli/build/libs/prince-of-space-cli-*.jar` from the workspace unless `princeOfSpace.cliJar` is set
 
@@ -79,18 +79,37 @@ dependencies {
 
 Behavior of `io.princeofspace.Formatter` and `FormatterConfig` is the same; only dependency packaging differs.
 
+## Java Language Level
+
+`JavaLanguageLevel` is a first-party record (`io.princeofspace.model`) that decouples the public API from JavaParser's `LanguageLevel` enum:
+
+```java
+public record JavaLanguageLevel(int level, boolean preview) implements Serializable
+```
+
+- **`level`** — Java feature-release number (e.g. `17`, `21`, `25`). Legacy versions `1`–`7` are supported.
+- **`preview`** — `true` to enable preview language features for that release.
+- **Factory methods:** `JavaLanguageLevel.of(17)`, `JavaLanguageLevel.of(21, true)`.
+
+Internal translation to JavaParser's `LanguageLevel` is handled by `JavaParserLanguageLevels.toLanguageLevel()`:
+- Levels 1–7 map via a dedicated switch to `JAVA_1_0` through `JAVA_7`.
+- Levels 8+ resolve via `LanguageLevel.valueOf("JAVA_" + level)` (or `"JAVA_" + level + "_PREVIEW"` when `preview` is true).
+
+This design means the public API is stable even when JavaParser adds new enum variants.
+
 ## Configuration Options (8 total)
 
 | Option | Default |
 |--------|---------|
+| `wrapStyle` | `balanced` |
 | `indentStyle` | `spaces` |
 | `indentSize` | `4` |
 | `preferredLineLength` | `120` |
 | `maxLineLength` | `150` |
 | `continuationIndentSize` | `4` |
-| `wrapStyle` | `balanced` |
 | `closingParenOnNewLine` | `true` |
 | `trailingCommas` | `false` |
+| `javaLanguageLevel` | `JavaLanguageLevel.of(17)` |
 
 For **`indentSize`** and **`continuationIndentSize`**, the numeric value is a count of **spaces** when using spaces, or a count of **tab characters** when using tabs (`docs/02-formatting-decisions.md`, §1 and §3).
 
