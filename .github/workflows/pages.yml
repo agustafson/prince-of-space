@@ -1,16 +1,23 @@
 name: Pages
 
-# Publishes examples/compare.html to GitHub Pages so users can browse it
-# without cloning the repo. Enable Pages in repo Settings → Pages → Source:
-# GitHub Actions.
+# Builds the MkDocs site (docs/) and publishes it to GitHub Pages.
+# Also bundles examples/compare.html into the site root so the iframe on
+# the Comparator page and direct links both work.
+#
+# Enable Pages in repo Settings → Pages → Source: GitHub Actions.
 
 on:
   push:
     branches: [main]
     paths:
+      - "docs/**"
       - "examples/outputs/**"
       - "examples/compare.html"
       - "scripts/generate-compare.py"
+      - "mkdocs.yml"
+      - "ARCHITECTURE.md"
+      - "CONTRIBUTING.md"
+      - "CHANGELOG.md"
   workflow_dispatch:
 
 permissions:
@@ -32,13 +39,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install MkDocs and dependencies
+        run: pip install -r docs/requirements.txt
+
       - name: Regenerate compare.html from committed outputs
         run: python3 scripts/generate-compare.py
 
-      - name: Prepare Pages artifact
+      - name: Copy root-level docs into docs/ for MkDocs
         run: |
-          mkdir -p _site
-          cp examples/compare.html _site/index.html
+          cp ARCHITECTURE.md docs/architecture.md
+          cp CONTRIBUTING.md docs/contributing.md
+          cp CHANGELOG.md    docs/changelog.md
+
+      - name: Build MkDocs site
+        run: mkdocs build --strict --site-dir _site
+
+      - name: Bundle compare.html into site root
+        run: cp examples/compare.html _site/compare.html
+
+      - name: Clean up copied root docs (keep working tree tidy)
+        run: |
+          rm -f docs/architecture.md docs/contributing.md docs/changelog.md
 
       - uses: actions/upload-pages-artifact@v3
         with:

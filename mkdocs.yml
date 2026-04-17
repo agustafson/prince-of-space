@@ -1,0 +1,67 @@
+site_name: Prince of Space
+site_description: A beautiful, configurable Java code formatter
+site_url: https://agustafson.github.io/prince-of-space/
+repo_url: https://github.com/agustafson/prince-of-space
+repo_name: agustafson/prince-of-space
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - content.action.edit
+    - content.code.copy
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+
+docs_dir: docs
+
+nav:
+  - Home: index.md
+  - User Guide:
+    - Formatting Rules: formatting-rules.md
+    - Output Showcase: output-showcase.md
+    - Interactive Comparator: comparator.md
+  - Contributing:
+    - Architecture: architecture.md
+    - Contributing Guide: contributing.md
+    - Showroom Scenarios: showroom-scenarios.md
+    - Evaluation: evaluation.md
+    - Benchmarks: benchmarks.md
+  - Decision Register: technical-decision-register.md
+  - Changelog: changelog.md
+  - Historical:
+    - Project Priorities: project-priorities.md
+    - Research Notes: research-notes.md

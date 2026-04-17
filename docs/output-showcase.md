@@ -1,8 +1,8 @@
 # Output Showcase
 
 This page shows the same Java source formatted with different configuration options.
-All examples use the `java17` input from [`examples/inputs/java17/FormatterShowcase.java`](../examples/inputs/java17/FormatterShowcase.java).
-The full set of 48 golden outputs lives in [`examples/outputs/`](../examples/outputs/).
+All examples use the `java17` input from [`examples/inputs/java17/FormatterShowcase.java`](https://github.com/agustafson/prince-of-space/blob/main/examples/inputs/java17/FormatterShowcase.java).
+The full set of 48 golden outputs lives in the [`examples/outputs/`](https://github.com/agustafson/prince-of-space/tree/main/examples/outputs) directory.
 
 ---
 
