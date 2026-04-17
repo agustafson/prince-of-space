@@ -13,4 +13,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Documentation only: **no** first-party Maven/Gradle formatter plugins in v1 — Spotless + API per [PRIORITIES.md](docs/PRIORITIES.md).
+- Documentation only: **no** first-party Maven/Gradle formatter plugins in v1 — Spotless + API per [01-project-priorities.md](docs/01-project-priorities.md).
