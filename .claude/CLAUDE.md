@@ -25,7 +25,7 @@ Always run `:core:test` after any change to `modules/core/`. A clean `./gradlew 
 ## Version control and showroom goldens
 
 - Whenever you create **new tracked files** (sources, tests, `examples/` goldens, IDE plugin files, `package-lock.json`, and so on), **stage them explicitly** with `git add` and confirm `git status` is clean for intended changes before committing. Do not leave new files untracked.
-- Showroom inputs are **`examples/inputs/<level>/FormatterShowcase.java` only**. After editing any of those files, refresh goldens with: `REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens`. See `docs/showroom-scenarios.md`.
+- Showroom inputs are **`examples/inputs/<level>/FormatterShowcase.java` only**. After editing any of those files, refresh goldens with: `REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens`. Then re-generate the comparison viewer: `python3 scripts/generate-compare.py`. See `docs/showroom-scenarios.md`.
 
 ## Key rules (detail in `ARCHITECTURE.md`)
 
