@@ -11,7 +11,7 @@ A configurable Java code formatter. See `README.md` for an overview and `docs/te
 | `ARCHITECTURE.md` | Package layout, coding conventions, module structure, config options |
 | `CONTRIBUTING.md` | Commit conventions, build requirements, PR checks |
 | `docs/technical-decision-register.md` | Canonical log of technical/product decisions and rationale |
-| `docs/02-formatting-decisions.md` | All formatting rules and the 8 config knobs |
+| `docs/formatting-rules.md` | All formatting rules and the 8 config knobs |
 
 ## Build commands
 

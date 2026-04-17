@@ -12,7 +12,7 @@ import java.io.Serializable;
  * <p><b>Indent units:</b> When {@link #indentStyle()} is {@link IndentStyle#SPACES}, {@link #indentSize()}
  * and {@link #continuationIndentSize()} are counts of space characters. When it is {@link
  * IndentStyle#TABS}, both are counts of tab characters for each indent step and for each continuation,
- * respectively. See {@code docs/02-formatting-decisions.md} (sections 1 and 3).
+ * respectively. See {@code docs/formatting-rules.md} (sections 1 and 3).
  *
  * @param indentStyle block indentation: spaces or tab characters per step
  * @param indentSize number of {@link IndentStyle} units per logical indent level

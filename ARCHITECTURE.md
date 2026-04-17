@@ -111,7 +111,7 @@ This design means the public API is stable even when JavaParser adds new enum va
 | `trailingCommas` | `false` |
 | `javaLanguageLevel` | `JavaLanguageLevel.of(17)` |
 
-For **`indentSize`** and **`continuationIndentSize`**, the numeric value is a count of **spaces** when using spaces, or a count of **tab characters** when using tabs (`docs/02-formatting-decisions.md`, §1 and §3).
+For **`indentSize`** and **`continuationIndentSize`**, the numeric value is a count of **spaces** when using spaces, or a count of **tab characters** when using tabs (`docs/formatting-rules.md`, §1 and §3).
 
 ## Pipeline (`FormattingEngine`)
 

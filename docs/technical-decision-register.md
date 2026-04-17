@@ -17,7 +17,7 @@ Use it as the primary source of *why* design choices exist.
 - **Decision:** Keep a bounded set of public formatter knobs (8 options), not zero-config and not highly granular.
 - **Rationale:** Java teams need some style flexibility, but too many options cause bikeshedding and inconsistent output.
 - **Consequences:** `FormatterConfig` remains intentionally small; feature requests for new options require strong justification.
-- **Related docs:** `docs/02-formatting-decisions.md`, `ARCHITECTURE.md`
+- **Related docs:** `docs/formatting-rules.md`, `ARCHITECTURE.md`
 
 ### TDR-002: JavaParser-based formatting pipeline
 - **Date:** 2026-04
@@ -25,7 +25,7 @@ Use it as the primary source of *why* design choices exist.
 - **Decision:** Use JavaParser AST + custom pretty-printing for formatting.
 - **Rationale:** Good API ergonomics, practical language coverage, and comment-aware workflow for formatter development velocity.
 - **Consequences:** Language-level handling depends on JavaParser support; parser upgrades are part of maintenance.
-- **Related docs:** `ARCHITECTURE.md`, `docs/03-research-notes.md`
+- **Related docs:** `ARCHITECTURE.md`, `docs/research-notes.md`
 
 ### TDR-003: Separation of public API and internal implementation
 - **Date:** 2026-04
@@ -41,7 +41,7 @@ Use it as the primary source of *why* design choices exist.
 - **Decision:** Use dual thresholds (`preferredLineLength` soft target + `maxLineLength` hard cap) instead of a single width.
 - **Rationale:** Produces cleaner formatting decisions than a strict single-wall model.
 - **Consequences:** Wrapping logic uses both thresholds; tests must cover behavior around both.
-- **Related docs:** `docs/02-formatting-decisions.md`, `modules/core/src/test/java/io/princeofspace/WrappingFormattingTest.java`
+- **Related docs:** `docs/formatting-rules.md`, `modules/core/src/test/java/io/princeofspace/WrappingFormattingTest.java`
 
 ### TDR-005: Wrap styles are strategy-level, not per-construct settings
 - **Date:** 2026-04
@@ -49,7 +49,7 @@ Use it as the primary source of *why* design choices exist.
 - **Decision:** Expose `WIDE`, `BALANCED`, `NARROW` wrap styles globally, rather than many per-node options.
 - **Rationale:** Keeps configuration understandable and predictable.
 - **Consequences:** Some edge cases are solved in formatter heuristics, not by adding bespoke knobs.
-- **Related docs:** `docs/02-formatting-decisions.md`
+- **Related docs:** `docs/formatting-rules.md`
 
 ### TDR-006: Idempotency is a hard invariant
 - **Date:** 2026-04
@@ -81,7 +81,7 @@ Use it as the primary source of *why* design choices exist.
 - **Decision:** Use evaluation runs on large external codebases (Guava and Spring) as regression quality gates.
 - **Rationale:** Synthetic tests alone miss important style and stability edge cases.
 - **Consequences:** Eval reports are tracked under `docs/eval-results/`; parse errors and idempotency failures must remain zero.
-- **Related docs:** `docs/task-14-eval-harness.md`, `docs/eval-results/`
+- **Related docs:** `docs/evaluation.md`, `docs/eval-results/`
 
 ### TDR-010: Documentation structure shifts from plans to decisions
 - **Date:** 2026-04
@@ -89,4 +89,4 @@ Use it as the primary source of *why* design choices exist.
 - **Decision:** Prefer decision records + architecture docs over active “implementation plan” narrative docs.
 - **Rationale:** The project is beyond early scaffolding; historical plans are useful context but no longer primary guidance.
 - **Consequences:** Keep research/priorities historical context, and remove stale implementation-plan/roadmap checklists from active docs.
-- **Related docs:** `docs/03-research-notes.md`, `docs/01-project-priorities.md`
+- **Related docs:** `docs/research-notes.md`, `docs/project-priorities.md`

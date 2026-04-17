@@ -201,16 +201,17 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for commit conventions and PR requirement
 
 ## Documentation
 
+See **[docs/README.md](docs/README.md)** for a full index. Key documents:
+
 | Document | Contents |
 |----------|----------|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Package layout, coding conventions, module structure |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Commit conventions, build requirements, PR checks |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
 | [SECURITY.md](SECURITY.md) | Vulnerability reporting |
-| [docs/02-formatting-decisions.md](docs/02-formatting-decisions.md) | All formatting rules and configuration options |
-| [docs/output-showcase.md](docs/output-showcase.md) | Side-by-side output comparison across wrap styles and indent options |
+| [docs/formatting-rules.md](docs/formatting-rules.md) | All formatting rules and configuration options |
+| [docs/evaluation.md](docs/evaluation.md) | Real-world eval harness and latest results (Guava + Spring) |
 | [docs/technical-decision-register.md](docs/technical-decision-register.md) | Architectural decision log |
-| [docs/showroom-scenarios.md](docs/showroom-scenarios.md) | Showroom golden test scenarios |
 
 ## License
 
