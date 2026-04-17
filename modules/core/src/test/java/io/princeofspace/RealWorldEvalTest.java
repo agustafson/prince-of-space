@@ -15,8 +15,10 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -34,10 +36,22 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * <p>Optional: {@code PRINCE_EVAL_CONFIG_NAMES=aggressive-wide,moderate-balanced} runs only those
  * named configs (comma-separated), for faster iteration.
+ *
+ * <p>Optional: {@code PRINCE_EVAL_MAX_OVER_LONG_SAMPLES} (or alias {@code MAX_OVER_LONG_LINE_SAMPLES})
+ * caps how many over-long line records are retained per config for the report sample (default {@code
+ * 10000}). Use {@code 0} to keep none. System property {@code prince.eval.maxOverLongSamples} is also
+ * honored.
+ *
+ * <p>Low-memory hosts: set Gradle {@code PRINCE_EVAL_MAX_HEAP} (e.g. {@code 5g}) to size the eval test
+ * worker; {@code PRINCE_EVAL_SKIP_SECOND_FORMAT=true} skips the extra {@code format(format(x))} call per
+ * file (the engine already converges internally to a fixed point).
  */
 @Tag("eval")
 @EnabledIfEnvironmentVariable(named = "PRINCE_EVAL_ROOTS", matches = ".+")
 class RealWorldEvalTest {
+
+    /** Default cap for retained over-long line samples per config run (totals stay exact). */
+    private static final int DEFAULT_MAX_OVER_LONG_LINE_SAMPLES = 10_000;
 
     // ---------------------------------------------------------------------------
     // Config permutations
@@ -101,7 +115,14 @@ class RealWorldEvalTest {
             int totalFiles,
             List<String> parseErrors,
             List<String> idempotencyFailures,
+            /** Sample of over-long lines (capped); see {@link #formattedOverLongLineCount()}. */
             List<OverLongLine> overLongLines,
+            /** Exact count of over-long non-comment lines in formatted output (same rules as samples). */
+            int formattedOverLongLineCount,
+            int overLongLinesInMain,
+            int overLongLinesInTest,
+            int overLongLinesInOther,
+            Map<String, Integer> overLongKnownOutlierCounts,
             /** Total count of over-long non-comment lines in the original sources (same rules as formatted). */
             int sourceOverLongLineCount,
             /** Files where formatted output had strictly more over-long lines than the source. */
@@ -164,12 +185,24 @@ class RealWorldEvalTest {
                     allIdempotencyFailures.add(
                             "[" + projectName + " / " + evalConfig.name() + "] " + e);
                 }
+                int consoleWarnLimit = 50;
+                int printed = 0;
                 for (OverLongLine w : result.overLongLines()) {
+                    if (printed >= consoleWarnLimit) {
+                        break;
+                    }
                     System.out.printf(
                             "    WARN over-long non-comment line: %s:%d (%d chars)%n",
                             w.path(), w.lineNumber(), w.length());
+                    printed++;
                 }
-                int fmtLong = result.overLongLines().size();
+                if (result.formattedOverLongLineCount() > printed) {
+                    System.out.printf(
+                            "    ... %d more over-long lines in formatted output (total %d; see report)%n",
+                            result.formattedOverLongLineCount() - printed,
+                            result.formattedOverLongLineCount());
+                }
+                int fmtLong = result.formattedOverLongLineCount();
                 int srcLong = result.sourceOverLongLineCount();
                 int net = fmtLong - srcLong;
                 System.out.printf(
@@ -215,67 +248,87 @@ class RealWorldEvalTest {
         Formatter formatter = new Formatter(config);
         List<String> parseErrors = new ArrayList<>();
         List<String> idempotencyFailures = new ArrayList<>();
-        List<OverLongLine> overLongLines = new ArrayList<>();
+        List<OverLongLine> overLongLineSamples = new ArrayList<>();
+        OverLongAgg overLongAgg = new OverLongAgg();
+        Map<String, Integer> knownOutlierCounts = new LinkedHashMap<>();
         int sourceOverLongLineCount = 0;
         int filesWhereLongLinesWorsened = 0;
         int filesWhereLongLinesImproved = 0;
         int reformatted = 0;
         int alreadyClean = 0;
         long startNs = System.nanoTime();
+        int maxSamples = maxOverLongLineSamples();
+        boolean skipSecondFormat = skipSecondFormatCheck();
+        if (skipSecondFormat) {
+            System.out.printf(
+                    "  Note: PRINCE_EVAL_SKIP_SECOND_FORMAT is set — skipping second format pass per file.%n");
+        }
 
         for (Path file : files) {
-            String source;
-            try {
-                source = Files.readString(file);
-            } catch (IOException e) {
-                parseErrors.add(relativize(projectRoot, file) + ": IO error: " + e.getMessage());
-                continue;
-            }
-
-            String once;
-            try {
-                once = formatter.format(source);
-            } catch (FormatterException e) {
-                parseErrors.add(relativize(projectRoot, file) + ": " + e.getMessage());
-                continue;
-            } catch (RuntimeException e) {
-                parseErrors.add(
-                        relativize(projectRoot, file)
-                                + ": unexpected formatter error: "
-                                + e.getClass().getSimpleName()
-                                + ": "
-                                + e.getMessage());
-                continue;
-            }
-
-            // Idempotency: format the already-formatted output a second time.
-            try {
-                String twice = formatter.format(once);
-                if (!twice.equals(once)) {
-                    idempotencyFailures.add(relativize(projectRoot, file));
-                }
-            } catch (FormatterException e) {
-                idempotencyFailures.add(
-                        relativize(projectRoot, file) + " (second pass threw): " + e.getMessage());
-            } catch (RuntimeException e) {
-                idempotencyFailures.add(
-                        relativize(projectRoot, file)
-                                + " (second pass unexpected formatter error: "
-                                + e.getClass().getSimpleName()
-                                + ": "
-                                + e.getMessage()
-                                + ")");
-            }
-
             String relative = relativize(projectRoot, file);
             int max = config.maxLineLength();
-            int srcLong = countOverLongLines(source, max);
-            sourceOverLongLineCount += srcLong;
+
+            final String once;
+            final int srcLong;
+            final boolean fileAlreadyClean;
+            {
+                String source;
+                try {
+                    source = Files.readString(file);
+                } catch (IOException e) {
+                    parseErrors.add(relative + ": IO error: " + e.getMessage());
+                    continue;
+                }
+                srcLong = countOverLongLines(source, max);
+                sourceOverLongLineCount += srcLong;
+                try {
+                    once = formatter.format(source);
+                } catch (FormatterException e) {
+                    parseErrors.add(relative + ": " + e.getMessage());
+                    continue;
+                } catch (RuntimeException e) {
+                    parseErrors.add(
+                            relative
+                                    + ": unexpected formatter error: "
+                                    + e.getClass().getSimpleName()
+                                    + ": "
+                                    + e.getMessage());
+                    continue;
+                }
+                fileAlreadyClean = once.equals(source);
+                // Drop `source` before the optional second format so peak heap is ~2× output, not 3×.
+            }
+
+            if (!skipSecondFormat) {
+                try {
+                    String twice = formatter.format(once);
+                    if (!twice.equals(once)) {
+                        idempotencyFailures.add(relative);
+                    }
+                } catch (FormatterException e) {
+                    idempotencyFailures.add(relative + " (second pass threw): " + e.getMessage());
+                } catch (RuntimeException e) {
+                    idempotencyFailures.add(
+                            relative
+                                    + " (second pass unexpected formatter error: "
+                                    + e.getClass().getSimpleName()
+                                    + ": "
+                                    + e.getMessage()
+                                    + ")");
+                }
+            }
 
             // Over-long line warning: non-comment, non-directive lines only.
-            int beforeFmtWarnings = overLongLines.size();
-            checkOverLongLines(relative, once, max, overLongLines);
-            int fmtLong = overLongLines.size() - beforeFmtWarnings;
+            int fmtLongBefore = overLongAgg.total;
+            accumulateOverLongLines(
+                    relative,
+                    once,
+                    max,
+                    overLongAgg,
+                    overLongLineSamples,
+                    maxSamples,
+                    knownOutlierCounts);
+            int fmtLong = overLongAgg.total - fmtLongBefore;
 
             if (fmtLong > srcLong) {
                 filesWhereLongLinesWorsened++;
@@ -283,7 +336,7 @@ class RealWorldEvalTest {
                 filesWhereLongLinesImproved++;
             }
 
-            if (once.equals(source)) {
+            if (fileAlreadyClean) {
                 alreadyClean++;
             } else {
                 reformatted++;
@@ -296,7 +349,12 @@ class RealWorldEvalTest {
                 files.size(),
                 parseErrors,
                 idempotencyFailures,
-                overLongLines,
+                List.copyOf(overLongLineSamples),
+                overLongAgg.total,
+                overLongAgg.main,
+                overLongAgg.test,
+                overLongAgg.other,
+                Map.copyOf(knownOutlierCounts),
                 sourceOverLongLineCount,
                 filesWhereLongLinesWorsened,
                 filesWhereLongLinesImproved,
@@ -305,37 +363,129 @@ class RealWorldEvalTest {
                 elapsedMs);
     }
 
-    /** Same rules as {@link #checkOverLongLines}: over-long lines excluding comments and import/package. */
+    /** When true, skip {@code format(format(x))} per file (saves a full parse+print per file). */
+    private static boolean skipSecondFormatCheck() {
+        @Nullable String raw = System.getenv("PRINCE_EVAL_SKIP_SECOND_FORMAT");
+        if (raw == null || raw.isBlank()) {
+            return false;
+        }
+        return raw.equalsIgnoreCase("true") || raw.equals("1") || raw.equalsIgnoreCase("yes");
+    }
+
+    private static int maxOverLongLineSamples() {
+        @Nullable String raw = System.getenv("PRINCE_EVAL_MAX_OVER_LONG_SAMPLES");
+        if (raw == null || raw.isBlank()) {
+            raw = System.getenv("MAX_OVER_LONG_LINE_SAMPLES");
+        }
+        if (raw != null && !raw.isBlank()) {
+            try {
+                return Math.max(0, Integer.parseInt(raw.strip()));
+            } catch (NumberFormatException e) {
+                throw new IllegalStateException("Invalid over-long sample cap: " + raw, e);
+            }
+        }
+        @Nullable String prop = System.getProperty("prince.eval.maxOverLongSamples");
+        if (prop != null && !prop.isBlank()) {
+            return Math.max(0, Integer.parseInt(prop.strip()));
+        }
+        prop = System.getProperty("MAX_OVER_LONG_LINE_SAMPLES");
+        if (prop != null && !prop.isBlank()) {
+            return Math.max(0, Integer.parseInt(prop.strip()));
+        }
+        return DEFAULT_MAX_OVER_LONG_LINE_SAMPLES;
+    }
+
+    /** Over-long lines excluding comments and import/package (streaming; avoids {@code String.split}). */
     private static int countOverLongLines(String text, int maxLineLength) {
-        String[] lines = text.split("\n", -1);
         int n = 0;
-        for (String line : lines) {
-            if (isOverLongNonCommentNonDirectiveLine(line, maxLineLength)) {
-                n++;
+        int lineStart = 0;
+        for (int i = 0; i <= text.length(); i++) {
+            if (i == text.length() || text.charAt(i) == '\n') {
+                if (isOverLongNonCommentNonDirectiveLine(text, lineStart, i, maxLineLength)) {
+                    n++;
+                }
+                lineStart = i + 1;
             }
         }
         return n;
     }
 
-    private static void checkOverLongLines(
-            String relativePath, String formatted, int maxLineLength, List<OverLongLine> sink) {
-        String[] lines = formatted.split("\n", -1);
-        for (int i = 0; i < lines.length; i++) {
-            String line = lines[i];
-            if (isOverLongNonCommentNonDirectiveLine(line, maxLineLength)) {
-                sink.add(new OverLongLine(relativePath, i + 1, line.length()));
+    private static final class OverLongAgg {
+        int total;
+        int main;
+        int test;
+        int other;
+    }
+
+    private static void accumulateOverLongLines(
+            String relativePath,
+            String formatted,
+            int maxLineLength,
+            OverLongAgg agg,
+            List<OverLongLine> samples,
+            int maxSamples,
+            Map<String, Integer> knownOutlierCounts) {
+        int lineNumber = 1;
+        int lineStart = 0;
+        for (int i = 0; i <= formatted.length(); i++) {
+            if (i == formatted.length() || formatted.charAt(i) == '\n') {
+                if (isOverLongNonCommentNonDirectiveLine(formatted, lineStart, i, maxLineLength)) {
+                    agg.total++;
+                    if (relativePath.contains("/src/test/")) {
+                        agg.test++;
+                    } else if (relativePath.contains("/src/main/")) {
+                        agg.main++;
+                    } else {
+                        agg.other++;
+                    }
+                    if (relativePath.endsWith("/PublicSuffixPatterns.java")) {
+                        knownOutlierCounts.merge(relativePath, 1, Integer::sum);
+                    }
+                    if (samples.size() < maxSamples) {
+                        samples.add(new OverLongLine(relativePath, lineNumber, i - lineStart));
+                    }
+                }
+                lineNumber++;
+                lineStart = i + 1;
             }
         }
     }
 
-    private static boolean isOverLongNonCommentNonDirectiveLine(String line, int maxLineLength) {
-        if (line.length() <= maxLineLength) {
+    /**
+     * Line = {@code text[lineStart, lineEndExclusive)}. Same rules as the legacy {@code split}-based
+     * scan: physical line length (including leading whitespace), excluding comments and import/package.
+     */
+    private static boolean isOverLongNonCommentNonDirectiveLine(
+            String text, int lineStart, int lineEndExclusive, int maxLineLength) {
+        int len = lineEndExclusive - lineStart;
+        if (len <= maxLineLength) {
             return false;
         }
-        String trimmed = line.stripLeading();
-        boolean isComment = trimmed.startsWith("//") || trimmed.startsWith("*");
-        boolean isDirective = trimmed.startsWith("import ") || trimmed.startsWith("package ");
-        return !isComment && !isDirective;
+        int j = lineStart;
+        while (j < lineEndExclusive && Character.isWhitespace(text.charAt(j))) {
+            j++;
+        }
+        if (j >= lineEndExclusive) {
+            return true;
+        }
+        if (text.charAt(j) == '/'
+                && j + 1 < lineEndExclusive
+                && text.charAt(j + 1) == '/') {
+            return false;
+        }
+        if (text.charAt(j) == '*') {
+            return false;
+        }
+        return !regionStartsWith(text, j, lineEndExclusive, "import ")
+                && !regionStartsWith(text, j, lineEndExclusive, "package ");
+    }
+
+    private static boolean regionStartsWith(String text, int start, int endExclusive, String prefix) {
+        int rem = endExclusive - start;
+        if (rem < prefix.length()) {
+            return false;
+        }
+        return text.regionMatches(start, prefix, 0, prefix.length());
     }
 
     // ---------------------------------------------------------------------------

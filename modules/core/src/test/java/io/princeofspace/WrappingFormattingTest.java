@@ -1264,6 +1264,22 @@ class WrappingFormattingTest {
     }
 
     @Test
+    void veryLongStringLiteral_idempotent_whenChunkedThenBinaryExpr() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .preferredLineLength(120)
+                                .maxLineLength(150)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .build());
+        String longText = "z".repeat(30_000);
+        String input = "class T {\n    private static final String S = \"" + longText + "\";\n}\n";
+        String once = f.format(input);
+        assertThat(f.format(once)).as("idempotent after second pass parses concat / parens").isEqualTo(once);
+    }
+
+    @Test
     void textBlockFormattedCall_wrapsArgumentsWhenLineWouldExceedMax() {
         Formatter f =
                 new Formatter(

@@ -73,6 +73,16 @@ val evalTest by tasks.registering(Test::class) {
     environment("PRINCE_EVAL_ROOTS", System.getenv("PRINCE_EVAL_ROOTS") ?: "")
     environment("PRINCE_EVAL_REPORT_DIR", System.getenv("PRINCE_EVAL_REPORT_DIR") ?: "")
     environment("PRINCE_EVAL_CONFIG_NAMES", System.getenv("PRINCE_EVAL_CONFIG_NAMES") ?: "")
+    environment("PRINCE_EVAL_MAX_OVER_LONG_SAMPLES", System.getenv("PRINCE_EVAL_MAX_OVER_LONG_SAMPLES") ?: "")
+    environment("MAX_OVER_LONG_LINE_SAMPLES", System.getenv("MAX_OVER_LONG_LINE_SAMPLES") ?: "")
+    environment("PRINCE_EVAL_SKIP_SECOND_FORMAT", System.getenv("PRINCE_EVAL_SKIP_SECOND_FORMAT") ?: "")
+    // Heap for the forked test worker only (Gradle daemon is separate). On ~8 GiB hosts prefer 5g–6g
+    // and set PRINCE_EVAL_SKIP_SECOND_FORMAT=true if needed; override with PRINCE_EVAL_MAX_HEAP.
+    maxHeapSize = System.getenv("PRINCE_EVAL_MAX_HEAP")?.takeIf { it.isNotBlank() } ?: "5g"
+    jvmArgs("-XX:+UseG1GC")
+    extensions.configure<JacocoTaskExtension> {
+        isEnabled = false
+    }
     dependsOn(tasks.testClasses)
 }
 

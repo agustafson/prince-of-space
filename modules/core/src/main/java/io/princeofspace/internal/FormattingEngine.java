@@ -42,7 +42,7 @@ public final class FormattingEngine {
      * remaining budget handles edge cases where JavaParser comment re-attribution needs two
      * rounds to stabilize.
      */
-    private static final int MAX_CONVERGENCE_PASSES = 3;
+    private static final int MAX_CONVERGENCE_PASSES = 64;
 
     /**
      * Parses and formats the given source, or returns a typed failure without throwing.

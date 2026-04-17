@@ -2,7 +2,6 @@ package io.princeofspace;
 
 import java.time.LocalDate;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -40,8 +39,8 @@ record EvalReport(
                         .append(" (").append(formatPercent(reformattedPct)).append(")\n");
                 sb.append("- Already clean: ").append(run.alreadyClean())
                         .append(" (").append(formatPercent(cleanPct)).append(")\n");
-                OverLongBuckets buckets = bucketOverLongLines(run.overLongLines());
-                sb.append("- Over-long non-comment lines: ").append(run.overLongLines().size())
+                OverLongBuckets buckets = bucketOverLongLines(run);
+                sb.append("- Over-long non-comment lines: ").append(run.formattedOverLongLineCount())
                         .append(" (main=").append(buckets.main())
                         .append(", test=").append(buckets.test())
                         .append(", other=").append(buckets.other())
@@ -53,7 +52,7 @@ record EvalReport(
                             .append(String.join(", ", buckets.knownOutlierFiles()))
                             .append('\n');
                 }
-                int fmtLong = run.overLongLines().size();
+                int fmtLong = run.formattedOverLongLineCount();
                 int srcLong = run.sourceOverLongLineCount();
                 int net = fmtLong - srcLong;
                 sb.append("- Over-long lines vs source: formatted=").append(fmtLong)
@@ -71,7 +70,14 @@ record EvalReport(
                         .append(" (").append(formatOneDecimal(avgMs)).append(" ms/file avg)\n\n");
 
                 if (!run.overLongLines().isEmpty()) {
-                    sb.append("<details><summary>Over-long line warnings</summary>\n\n");
+                    sb.append("<details><summary>Over-long line warnings (sample)</summary>\n\n");
+                    if (run.formattedOverLongLineCount() > run.overLongLines().size()) {
+                        sb.append("(Showing ")
+                                .append(run.overLongLines().size())
+                                .append(" of ")
+                                .append(run.formattedOverLongLineCount())
+                                .append(" lines.)\n\n");
+                    }
                     for (RealWorldEvalTest.OverLongLine warning : run.overLongLines()) {
                         sb.append("- `")
                                 .append(project.name())
@@ -93,7 +99,7 @@ record EvalReport(
         sb.append("|---------|--------|-------------|----------------------|----------------|-----------------|-------|------------|-------------|\n");
         for (RealWorldEvalTest.ProjectEvalResult project : results) {
             for (RealWorldEvalTest.ConfigRunResult run : project.configResults()) {
-                int fmtLong = run.overLongLines().size();
+                int fmtLong = run.formattedOverLongLineCount();
                 int srcLong = run.sourceOverLongLineCount();
                 int net = fmtLong - srcLong;
                 sb.append("| ").append(project.name())
@@ -131,30 +137,19 @@ record EvalReport(
         return String.format(Locale.ROOT, "%.1f", value);
     }
 
-    private static OverLongBuckets bucketOverLongLines(List<RealWorldEvalTest.OverLongLine> warnings) {
-        int main = 0;
-        int test = 0;
-        int other = 0;
-        Map<String, Integer> knownOutlierCounts = new LinkedHashMap<>();
-        for (RealWorldEvalTest.OverLongLine warning : warnings) {
-            String path = warning.path();
-            if (path.contains("/src/test/")) {
-                test++;
-            } else if (path.contains("/src/main/")) {
-                main++;
-            } else {
-                other++;
-            }
-            if (path.endsWith("/PublicSuffixPatterns.java")) {
-                knownOutlierCounts.merge(path, 1, Integer::sum);
-            }
-        }
+    private static OverLongBuckets bucketOverLongLines(RealWorldEvalTest.ConfigRunResult run) {
+        Map<String, Integer> knownOutlierCounts = run.overLongKnownOutlierCounts();
         List<String> knownOutlierFiles = knownOutlierCounts.entrySet().stream()
                 .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
                 .map(Map.Entry::getKey)
                 .toList();
         int knownOutlierWarnings = knownOutlierCounts.values().stream().mapToInt(Integer::intValue).sum();
-        return new OverLongBuckets(main, test, other, knownOutlierWarnings, knownOutlierFiles);
+        return new OverLongBuckets(
+                run.overLongLinesInMain(),
+                run.overLongLinesInTest(),
+                run.overLongLinesInOther(),
+                knownOutlierWarnings,
+                knownOutlierFiles);
     }
 
     private record OverLongBuckets(

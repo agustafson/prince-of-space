@@ -12,6 +12,7 @@ import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.github.javaparser.ast.expr.ArrayAccessExpr;
 import com.github.javaparser.ast.expr.BinaryExpr;
 import com.github.javaparser.ast.expr.CharLiteralExpr;
 import com.github.javaparser.ast.expr.ConditionalExpr;
@@ -39,6 +40,7 @@ import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.ast.type.TypeParameter;
 import com.github.javaparser.ast.type.UnionType;
 import com.github.javaparser.printer.DefaultPrettyPrinterVisitor;
+import com.github.javaparser.printer.configuration.DefaultPrinterConfiguration.ConfigOption;
 import com.github.javaparser.printer.configuration.PrinterConfiguration;
 import com.github.javaparser.utils.PositionUtils;
 import com.github.javaparser.utils.StringEscapeUtils;
@@ -122,6 +124,39 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     void doPrintOrphanCommentsEnding(Node n) {
         printOrphanCommentsEnding(n);
+    }
+
+    /**
+     * Like the superclass, but removes orphan comments after printing so they are not still attached
+     * to the parent when the AST is re-parsed and printed again (otherwise trailing line comments in
+     * constructs like {@code @SuppressWarnings({ ... })} multiply on each format pass).
+     */
+    @Override
+    protected void printOrphanCommentsEnding(final Node node) {
+        if (!getOption(ConfigOption.PRINT_COMMENTS).isPresent()) {
+            return;
+        }
+        List<Node> everything = new ArrayList<>(node.getChildNodes());
+        PositionUtils.sortByBeginPosition(everything);
+        if (everything.isEmpty()) {
+            return;
+        }
+        int commentsAtEnd = 0;
+        boolean findingComments = true;
+        while (findingComments && commentsAtEnd < everything.size()) {
+            Node last = everything.get(everything.size() - 1 - commentsAtEnd);
+            findingComments = (last instanceof Comment);
+            if (findingComments) {
+                commentsAtEnd++;
+            }
+        }
+        for (int i = 0; i < commentsAtEnd; i++) {
+            Node c = everything.get(everything.size() - commentsAtEnd + i);
+            c.accept(this, null);
+            if (c instanceof Comment comment && comment.isOrphan()) {
+                comment.remove();
+            }
+        }
     }
 
     /** Dispatch to the default (superclass) visitor for a node. */
@@ -515,8 +550,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printCont();
         }
         if (msg instanceof StringLiteralExpr sl) {
-            if (column() + sl.toString().length() > fmt.maxLineLength()) {
-                printWrappedStringLiteralChunks(sl.getValue());
+            int quotedLen = StringEscapeUtils.escapeJava(sl.getValue()).length() + 2;
+            if (column() + quotedLen > fmt.maxLineLength()) {
+                emitChunkedStringLiteral(sl.getValue());
                 return;
             }
         }
@@ -527,40 +563,179 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
      * Emits a chain of string literals joined by {@code +} so each physical line stays within
      * {@link FormatterConfig#maxLineLength()} (assert message must remain a single expression).
      */
+    void emitChunkedStringLiteral(String raw) {
+        printWrappedStringLiteralChunks(raw);
+    }
+
+    /**
+     * Very long left-associative {@code "a" + "b" + ...} chains parse to a binary tree whose depth
+     * equals the fragment count; JavaParser then overflows the stack while registering the subtree.
+     * Above a threshold, emit a balanced parenthesized concat (same merged text, shallower tree).
+     */
+    private static final int MAX_SHALLOW_LINEAR_STRING_CONCAT_PARTS = 128;
+
     private void printWrappedStringLiteralChunks(String raw) {
+        List<String> pieces = collectRawStringPiecesForChunking(raw);
+        if (pieces.size() <= MAX_SHALLOW_LINEAR_STRING_CONCAT_PARTS) {
+            String first = pieces.get(0);
+            int firstPieceLen = StringEscapeUtils.escapeJava(first).length() + 2;
+            int firstLineRoom = Math.max(1, fmt.maxLineLength() - column() - 2);
+            if (firstPieceLen > firstLineRoom) {
+                pieces = splitRawIntoStringPieces(raw, Math.min(stableMaxRoomAfterPlusPrefix(), firstLineRoom));
+            }
+            emitLinearStringPiecesFromList(pieces);
+        } else {
+            emitBalancedParenStringPieces(pieces);
+        }
+    }
+
+    /**
+     * Maximum width (including both {@code "} delimiters and escapes) for a single chunked string
+     * literal fragment. Derived only from {@link FormatterConfig} and a fixed worst-case nesting
+     * assumption, so the same raw string always splits the same way whether the parser exposes it as
+     * one {@link StringLiteralExpr} or a re-parsed {@code +} / parenthesis tree.
+     *
+     * <p>Budget matches a continuation line {@code + "} layout: up to {@value
+     * #WORST_CASE_BLOCK_INDENTS_FOR_STRING_CHUNKING} logical block indents, continuation indent, the
+     * two-character {@code + } infix, {@link #BALANCED_STRING_CONCAT_PAREN_HEADROOM} for a balanced
+     * concat left spine, plus the historical {@code - 2} adjustment.
+     */
+    private static final int WORST_CASE_BLOCK_INDENTS_FOR_STRING_CHUNKING = 4;
+
+    private int stableMaxRoomAfterPlusPrefix() {
+        int openingQuoteColumn =
+                WORST_CASE_BLOCK_INDENTS_FOR_STRING_CHUNKING * fmt.indentSize()
+                        + fmt.continuationIndentSize()
+                        + 2;
+        int maxRoom = fmt.maxLineLength() - openingQuoteColumn - 2;
+        return Math.max(maxRoom, 1);
+    }
+
+    /**
+     * Split using only the continuation-style budget for every fragment so boundaries depend on
+     * indent/config, not {@code column()} (which differs for {@code "} vs {@code (} after a re-parse).
+     *
+     * <p>When the fragment count exceeds {@link #MAX_SHALLOW_LINEAR_STRING_CONCAT_PARTS}, emit uses a
+     * balanced parenthesized tree. The left spine prints a run of {@code '('} on the same physical
+     * line as the opening quote of the first fragment; reserve a fixed worst-case width so the first
+     * fragment never exceeds {@link FormatterConfig#maxLineLength()} and a re-format pass does not
+     * pick a different split.
+     */
+    private static final int BALANCED_STRING_CONCAT_PAREN_HEADROOM = 48;
+
+    private List<String> collectRawStringPiecesForChunking(String raw) {
+        int baseMax = stableMaxRoomAfterPlusPrefix();
+        List<String> pieces = splitRawIntoStringPieces(raw, baseMax);
+        if (pieces.size() <= MAX_SHALLOW_LINEAR_STRING_CONCAT_PARTS) {
+            return pieces;
+        }
+        return splitRawIntoStringPieces(
+                raw, Math.max(1, baseMax - BALANCED_STRING_CONCAT_PAREN_HEADROOM));
+    }
+
+    private static List<String> splitRawIntoStringPieces(String raw, int maxRoom) {
+        List<String> pieces = new ArrayList<>();
         int i = 0;
         while (i < raw.length()) {
-            if (i > 0) {
+            int grow = growPieceEndIndexForChunking(raw, i, maxRoom);
+            pieces.add(raw.substring(i, grow));
+            i = grow;
+        }
+        return pieces;
+    }
+
+    private static int growPieceEndIndexForChunking(String raw, int i, int maxRoom) {
+        int grow = i;
+        while (grow < raw.length()) {
+            int growNext = grow + Character.charCount(raw.codePointAt(grow));
+            String trial = raw.substring(i, growNext);
+            int trialLen = StringEscapeUtils.escapeJava(trial).length() + 2;
+            if (trialLen > maxRoom) {
+                break;
+            }
+            grow = growNext;
+        }
+        if (grow == i) {
+            grow = i + Character.charCount(raw.codePointAt(i));
+        }
+        return grow;
+    }
+
+    /** Multi-line concat for precomputed fragments (line breaks inserted only when emitting). */
+    private void emitLinearStringPiecesFromList(List<String> pieces) {
+        for (int idx = 0; idx < pieces.size(); idx++) {
+            if (idx > 0) {
                 printer.println();
                 printCont();
                 printer.print("+ ");
             }
-            int maxRoom = fmt.maxLineLength() - column() - 2;
-            if (maxRoom < 1) {
-                printer.println();
-                printCont();
-                maxRoom = fmt.maxLineLength() - column() - 2;
-            }
-            int grow = i;
-            while (grow < raw.length()) {
-                int cp = raw.codePointAt(grow);
-                int growNext = grow + Character.charCount(cp);
-                String trial = raw.substring(i, growNext);
-                int trialLen = StringEscapeUtils.escapeJava(trial).length() + 2;
-                if (trialLen > maxRoom) {
-                    break;
-                }
-                grow = growNext;
-            }
-            if (grow == i) {
-                grow = i + Character.charCount(raw.codePointAt(i));
-            }
-            String piece = raw.substring(i, grow);
+            String piece = pieces.get(idx);
             printer.print("\"");
             printer.print(StringEscapeUtils.escapeJava(piece));
             printer.print("\"");
-            i = grow;
         }
+    }
+
+    private void emitBalancedParenStringPieces(List<String> pieces) {
+        emitBalancedParenStringPiecesImpl(pieces, 0, pieces.size(), true);
+    }
+
+    private void emitBalancedParenStringPiecesImpl(List<String> pieces, int lo, int hi, boolean isGlobalFirstLeaf) {
+        if (hi - lo == 1) {
+            printOneStringLiteralPiece(pieces.get(lo), isGlobalFirstLeaf);
+            return;
+        }
+        int mid = (lo + hi) >>> 1;
+        printer.print("(");
+        emitBalancedParenStringPiecesImpl(pieces, lo, mid, isGlobalFirstLeaf);
+        printer.print(" + ");
+        // Right operand follows an explicit infix "+"; do not emit the continuation "+ " prefix used
+        // between top-level fragments (would parse as string + unary-plus and break idempotency).
+        emitBalancedParenStringPiecesImpl(pieces, mid, hi, true);
+        printer.print(")");
+    }
+
+    private void printOneStringLiteralPiece(String piece, boolean isGlobalFirstLeaf) {
+        if (!isGlobalFirstLeaf) {
+            printer.println();
+            printCont();
+            printer.print("+ ");
+        }
+        printer.print("\"");
+        printer.print(StringEscapeUtils.escapeJava(piece));
+        printer.print("\"");
+    }
+
+    @Override
+    public void visit(EnclosedExpr n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        if (isTopLevelStringConcatChain(n.getInner())
+                && mergedStringLiteralChainCharCount(n.getInner()) >= 500) {
+            Expression inner = n.getInner();
+            while (inner instanceof EnclosedExpr enc) {
+                inner = enc.getInner();
+            }
+            if (mustKeepParensAroundConcatForParent(n)) {
+                printer.print("(");
+                inner.accept(this, arg);
+                printer.print(")");
+            } else {
+                inner.accept(this, arg);
+            }
+            printOrphanCommentsEnding(n);
+            return;
+        }
+        super.visit(n, arg);
+    }
+
+    private static boolean mustKeepParensAroundConcatForParent(EnclosedExpr n) {
+        return n.getParentNode()
+                .map(
+                        p ->
+                                (p instanceof MethodCallExpr mc && mc.getScope().map(s -> s == n).orElse(false))
+                                        || (p instanceof ArrayAccessExpr aa && aa.getName() == n))
+                .orElse(false);
     }
 
     @Override
@@ -655,9 +830,16 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 // Restrict to string literals, text blocks, and literal-only "+" chains so array/object
                 // initializers are not mis-measured via toString().
                 int tailWidth = tailWidthAfterEqualsForInitializerBreakHeuristic(init);
+                boolean longStringLikeInitializer = initializerNeedsForcedBreakBeforeChunking(init);
                 if (tailWidth >= 0
                         && (ctx.column() + tailWidth > fmt.maxLineLength()
                                 || ctx.column() + tailWidth > fmt.preferredLineLength())) {
+                    printer.println();
+                    printCont();
+                } else if (longStringLikeInitializer) {
+                    // Width heuristics use JavaParser textual forms that can disagree for huge
+                    // literal-only + trees; still move the initializer to a continuation line so string
+                    // chunking sees the same leading indent on every format pass.
                     printer.println();
                     printCont();
                 } else {
@@ -759,10 +941,14 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     public void visit(StringLiteralExpr n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
-        if (column() + n.toString().length() > fmt.maxLineLength()) {
-            printWrappedStringLiteralChunks(n.getValue());
+        int quotedLen = StringEscapeUtils.escapeJava(n.getValue()).length() + 2;
+        if (column() + quotedLen > fmt.maxLineLength()) {
+            emitChunkedStringLiteral(n.getValue());
         } else {
-            super.visit(n, arg);
+            // Do not call super.visit: DefaultPrettyPrinterVisitor would print orphan + comment again.
+            printer.print("\"");
+            printer.print(n.getValue());
+            printer.print("\"");
         }
         printOrphanCommentsEnding(n);
     }
@@ -890,7 +1076,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
      */
     private static int tailWidthAfterEqualsForInitializerBreakHeuristic(Expression init) {
         Expression stripped = stripParens(init);
-        if (stripped instanceof StringLiteralExpr || stripped instanceof TextBlockLiteralExpr) {
+        if (stripped instanceof StringLiteralExpr sl) {
+            return 1 + StringEscapeUtils.escapeJava(sl.getValue()).length() + 2;
+        }
+        if (stripped instanceof TextBlockLiteralExpr) {
             return 1 + flatExprSourceWidth(stripped);
         }
         if (stripped instanceof LambdaExpr) {
@@ -899,9 +1088,59 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (stripped instanceof BinaryExpr b
                 && b.getOperator() == BinaryExpr.Operator.PLUS
                 && isTopLevelStringConcatChain(stripped)) {
-            return 1 + flatExprSourceWidth(stripped);
+            // AST toString() is far shorter than real source for huge literal-only + trees; use the same
+            // merged-string width as a single quoted literal so we break after "=" on the same pass as
+            // visit(StringLiteralExpr), keeping chunk budgets (and idempotency) stable.
+            return initializerTailWidthForMergedStringConcatLiterals(stripped);
         }
         return -1;
+    }
+
+    /**
+     * One-line width estimate for {@code = init} when {@code init} is a literal-only {@code +} chain:
+     * same as one double-quoted literal with merged {@link StringLiteralExpr} values (escaped).
+     */
+    private static int initializerTailWidthForMergedStringConcatLiterals(Expression stripped) {
+        Expression root = stripParens(stripped);
+        BinaryExpr b = (BinaryExpr) root;
+        List<Expression> parts = new ArrayList<>();
+        collectPlusOperands(b, parts);
+        StringBuilder merged = new StringBuilder();
+        for (Expression part : parts) {
+            Expression leaf = stripParens(part);
+            if (leaf instanceof StringLiteralExpr sl) {
+                merged.append(sl.getValue());
+            } else {
+                return 1 + flatExprSourceWidth(stripped);
+            }
+        }
+        return 1 + StringEscapeUtils.escapeJava(merged.toString()).length() + 2;
+    }
+
+    private static boolean initializerNeedsForcedBreakBeforeChunking(Expression init) {
+        if (init instanceof StringLiteralExpr sl) {
+            return sl.getValue().length() >= 500;
+        }
+        return isTopLevelStringConcatChain(init) && mergedStringLiteralChainCharCount(init) >= 500;
+    }
+
+    private static int mergedStringLiteralChainCharCount(Expression init) {
+        Expression root = stripParens(init);
+        if (!(root instanceof BinaryExpr b) || b.getOperator() != BinaryExpr.Operator.PLUS) {
+            return 0;
+        }
+        List<Expression> parts = new ArrayList<>();
+        collectPlusOperands(b, parts);
+        int n = 0;
+        for (Expression part : parts) {
+            Expression leaf = stripParens(part);
+            if (leaf instanceof StringLiteralExpr sl) {
+                n += sl.getValue().length();
+            } else {
+                return 0;
+            }
+        }
+        return n;
     }
 
 }

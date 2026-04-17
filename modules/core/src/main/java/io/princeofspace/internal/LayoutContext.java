@@ -161,4 +161,13 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
     void printOrphanCommentsEnding(Node node) {
         visitor.doPrintOrphanCommentsEnding(node);
     }
+
+    /**
+     * Prints a raw Java string value as quoted chunks joined by {@code +}, matching
+     * {@link PrincePrettyPrinterVisitor#visit(com.github.javaparser.ast.expr.StringLiteralExpr, Void)}
+     * for long literals so literal-only {@code +} chains round-trip idempotently.
+     */
+    void emitChunkedStringLiteral(String raw) {
+        visitor.emitChunkedStringLiteral(raw);
+    }
 }

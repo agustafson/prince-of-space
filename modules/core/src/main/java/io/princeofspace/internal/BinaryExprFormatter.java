@@ -2,9 +2,13 @@ package io.princeofspace.internal;
 
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.BinaryExpr;
+import com.github.javaparser.ast.expr.EnclosedExpr;
 import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.StringLiteralExpr;
+import com.github.javaparser.utils.StringEscapeUtils;
 import io.princeofspace.model.WrapStyle;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,6 +18,7 @@ import java.util.List;
  * recursive visitor dispatch.
  */
 final class BinaryExprFormatter {
+    private static final int MIN_LEAVES_FOR_FORCED_STRING_RECHUNK = 128;
 
     private final LayoutContext ctx;
     private final CommentUtils comments;
@@ -120,6 +125,26 @@ final class BinaryExprFormatter {
             return;
         }
         if (n.getOperator() == BinaryExpr.Operator.PLUS) {
+            // Literal-only + chains (including parenthesized balanced concat from deep chunking):
+            // re-emit using the same chunk algorithm as visit(StringLiteralExpr), or idempotency
+            // diverges. Uses iterative collection so balanced trees do not rely on flatten recursion.
+            List<StringLiteralExpr> concatLeaves = new ArrayList<>();
+            if (tryCollectPureStringConcatLeaves((Expression) n, concatLeaves)) {
+                List<Expression> concatLeavesAsExpr = new ArrayList<>(concatLeaves);
+                if (!comments.anyOperandHasLeadingLineOrBlockComment(concatLeavesAsExpr)
+                        && !comments.anyOperandHasTrailingLineOrBlockComment(concatLeavesAsExpr)
+                        && !anyInterOperandComments(concatLeavesAsExpr)) {
+                    String merged = mergeStringLiteralValues(concatLeaves);
+                    int max = ctx.config().maxLineLength();
+                    int mergedQuotedLen = StringEscapeUtils.escapeJava(merged).length() + 2;
+                    boolean mergedWouldOverflowSingleLiteral = ctx.column() + mergedQuotedLen > max;
+                    if (mergedWouldOverflowSingleLiteral
+                            && concatLeaves.size() >= MIN_LEAVES_FOR_FORCED_STRING_RECHUNK) {
+                        ctx.emitChunkedStringLiteral(merged);
+                        return;
+                    }
+                }
+            }
             List<Expression> parts = new ArrayList<>();
             collectSameOp(BinaryExpr.Operator.PLUS, (Expression) n, parts);
             int flat = ctx.column();
@@ -160,13 +185,68 @@ final class BinaryExprFormatter {
         ctx.acceptDefault(n, arg);
     }
 
-    /** Flattens adjacent binary nodes that share the same operator. */
+    /**
+     * Collects string literals from a pure string-concat expression tree in left-to-right order.
+     * Handles {@link EnclosedExpr} wrappers (balanced {@code +} trees) iteratively.
+     */
+    private static boolean tryCollectPureStringConcatLeaves(Expression root, List<StringLiteralExpr> out) {
+        ArrayDeque<Expression> stack = new ArrayDeque<>();
+        Expression cur = root;
+        while (true) {
+            while (cur instanceof EnclosedExpr enc) {
+                cur = enc.getInner();
+            }
+            if (cur instanceof BinaryExpr b && b.getOperator() == BinaryExpr.Operator.PLUS) {
+                stack.push(b.getRight());
+                cur = b.getLeft();
+            } else if (cur instanceof StringLiteralExpr sl) {
+                out.add(sl);
+                if (stack.isEmpty()) {
+                    return true;
+                }
+                cur = stack.pop();
+            } else {
+                out.clear();
+                return false;
+            }
+        }
+    }
+
+    private static String mergeStringLiteralValues(List<StringLiteralExpr> parts) {
+        StringBuilder sb = new StringBuilder();
+        for (StringLiteralExpr p : parts) {
+            sb.append(p.getValue());
+        }
+        return sb.toString();
+    }
+
+    private boolean anyInterOperandComments(List<Expression> parts) {
+        for (int i = 1; i < parts.size(); i++) {
+            if (comments.hasCommentBetweenNodes(parts.get(i - 1), parts.get(i))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Flattens adjacent binary nodes that share the same operator. Implemented iteratively so
+     * very deep chains (e.g. long string-concat trees after chunking) cannot overflow the stack.
+     */
     private static void collectSameOp(BinaryExpr.Operator op, Expression e, List<Expression> out) {
-        if (e instanceof BinaryExpr b && b.getOperator() == op) {
-            collectSameOp(op, b.getLeft(), out);
-            collectSameOp(op, b.getRight(), out);
-        } else {
-            out.add(e);
+        ArrayDeque<Expression> stack = new ArrayDeque<>();
+        Expression cur = e;
+        while (true) {
+            if (cur instanceof BinaryExpr b && b.getOperator() == op) {
+                stack.push(b.getRight());
+                cur = b.getLeft();
+            } else {
+                out.add(cur);
+                if (stack.isEmpty()) {
+                    return;
+                }
+                cur = stack.pop();
+            }
         }
     }
 
