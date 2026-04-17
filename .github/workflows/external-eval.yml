@@ -1,4 +1,4 @@
-# External corpus checks: format Guava + Spring Framework with the eval harness.
+# External corpus checks: format Spring Framework with the eval harness (single large, diverse tree).
 # Requires network to clone upstream; does not commit reports to the branch (artifacts only).
 
 name: External eval
@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 jobs:
-  # Fast gate: one config, both corpora, same assertions as local eval (parse + idempotency).
+  # Fast gate: one config, same assertions as local eval (parse + idempotency).
   external-eval-smoke:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -28,13 +28,6 @@ jobs:
     steps:
       - name: Checkout Prince of Space
         uses: actions/checkout@v4
-
-      - name: Checkout Guava
-        uses: actions/checkout@v4
-        with:
-          repository: google/guava
-          path: external/guava
-          fetch-depth: 1
 
       - name: Checkout Spring Framework
         uses: actions/checkout@v4
@@ -54,7 +47,7 @@ jobs:
 
       - name: Run eval (smoke — default-balanced only)
         env:
-          PRINCE_EVAL_ROOTS: ${{ github.workspace }}/external/guava,${{ github.workspace }}/external/spring-framework
+          PRINCE_EVAL_ROOTS: ${{ github.workspace }}/external/spring-framework
           PRINCE_EVAL_CONFIG_NAMES: default-balanced
           PRINCE_EVAL_MAX_HEAP: 5g
           PRINCE_EVAL_MAX_OVER_LONG_SAMPLES: "0"
@@ -77,13 +70,6 @@ jobs:
       - name: Checkout Prince of Space
         uses: actions/checkout@v4
 
-      - name: Checkout Guava
-        uses: actions/checkout@v4
-        with:
-          repository: google/guava
-          path: external/guava
-          fetch-depth: 1
-
       - name: Checkout Spring Framework
         uses: actions/checkout@v4
         with:
@@ -102,7 +88,7 @@ jobs:
 
       - name: Run eval (full matrix — all configs)
         env:
-          PRINCE_EVAL_ROOTS: ${{ github.workspace }}/external/guava,${{ github.workspace }}/external/spring-framework
+          PRINCE_EVAL_ROOTS: ${{ github.workspace }}/external/spring-framework
           PRINCE_EVAL_MAX_HEAP: 6g
           PRINCE_EVAL_MAX_OVER_LONG_SAMPLES: "0"
         run: ./gradlew :core:evalTest --no-configuration-cache --no-daemon
