@@ -23,5 +23,9 @@ replay_pid*
 # Logs
 *.log
 
+# Temp / scratch files
+.tmp_*
+*.tmp
+
 # Claude Code
 .claude/settings.local.json
