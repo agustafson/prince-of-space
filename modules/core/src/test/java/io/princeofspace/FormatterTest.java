@@ -2,8 +2,8 @@ package io.princeofspace;
 
 
 import io.princeofspace.model.FormatterConfig;
-import io.princeofspace.model.JavaLanguageLevel;
 import io.princeofspace.model.IndentStyle;
+import io.princeofspace.model.JavaLanguageLevel;
 import io.princeofspace.model.WrapStyle;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
