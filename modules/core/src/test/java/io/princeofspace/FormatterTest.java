@@ -1,7 +1,8 @@
 package io.princeofspace;
 
-import com.github.javaparser.ParserConfiguration.LanguageLevel;
+
 import io.princeofspace.model.FormatterConfig;
+import io.princeofspace.model.JavaLanguageLevel;
 import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.WrapStyle;
 import org.junit.jupiter.api.Disabled;
@@ -89,7 +90,7 @@ class FormatterTest {
     void emptyRecordBody_staysCompact() {
         Formatter f =
                 new Formatter(
-                        FormatterConfig.builder().javaLanguageLevel(LanguageLevel.JAVA_21).build());
+                        FormatterConfig.builder().javaLanguageLevel(JavaLanguageLevel.of(21)).build());
         String input = """
                 record UserProfile(String name, String email, int age) {}
                 """;
@@ -103,7 +104,7 @@ class FormatterTest {
     void emptyMethodBody_staysExpandedInJava8() {
         Formatter f =
                 new Formatter(
-                        FormatterConfig.builder().javaLanguageLevel(LanguageLevel.JAVA_8).build());
+                        FormatterConfig.builder().javaLanguageLevel(JavaLanguageLevel.of(8)).build());
         String input = """
                 class T {
                     void m() {}
@@ -119,7 +120,7 @@ class FormatterTest {
     void emptyMethodBody_staysCompactInJava21() {
         Formatter f =
                 new Formatter(
-                        FormatterConfig.builder().javaLanguageLevel(LanguageLevel.JAVA_21).build());
+                        FormatterConfig.builder().javaLanguageLevel(JavaLanguageLevel.of(21)).build());
         String input = """
                 class T {
                     void m() {}
@@ -135,7 +136,7 @@ class FormatterTest {
     void typeUseMethodAnnotation_staysBetweenModifierAndReturnType() {
         Formatter f =
                 new Formatter(
-                        FormatterConfig.builder().javaLanguageLevel(LanguageLevel.JAVA_21).build());
+                        FormatterConfig.builder().javaLanguageLevel(JavaLanguageLevel.of(21)).build());
         String input = """
                 class T {
                     public @org.jspecify.annotations.Nullable String findItem(String query) { return null; }
@@ -151,7 +152,7 @@ class FormatterTest {
     void switchExpression_keepsSpaceBeforeSelectorAndSingleLineCases() {
         Formatter f =
                 new Formatter(
-                        FormatterConfig.builder().javaLanguageLevel(LanguageLevel.JAVA_21).build());
+                        FormatterConfig.builder().javaLanguageLevel(JavaLanguageLevel.of(21)).build());
         String input = """
                 class T {
                     sealed interface Shape permits Shape.Circle, Shape.Rectangle, Shape.Triangle {
@@ -181,7 +182,7 @@ class FormatterTest {
     void textBlock_preservesContentIndent_andFormattedStaysOnClosingDelimiterLine() {
         Formatter f =
                 new Formatter(
-                        FormatterConfig.builder().javaLanguageLevel(LanguageLevel.JAVA_21).build());
+                        FormatterConfig.builder().javaLanguageLevel(JavaLanguageLevel.of(21)).build());
         String input = """
                 class T {
                     String report(String legacyField, int size, boolean valid) {
@@ -213,7 +214,7 @@ class FormatterTest {
                                 .continuationIndentSize(4)
                                 .wrapStyle(io.princeofspace.model.WrapStyle.BALANCED)
                                 .closingParenOnNewLine(true)
-                                .javaLanguageLevel(LanguageLevel.JAVA_21)
+                                .javaLanguageLevel(JavaLanguageLevel.of(21))
                                 .build());
         String input =
                 """
@@ -235,7 +236,7 @@ class FormatterTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .closingParenOnNewLine(true)
-                                .javaLanguageLevel(LanguageLevel.JAVA_21)
+                                .javaLanguageLevel(JavaLanguageLevel.of(21))
                                 .build());
         String input =
                 """
@@ -253,7 +254,7 @@ class FormatterTest {
     void emptyMethodBody_staysCompactInJava21_withSectionComment() {
         Formatter f =
                 new Formatter(
-                        FormatterConfig.builder().javaLanguageLevel(LanguageLevel.JAVA_21).build());
+                        FormatterConfig.builder().javaLanguageLevel(JavaLanguageLevel.of(21)).build());
         String input = """
                 class T {
                     // Placeholder methods
@@ -274,7 +275,7 @@ class FormatterTest {
     void nestedEmptyRecordBody_staysCompact() {
         Formatter f =
                 new Formatter(
-                        FormatterConfig.builder().javaLanguageLevel(LanguageLevel.JAVA_21).build());
+                        FormatterConfig.builder().javaLanguageLevel(JavaLanguageLevel.of(21)).build());
         String input = """
                 class T {
                     record UserProfile(String name, String email, int age) {}
@@ -291,7 +292,7 @@ class FormatterTest {
         Formatter f =
                 new Formatter(
                         FormatterConfig.builder()
-                                .javaLanguageLevel(LanguageLevel.JAVA_21)
+                                .javaLanguageLevel(JavaLanguageLevel.of(21))
                                 .build());
         String input = """
                 class T {

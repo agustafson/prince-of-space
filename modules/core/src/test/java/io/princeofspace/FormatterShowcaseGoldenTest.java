@@ -1,7 +1,7 @@
 package io.princeofspace;
 
-import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import io.princeofspace.model.FormatterConfig;
+import io.princeofspace.model.JavaLanguageLevel;
 import io.princeofspace.model.WrapStyle;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -32,8 +32,9 @@ class FormatterShowcaseGoldenTest {
         Path root = repoRoot();
         Path inputs = root.resolve("examples/inputs");
         Path outputs = root.resolve("examples/outputs");
-        LanguageLevel[] levels = {
-            LanguageLevel.JAVA_8, LanguageLevel.JAVA_17, LanguageLevel.JAVA_21, LanguageLevel.JAVA_25
+        JavaLanguageLevel[] levels = {
+            JavaLanguageLevel.of(8), JavaLanguageLevel.of(17),
+            JavaLanguageLevel.of(21), JavaLanguageLevel.of(25)
         };
         String[] goldens = {
             "balanced-cont4-closingparen-false.java",
@@ -50,7 +51,7 @@ class FormatterShowcaseGoldenTest {
             "wide-cont8-closingparen-true.java",
         };
         Stream.Builder<Arguments> b = Stream.builder();
-        for (LanguageLevel level : levels) {
+        for (JavaLanguageLevel level : levels) {
             String dir = showcaseDirFor(level);
             for (String name : goldens) {
                 b.add(Arguments.of(level, name, inputs.resolve(dir).resolve("FormatterShowcase.java"), outputs.resolve(dir).resolve(name)));
@@ -66,7 +67,7 @@ class FormatterShowcaseGoldenTest {
     /**
      * Maps matrix filename segments to {@link FormatterConfig}.
      */
-    static FormatterConfig formatterConfigFor(LanguageLevel level, String goldenFileName) {
+    static FormatterConfig formatterConfigFor(JavaLanguageLevel level, String goldenFileName) {
         String base = goldenFileName.replace(".java", "");
         String[] p = base.split("-", 4);
         if (p.length != 4) {
@@ -89,12 +90,12 @@ class FormatterShowcaseGoldenTest {
                 .build();
     }
 
-    private static String showcaseDirFor(LanguageLevel level) {
-        return switch (level) {
-            case JAVA_8 -> "java8";
-            case JAVA_17 -> "java17";
-            case JAVA_21 -> "java21";
-            case JAVA_25 -> "java25";
+    static String showcaseDirFor(JavaLanguageLevel level) {
+        return switch (level.level()) {
+            case 8 -> "java8";
+            case 17 -> "java17";
+            case 21 -> "java21";
+            case 25 -> "java25";
             default -> throw new IllegalArgumentException("Unsupported showcase language level: " + level);
         };
     }
@@ -105,7 +106,7 @@ class FormatterShowcaseGoldenTest {
 
     @ParameterizedTest(name = "{0}/{1}")
     @MethodSource("cases")
-    void matchesGolden(LanguageLevel level, String goldenName, Path input, Path goldenPath) throws IOException {
+    void matchesGolden(JavaLanguageLevel level, String goldenName, Path input, Path goldenPath) throws IOException {
         String source = Files.readString(input, StandardCharsets.UTF_8);
         String expected = Files.readString(goldenPath, StandardCharsets.UTF_8);
         Formatter f = new Formatter(formatterConfigFor(level, goldenName));

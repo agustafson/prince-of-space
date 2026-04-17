@@ -1,7 +1,7 @@
 package io.princeofspace;
 
-import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import io.princeofspace.model.FormatterConfig;
+import io.princeofspace.model.JavaLanguageLevel;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -30,23 +30,23 @@ class ExamplesCorpusFormatTest {
         return root;
     }
 
-    static LanguageLevel languageLevelFor(Path file) {
+    static JavaLanguageLevel languageLevelFor(Path file) {
         for (int i = 0; i < file.getNameCount(); i++) {
             String seg = file.getName(i).toString();
             if ("java8".equals(seg)) {
-                return LanguageLevel.JAVA_8;
+                return JavaLanguageLevel.of(8);
             }
             if ("java17".equals(seg)) {
-                return LanguageLevel.JAVA_17;
+                return JavaLanguageLevel.of(17);
             }
             if ("java21".equals(seg)) {
-                return LanguageLevel.JAVA_21;
+                return JavaLanguageLevel.of(21);
             }
             if ("java25".equals(seg)) {
-                return LanguageLevel.JAVA_25;
+                return JavaLanguageLevel.of(25);
             }
         }
-        return LanguageLevel.JAVA_17;
+        return JavaLanguageLevel.of(17);
     }
 
     @Test
@@ -60,7 +60,7 @@ class ExamplesCorpusFormatTest {
         assertThat(files).as("under %s", root).isNotEmpty();
 
         for (Path p : files) {
-            LanguageLevel level = languageLevelFor(p);
+            JavaLanguageLevel level = languageLevelFor(p);
             Formatter f = new Formatter(FormatterConfig.builder().javaLanguageLevel(level).build());
             String src = Files.readString(p);
             String once = f.format(src);
@@ -78,7 +78,7 @@ class ExamplesCorpusFormatTest {
         }
         assertThat(files).isNotEmpty();
         for (Path p : files) {
-            LanguageLevel level = languageLevelFor(p);
+            JavaLanguageLevel level = languageLevelFor(p);
             Formatter f = new Formatter(FormatterConfig.builder().javaLanguageLevel(level).build());
             String src = Files.readString(p);
             String once = f.format(src);

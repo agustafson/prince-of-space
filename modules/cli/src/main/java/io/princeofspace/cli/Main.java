@@ -1,9 +1,9 @@
 package io.princeofspace.cli;
 
-import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import io.princeofspace.Formatter;
 import io.princeofspace.FormatterException;
 import io.princeofspace.model.FormatterConfig;
+import io.princeofspace.model.JavaLanguageLevel;
 import io.princeofspace.model.JavaParserLanguageLevels;
 import picocli.CommandLine;
 
@@ -79,7 +79,7 @@ public final class Main implements Callable<Integer> {
         try {
             Formatter formatter =
                     new Formatter(
-                            FormatterConfig.builder().javaLanguageLevel(parseLanguageLevel(javaVersion)).build());
+                            FormatterConfig.builder().javaLanguageLevel(JavaLanguageLevel.of(javaVersion)).build());
             if (stdin) {
                 return runStdin(formatter);
             }
@@ -162,13 +162,15 @@ public final class Main implements Callable<Integer> {
 
     private record BatchResult(Path path, boolean unchanged, String formatted) {}
 
-    static LanguageLevel parseLanguageLevel(int v) {
+    static JavaLanguageLevel parseLanguageLevel(int v) {
+        // Validate that JavaParser knows this level before constructing JavaLanguageLevel.
         try {
-            return JavaParserLanguageLevels.fromRelease(v);
+            JavaParserLanguageLevels.fromRelease(v);
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException(
                     "Unsupported --java-version " + v + ": " + ex.getMessage(), ex);
         }
+        return JavaLanguageLevel.of(v);
     }
 
     static List<Path> collectJavaFiles(List<Path> paths, boolean recursive) throws IOException {

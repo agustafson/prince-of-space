@@ -1,6 +1,5 @@
 package io.princeofspace.intellij;
 
-import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
@@ -8,7 +7,7 @@ import com.intellij.openapi.components.Storage;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.IndentStyle;
-import io.princeofspace.model.JavaParserLanguageLevels;
+import io.princeofspace.model.JavaLanguageLevel;
 import io.princeofspace.model.WrapStyle;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,7 +28,6 @@ public final class PrinceOfSpaceGlobalSettings
         State s = state;
         IndentStyle indentStyle = IndentStyle.valueOf(s.indentStyle);
         WrapStyle wrapStyle = WrapStyle.valueOf(s.wrapStyle);
-        LanguageLevel languageLevel = JavaParserLanguageLevels.fromRelease(s.javaRelease);
         return FormatterConfig.builder()
                 .indentStyle(indentStyle)
                 .indentSize(s.indentSize)
@@ -39,7 +37,7 @@ public final class PrinceOfSpaceGlobalSettings
                 .wrapStyle(wrapStyle)
                 .closingParenOnNewLine(s.closingParenOnNewLine)
                 .trailingCommas(s.trailingCommas)
-                .javaLanguageLevel(languageLevel)
+                .javaLanguageLevel(JavaLanguageLevel.of(s.javaRelease))
                 .build();
     }
 

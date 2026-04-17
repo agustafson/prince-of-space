@@ -1,7 +1,8 @@
 package io.princeofspace;
 
-import com.github.javaparser.ParserConfiguration.LanguageLevel;
+
 import io.princeofspace.model.FormatterConfig;
+import io.princeofspace.model.JavaLanguageLevel;
 import io.princeofspace.model.WrapStyle;
 import org.junit.jupiter.api.Test;
 
@@ -79,7 +80,7 @@ class WrappingFormattingTest {
                         FormatterConfig.builder()
                                 .preferredLineLength(120)
                                 .maxLineLength(150)
-                                .javaLanguageLevel(LanguageLevel.JAVA_21)
+                                .javaLanguageLevel(JavaLanguageLevel.of(21))
                                 .build());
         String input =
                 """
@@ -108,7 +109,7 @@ class WrappingFormattingTest {
                         FormatterConfig.builder()
                                 .preferredLineLength(120)
                                 .maxLineLength(150)
-                                .javaLanguageLevel(LanguageLevel.JAVA_21)
+                                .javaLanguageLevel(JavaLanguageLevel.of(21))
                                 .build());
         String input =
                 """
@@ -139,7 +140,7 @@ class WrappingFormattingTest {
                         FormatterConfig.builder()
                                 .preferredLineLength(120)
                                 .maxLineLength(150)
-                                .javaLanguageLevel(LanguageLevel.JAVA_21)
+                                .javaLanguageLevel(JavaLanguageLevel.of(21))
                                 .build());
         String input =
                 """
@@ -234,7 +235,7 @@ class WrappingFormattingTest {
                                 .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.NARROW)
                                 .closingParenOnNewLine(false)
-                                .javaLanguageLevel(LanguageLevel.JAVA_21)
+                                .javaLanguageLevel(JavaLanguageLevel.of(21))
                                 .build());
         String input =
                 """
@@ -712,7 +713,7 @@ class WrappingFormattingTest {
                                 .maxLineLength(150)
                                 .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
-                                .javaLanguageLevel(LanguageLevel.JAVA_8)
+                                .javaLanguageLevel(JavaLanguageLevel.of(8))
                                 .build());
         String input =
                 """
@@ -744,7 +745,7 @@ class WrappingFormattingTest {
                                 .maxLineLength(150)
                                 .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
-                                .javaLanguageLevel(LanguageLevel.JAVA_21)
+                                .javaLanguageLevel(JavaLanguageLevel.of(21))
                                 .build());
         String input =
                 """

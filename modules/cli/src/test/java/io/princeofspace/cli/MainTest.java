@@ -1,8 +1,8 @@
 package io.princeofspace.cli;
 
-import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import io.princeofspace.Formatter;
 import io.princeofspace.model.FormatterConfig;
+import io.princeofspace.model.JavaLanguageLevel;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
@@ -74,10 +74,10 @@ class MainTest {
 
     @Test
     void parseLanguageLevel_mapsVersions() {
-        assertThat(Main.parseLanguageLevel(8)).isEqualTo(LanguageLevel.JAVA_8);
-        assertThat(Main.parseLanguageLevel(9)).isEqualTo(LanguageLevel.JAVA_9);
-        assertThat(Main.parseLanguageLevel(21)).isEqualTo(LanguageLevel.JAVA_21);
-        assertThat(Main.parseLanguageLevel(25)).isEqualTo(LanguageLevel.JAVA_25);
+        assertThat(Main.parseLanguageLevel(8)).isEqualTo(JavaLanguageLevel.of(8));
+        assertThat(Main.parseLanguageLevel(9)).isEqualTo(JavaLanguageLevel.of(9));
+        assertThat(Main.parseLanguageLevel(21)).isEqualTo(JavaLanguageLevel.of(21));
+        assertThat(Main.parseLanguageLevel(25)).isEqualTo(JavaLanguageLevel.of(25));
     }
 
     @Test

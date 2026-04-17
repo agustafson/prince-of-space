@@ -1,7 +1,5 @@
 package io.princeofspace.model;
 
-import com.github.javaparser.ParserConfiguration.LanguageLevel;
-
 import java.io.Serial;
 import java.io.Serializable;
 
@@ -19,7 +17,7 @@ import java.io.Serializable;
  * @param indentStyle block indentation: spaces or tab characters per step
  * @param indentSize number of {@link IndentStyle} units per logical indent level
  * @param preferredLineLength soft target width before wrapping
- * @param maxLineLength hard cap; output must not exceed this width
+ * @param maxLineLength hard cap target; exceeded only when no wrap point exists
  * @param continuationIndentSize {@link IndentStyle} units for each wrapped continuation line
  * @param wrapStyle how aggressively to break lines when wrapping
  * @param closingParenOnNewLine when argument lists wrap, whether the closing {@code )} is on its own line
@@ -35,7 +33,7 @@ public record FormatterConfig(
         WrapStyle wrapStyle,
         boolean closingParenOnNewLine,
         boolean trailingCommas,
-        LanguageLevel javaLanguageLevel)
+        JavaLanguageLevel javaLanguageLevel)
         implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
@@ -91,7 +89,7 @@ public record FormatterConfig(
         private WrapStyle wrapStyle = WrapStyle.BALANCED;
         private boolean closingParenOnNewLine = true;
         private boolean trailingCommas = false;
-        private LanguageLevel javaLanguageLevel = LanguageLevel.JAVA_17;
+        private JavaLanguageLevel javaLanguageLevel = JavaLanguageLevel.of(17);
 
         private Builder() {}
 
@@ -129,9 +127,9 @@ public record FormatterConfig(
         }
 
         /**
-         * Sets the hard maximum line width.
+         * Sets the hard maximum line width target.
          *
-         * @param maxLineLength hard maximum line width
+         * @param maxLineLength hard maximum line width target
          * @return this builder
          */
         public Builder maxLineLength(int maxLineLength) {
@@ -189,7 +187,7 @@ public record FormatterConfig(
          * @param javaLanguageLevel Java language level for the parser
          * @return this builder
          */
-        public Builder javaLanguageLevel(LanguageLevel javaLanguageLevel) {
+        public Builder javaLanguageLevel(JavaLanguageLevel javaLanguageLevel) {
             this.javaLanguageLevel = javaLanguageLevel;
             return this;
         }

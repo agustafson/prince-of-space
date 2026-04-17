@@ -1,7 +1,7 @@
 package io.princeofspace;
 
-import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import io.princeofspace.model.FormatterConfig;
+import io.princeofspace.model.JavaLanguageLevel;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
@@ -27,8 +27,9 @@ class RegenerateShowroomGoldens {
         Path root = FormatterShowcaseGoldenTest.repoRoot();
         Path inputs = root.resolve("examples/inputs");
         Path outputs = root.resolve("examples/outputs");
-        LanguageLevel[] levels = {
-            LanguageLevel.JAVA_8, LanguageLevel.JAVA_17, LanguageLevel.JAVA_21, LanguageLevel.JAVA_25
+        JavaLanguageLevel[] levels = {
+            JavaLanguageLevel.of(8), JavaLanguageLevel.of(17),
+            JavaLanguageLevel.of(21), JavaLanguageLevel.of(25)
         };
         String[] goldens = {
             "balanced-cont4-closingparen-false.java",
@@ -44,8 +45,8 @@ class RegenerateShowroomGoldens {
             "wide-cont8-closingparen-false.java",
             "wide-cont8-closingparen-true.java",
         };
-        for (LanguageLevel level : levels) {
-            String dir = showcaseDirFor(level);
+        for (JavaLanguageLevel level : levels) {
+            String dir = FormatterShowcaseGoldenTest.showcaseDirFor(level);
             String input = Files.readString(inputs.resolve(dir).resolve("FormatterShowcase.java"), StandardCharsets.UTF_8);
             for (String name : goldens) {
                 FormatterConfig config = FormatterShowcaseGoldenTest.formatterConfigFor(level, name);
@@ -56,15 +57,5 @@ class RegenerateShowroomGoldens {
                 Files.writeString(target, out, StandardCharsets.UTF_8);
             }
         }
-    }
-
-    private static String showcaseDirFor(LanguageLevel level) {
-        return switch (level) {
-            case JAVA_8 -> "java8";
-            case JAVA_17 -> "java17";
-            case JAVA_21 -> "java21";
-            case JAVA_25 -> "java25";
-            default -> throw new IllegalArgumentException("Unsupported showcase language level: " + level);
-        };
     }
 }

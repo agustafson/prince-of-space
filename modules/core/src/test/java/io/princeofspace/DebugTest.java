@@ -1,7 +1,8 @@
 package io.princeofspace;
 
-import com.github.javaparser.ParserConfiguration.LanguageLevel;
+
 import io.princeofspace.model.FormatterConfig;
+import io.princeofspace.model.JavaLanguageLevel;
 import io.princeofspace.model.WrapStyle;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +24,7 @@ class DebugTest {
             .wrapStyle(WrapStyle.WIDE)
             .continuationIndentSize(4)
             .closingParenOnNewLine(true)
-            .javaLanguageLevel(LanguageLevel.JAVA_8)
+            .javaLanguageLevel(JavaLanguageLevel.of(8))
             .build();
 
         Formatter f = new Formatter(config);

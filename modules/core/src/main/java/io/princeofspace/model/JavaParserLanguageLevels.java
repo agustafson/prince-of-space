@@ -3,17 +3,50 @@ package io.princeofspace.model;
 import com.github.javaparser.ParserConfiguration.LanguageLevel;
 
 /**
- * Maps a Java <strong>feature release</strong> number (for example {@code 17} for Java 17) to JavaParser's
- * {@link LanguageLevel}. Matches the CLI {@code --java-version} rules: legacy {@code 1}–{@code 7} use
- * explicit constants; {@code 8}+ use {@link LanguageLevel#valueOf}{@code ("JAVA_" + release)} so new JDK
- * levels work whenever the bundled JavaParser defines the enum constant.
+ * Translates {@link JavaLanguageLevel} (and raw integer release numbers) to JavaParser's
+ * {@link LanguageLevel}.
+ *
+ * <p>Legacy releases 1–7 use fixed enum constants; 8+ are resolved dynamically via
+ * {@link LanguageLevel#valueOf}{@code ("JAVA_N")} (or {@code "JAVA_N_PREVIEW"} for preview),
+ * so new JDK levels work whenever the bundled JavaParser defines the corresponding constant.
  */
 public final class JavaParserLanguageLevels {
 
     private JavaParserLanguageLevels() {}
 
     /**
-     * Resolves a Java feature release number to JavaParser's {@link LanguageLevel}.
+     * Translates a {@link JavaLanguageLevel} to JavaParser's {@link LanguageLevel}.
+     *
+     * <p>For modern releases (8+), the name is built as
+     * {@code "JAVA_" + level + (preview ? "_PREVIEW" : "")}.
+     * For legacy releases (1–7), the preview flag is ignored and a fixed constant is returned.
+     *
+     * @param jll the language level to translate
+     * @return matching JavaParser language level
+     * @throws IllegalArgumentException if JavaParser has no matching constant
+     */
+    public static LanguageLevel toLanguageLevel(JavaLanguageLevel jll) {
+        int v = jll.level();
+        if (v < 8) {
+            return fromRelease(v);
+        }
+        String name = "JAVA_" + v + (jll.preview() ? "_PREVIEW" : "");
+        try {
+            return LanguageLevel.valueOf(name);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(
+                    "Unsupported Java release "
+                            + v
+                            + (jll.preview() ? " (preview)" : "")
+                            + ": JavaParser has no LanguageLevel."
+                            + name
+                            + " (upgrade the javaparser dependency, or pick a level your build supports).",
+                    e);
+        }
+    }
+
+    /**
+     * Resolves a raw Java feature-release number to JavaParser's {@link LanguageLevel}.
      *
      * @param v Java feature release number (for example, {@code 17})
      * @return matching JavaParser language level

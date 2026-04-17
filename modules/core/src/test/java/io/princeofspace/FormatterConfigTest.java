@@ -1,8 +1,8 @@
 package io.princeofspace;
 
-import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.IndentStyle;
+import io.princeofspace.model.JavaLanguageLevel;
 import io.princeofspace.model.WrapStyle;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +23,7 @@ class FormatterConfigTest {
         assertThat(config.wrapStyle()).isEqualTo(WrapStyle.BALANCED);
         assertThat(config.closingParenOnNewLine()).isTrue();
         assertThat(config.trailingCommas()).isFalse();
-        assertThat(config.javaLanguageLevel()).isEqualTo(LanguageLevel.JAVA_17);
+        assertThat(config.javaLanguageLevel()).isEqualTo(JavaLanguageLevel.of(17));
     }
 
     @Test
@@ -86,9 +86,19 @@ class FormatterConfigTest {
     @Test
     void builder_overridesJavaLanguageLevel() {
         FormatterConfig config = FormatterConfig.builder()
-                .javaLanguageLevel(LanguageLevel.JAVA_21)
+                .javaLanguageLevel(JavaLanguageLevel.of(21))
                 .build();
-        assertThat(config.javaLanguageLevel()).isEqualTo(LanguageLevel.JAVA_21);
+        assertThat(config.javaLanguageLevel()).isEqualTo(JavaLanguageLevel.of(21));
+    }
+
+    @Test
+    void builder_previewLanguageLevel_roundtrips() {
+        JavaLanguageLevel preview = JavaLanguageLevel.of(21, true);
+        FormatterConfig config = FormatterConfig.builder()
+                .javaLanguageLevel(preview)
+                .build();
+        assertThat(config.javaLanguageLevel().level()).isEqualTo(21);
+        assertThat(config.javaLanguageLevel().preview()).isTrue();
     }
 
     @Test

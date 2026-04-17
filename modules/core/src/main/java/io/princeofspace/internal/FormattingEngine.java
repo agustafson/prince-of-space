@@ -8,6 +8,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import io.princeofspace.FormatResult;
 import io.princeofspace.model.FormatterConfig;
+import io.princeofspace.model.JavaParserLanguageLevels;
 
 import java.util.List;
 
@@ -73,7 +74,7 @@ public final class FormattingEngine {
 
     private FormatResult singlePassFormat(String sourceCode) {
         ParserConfiguration parserConfig = new ParserConfiguration()
-                .setLanguageLevel(config.javaLanguageLevel());
+                .setLanguageLevel(JavaParserLanguageLevels.toLanguageLevel(config.javaLanguageLevel()));
         ParseResult<CompilationUnit> result = new JavaParser(parserConfig).parse(sourceCode);
         if (!result.isSuccessful()) {
             List<String> problems = result.getProblems().stream().map(Problem::toString).toList();

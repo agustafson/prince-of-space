@@ -1,6 +1,5 @@
 package io.princeofspace.intellij;
 
-import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
@@ -11,7 +10,7 @@ import com.intellij.psi.util.PsiUtil;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.IndentStyle;
-import io.princeofspace.model.JavaParserLanguageLevels;
+import io.princeofspace.model.JavaLanguageLevel;
 import io.princeofspace.model.WrapStyle;
 import org.jetbrains.annotations.NotNull;
 
@@ -40,13 +39,9 @@ public final class PrinceOfSpaceProjectSettings implements PersistentStateCompon
         }
         IndentStyle indentStyle = IndentStyle.valueOf(s.indentStyle);
         WrapStyle wrapStyle = WrapStyle.valueOf(s.wrapStyle);
-        LanguageLevel languageLevel;
-        if (s.useProjectLanguageLevel) {
-            int release = PrinceFormatRunner.intellijLanguageLevelToRelease(PsiUtil.getLanguageLevel(javaFile));
-            languageLevel = JavaParserLanguageLevels.fromRelease(release);
-        } else {
-            languageLevel = JavaParserLanguageLevels.fromRelease(s.javaRelease);
-        }
+        int release = s.useProjectLanguageLevel
+                ? PrinceFormatRunner.intellijLanguageLevelToRelease(PsiUtil.getLanguageLevel(javaFile))
+                : s.javaRelease;
         return FormatterConfig.builder()
                 .indentStyle(indentStyle)
                 .indentSize(s.indentSize)
@@ -56,7 +51,7 @@ public final class PrinceOfSpaceProjectSettings implements PersistentStateCompon
                 .wrapStyle(wrapStyle)
                 .closingParenOnNewLine(s.closingParenOnNewLine)
                 .trailingCommas(s.trailingCommas)
-                .javaLanguageLevel(languageLevel)
+                .javaLanguageLevel(JavaLanguageLevel.of(release))
                 .build();
     }
 

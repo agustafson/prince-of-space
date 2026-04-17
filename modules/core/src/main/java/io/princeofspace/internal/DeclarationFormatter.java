@@ -1,6 +1,5 @@
 package io.princeofspace.internal;
 
-import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.BodyDeclaration;
@@ -230,7 +229,7 @@ final class DeclarationFormatter {
         } else {
             BlockStmt body = n.getBody().get();
             boolean modernCompactEmptyMethod =
-                    fmt.javaLanguageLevel() != ParserConfiguration.LanguageLevel.JAVA_8
+                    fmt.javaLanguageLevel().level() != 8
                             && body.getStatements().isEmpty()
                             && body.getComment().isEmpty()
                             && body.getOrphanComments().isEmpty();
