@@ -1,7 +1,8 @@
 name: Release
 
-# Triggered manually. Infers the next version from conventional commits via Nyx,
-# builds and signs all artifacts, uploads to Sonatype Central Portal, then creates
+# Triggered manually. Infers the next version with the Nyx GitHub Action (Docker),
+# passes it to Gradle via ORG_GRADLE_PROJECT_version, then builds and signs all
+# artifacts, uploads to Sonatype Central Portal, then creates
 # a git tag and a GitHub Release.
 #
 # Required secrets (configure in Settings → Secrets → Actions):
@@ -46,22 +47,24 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      # nyxInfer reads git history + conventional commits and sets project.version.
+      # Uses project .nyx.yml (same rules as before). No Nyx Gradle plugin — keeps
+      # configuration cache viable; Gradle only receives -Pversion via the env var below.
       - name: Infer next release version with Nyx
-        run: ./gradlew nyxInfer
-
-      # Read the version from the Gradle project (set by Nyx during the settings phase).
-      - name: Read inferred version
         id: nyx
+        uses: mooltiverse/nyx@main
+        with:
+          command: infer
+          configurationFile: .nyx.yml
+
+      - name: Validate inferred version and export for Gradle
         run: |
-          VERSION=$(./gradlew properties -q --no-configuration-cache 2>/dev/null \
-            | grep "^version:" | head -1 | awk '{print $2}')
+          VERSION="${{ steps.nyx.outputs.version }}"
           if [[ -z "$VERSION" || "$VERSION" == *"SNAPSHOT"* ]]; then
             echo "::error::Inferred version '$VERSION' is not a release version. Ensure there are" \
                  "unreleased conventional commits (feat/fix/!) since the last tag."
             exit 1
           fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "ORG_GRADLE_PROJECT_version=$VERSION" >> "$GITHUB_ENV"
           echo "Releasing: $VERSION"
 
       - name: Run full test suite

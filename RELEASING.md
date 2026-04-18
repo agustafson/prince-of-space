@@ -65,6 +65,12 @@ Before triggering the workflow, verify:
 
 ## Triggering a release
 
+Release version inference uses the **Nyx GitHub Action** (`mooltiverse/nyx`) with this
+repository’s `.nyx.yml` — the **Gradle Nyx plugin is not used**, so local `./gradlew`
+stays compatible with the configuration cache. To preview the next version locally, run
+the same Nyx container the action uses (see the [Nyx Docker image](https://github.com/mooltiverse/nyx))
+or trigger a workflow dry run.
+
 ### Dry run (verify version inference without publishing)
 
 1. Go to **Actions → Release → Run workflow**

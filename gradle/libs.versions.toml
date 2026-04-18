@@ -15,7 +15,6 @@ spotless = "8.4.0"
 test-logger = "4.0.0"
 build-health = "3.7.0"
 spotbugs-gradle = "6.5.0"
-nyx = "3.1.7"
 [libraries]
 javaparser-core = { module = "com.github.javaparser:javaparser-core", version.ref = "javaparser" }
 picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
@@ -35,4 +34,3 @@ spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 test-logger = { id = "com.adarshr.test-logger", version.ref = "test-logger" }
 build-health = { id = "com.autonomousapps.build-health", version.ref = "build-health" }
 spotbugs = { id = "com.github.spotbugs", version.ref = "spotbugs-gradle" }
-nyx = { id = "com.mooltiverse.oss.nyx", version.ref = "nyx" }

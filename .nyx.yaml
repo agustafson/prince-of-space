@@ -1,8 +1,7 @@
 # Nyx — semantic versioning & release automation
 # https://github.com/mooltiverse/nyx
 #
-# After the first tags and Central credentials exist, wire the Gradle plugin
-# (com.mooltiverse.oss.nyx) and CI publish steps. Until then, version defaults
-# come from gradle.properties.
+# Version for releases is inferred in CI by the mooltiverse/nyx Action (see release.yml).
+# Local default version lives in gradle.properties.
 
 preset: simple
