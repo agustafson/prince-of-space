@@ -27,23 +27,23 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout Prince of Space
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout Spring Framework
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: spring-projects/spring-framework
           path: external/spring-framework
           fetch-depth: 1
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Run eval (smoke — default-balanced only)
         env:
@@ -68,23 +68,23 @@ jobs:
     timeout-minutes: 360
     steps:
       - name: Checkout Prince of Space
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout Spring Framework
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: spring-projects/spring-framework
           path: external/spring-framework
           fetch-depth: 1
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Run eval (full matrix — all configs)
         env:

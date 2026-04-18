@@ -3,16 +3,16 @@
   "displayName": "Prince of Space",
   "description": "Format Java with the Prince of Space formatter (CLI subprocess).",
   "version": "0.1.0",
-  "publisher": "prince-of-space",
+  "publisher": "agustafson",
   "repository": {
     "type": "git",
-    "url": "https://github.com/prince-of-space/prince-of-space.git",
+    "url": "https://github.com/agustafson/prince-of-space.git",
     "directory": "modules/vscode-extension"
   },
   "license": "Apache-2.0",
   "engines": {
-    "vscode": "^1.85.0",
-    "node": ">=18"
+    "vscode": "^1.109.0",
+    "node": ">=22"
   },
   "categories": [
     "Formatters",
@@ -56,8 +56,8 @@
     "vscode:prepublish": "npm run compile"
   },
   "devDependencies": {
-    "@types/node": "^18.19.0",
-    "@types/vscode": "^1.85.0",
-    "typescript": "4.8.4"
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.109.0",
+    "typescript": "5.9.2"
   }
 }
