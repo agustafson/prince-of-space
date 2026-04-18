@@ -20,7 +20,7 @@ Existing Java formatters fall into two camps: **unconfigurable** (google-java-fo
 
 ```kotlin
 dependencies {
-    implementation("io.princeofspace:prince-of-space-core:VERSION")
+    implementation("io.github.prince-of-space:prince-of-space-core:VERSION")
 }
 ```
 
@@ -36,7 +36,7 @@ String formatted = formatter.format(sourceCode);
 
 ```xml
 <dependency>
-    <groupId>io.princeofspace</groupId>
+    <groupId>io.github.prince-of-space</groupId>
     <artifactId>prince-of-space-core</artifactId>
     <version>VERSION</version>
 </dependency>
