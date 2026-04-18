@@ -29,7 +29,7 @@ Prince of Space takes its philosophy from Prettier and ktlint: strong, readable 
 
 ```kotlin
 dependencies {
-    implementation("io.github.prince-of-space:prince-of-space-core:VERSION")
+    implementation("io.github.agustafson:prince-of-space-core:VERSION")
 }
 ```
 
@@ -45,7 +45,7 @@ String formatted = formatter.format(sourceCode);
 
 ```xml
 <dependency>
-    <groupId>io.github.prince-of-space</groupId>
+    <groupId>io.github.agustafson</groupId>
     <artifactId>prince-of-space-core</artifactId>
     <version>VERSION</version>
 </dependency>

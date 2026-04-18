@@ -1,8 +1,8 @@
 site_name: Prince of Space
 site_description: A beautiful, configurable Java code formatter
 site_url: https://prince-of-space.github.io/prince-of-space/
-repo_url: https://github.com/prince-of-space/prince-of-space
-repo_name: prince-of-space/prince-of-space
+repo_url: https://github.com/agustafson/prince-of-space
+repo_name: agustafson/prince-of-space
 edit_uri: edit/main/docs/
 
 theme:

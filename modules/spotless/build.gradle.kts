@@ -43,7 +43,7 @@ publishing {
             pom {
                 name.set("prince-of-space-spotless")
                 description.set("Spotless FormatterStep integration for prince-of-space")
-                url.set("https://github.com/prince-of-space/prince-of-space")
+                url.set("https://github.com/agustafson/prince-of-space")
                 licenses {
                     license {
                         name.set("The Apache License, Version 2.0")
@@ -57,9 +57,9 @@ publishing {
                     }
                 }
                 scm {
-                    connection.set("scm:git:git://github.com/prince-of-space/prince-of-space.git")
+                    connection.set("scm:git:git://github.com/agustafson/prince-of-space.git")
                     developerConnection.set("scm:git:ssh://git@github.com:prince-of-space/prince-of-space.git")
-                    url.set("https://github.com/prince-of-space/prince-of-space")
+                    url.set("https://github.com/agustafson/prince-of-space")
                 }
             }
         }

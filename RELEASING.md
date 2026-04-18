@@ -6,20 +6,14 @@ a human or agent can understand, verify, and if necessary recover from any step.
 
 ## Prerequisites (one-time setup)
 
-### 1. Create the `prince-of-space` GitHub organization
+### 1. Register a Sonatype Central Portal account
 
-The Maven group ID `io.github.prince-of-space` is verified by Sonatype via ownership
-of the `prince-of-space` GitHub organization. Create it at github.com/organizations/new,
-then transfer or fork this repository into it.
+Go to <https://central.sonatype.com> and sign in with your GitHub account (`agustafson`).
+Register the namespace `io.github.agustafson`:
 
-### 2. Register a Sonatype Central Portal account
-
-Go to <https://central.sonatype.com> and sign in with your GitHub account. Register
-the namespace `io.github.prince-of-space`:
-
-- **Namespace:** `io.github.prince-of-space`
-- **Verification:** Sonatype creates a temporary GitHub repository under the
-  `prince-of-space` org; you verify by confirming the repo exists.
+- **Namespace:** `io.github.agustafson`
+- **Verification:** Sonatype creates a temporary GitHub repository under your personal
+  account; you verify by confirming the repo exists.
 
 After verification, generate a **User Token** (account → Generate User Token). Store
 the token — it is the value for `SONATYPE_CENTRAL_TOKEN`.
@@ -115,7 +109,7 @@ abort with an error.
 
 ## What is published to Maven Central
 
-Three artifacts are published under `io.github.prince-of-space`:
+Three artifacts are published under `io.github.agustafson`:
 
 | Artifact ID | Description |
 |-------------|-------------|
