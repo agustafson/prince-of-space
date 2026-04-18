@@ -9,7 +9,11 @@ A beautiful, configurable Java code formatter.
 
 ## Why another formatter?
 
-Existing Java formatters fall into two camps: **unconfigurable** (google-java-format) or **hundreds of knobs** (Eclipse/IntelliJ built-in). Prince of Space sits in between — 8 meaningful options that cover what teams actually argue about, with opinionated defaults that produce readable output out of the box.
+Java is almost unique among mainstream languages in having no agreed-upon default formatter. JavaScript has [Prettier](https://prettier.io/). Kotlin has [ktlint](https://pinterest.github.io/ktlint/). Go ships `gofmt` in the standard toolchain. Java has… bike-shedding arguments.
+
+The existing options don't fill the gap well. Google-java-format is completely unconfigurable — great if your team already agrees with Google's choices, a non-starter if you don't. The Eclipse and IntelliJ built-in formatters offer hundreds of knobs, which sounds like flexibility but in practice means every team configures them differently and the "formatter" becomes another source of style debates rather than the end of them.
+
+Prince of Space takes its philosophy from Prettier and ktlint: strong, readable defaults with just enough configuration to resolve the handful of things teams genuinely disagree about. Minimal options with sensible defaults.
 
 ## Features
 
@@ -189,7 +193,7 @@ if (result instanceof FormatResult.Success success) {
 
 ## Non-goals
 
-- Import organization (delegated to Spotless)
+- Organisation of Java imports (delegated to Spotless)
 - First-party Maven/Gradle plugins (Spotless provides those)
 - Type resolution (not needed for formatting)
 
