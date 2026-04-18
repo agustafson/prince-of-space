@@ -25,12 +25,39 @@ gpg --full-generate-key   # RSA, 4096 bits, no expiry recommended for CI
 gpg --list-secret-keys --keyid-format LONG
 # Note the KEY_ID (e.g. 3AA5C34371567BD2)
 
-gpg --keyserver keyserver.ubuntu.com --send-keys KEY_ID
+# Publish the *public* key so Maven Central validation can resolve it (required).
+# If this step is skipped, Central reports that signatures are invalid and the key
+# fingerprint cannot be found on a public keyserver.
+#
+# Prefer HKPS (HTTPS, port 443). Plain `hkp://…` often hangs when port 11371 is blocked
+# or the keyserver is slow; see troubleshooting below if send-keys stalls.
+gpg --keyserver hkps://keys.openpgp.org:443 --send-keys KEY_ID
 gpg --armor --export-secret-keys KEY_ID > private.key
 ```
 
 Store the contents of `private.key` as the `GPG_PRIVATE_KEY` secret, and the passphrase
 you chose as `GPG_PASSPHRASE`. Delete `private.key` from disk after uploading.
+
+To confirm the public key is visible before a release:
+
+```bash
+gpg --keyserver hkps://keys.openpgp.org:443 --receive-keys KEY_ID   # should import OK
+```
+
+**If `--send-keys` hangs:** add a timeout (`--keyserver-options timeout=20`), or use the
+**web upload** at [keys.openpgp.org/upload](https://keys.openpgp.org/upload) (often
+simplest): `gpg --armor --export KEY_ID`, paste, submit — no keyserver or `dirmngr`
+involved.
+
+**If `gpgconf --kill dirmngr` also hangs:** `gpgconf` is waiting on the same stuck
+daemon — use `ps aux | grep dirmngr` / `grep gpg-agent`, then `kill -9` those PIDs (or
+`killall -9 dirmngr gpg-agent` on macOS). Socket files under `~/.gnupg/S.*` can be
+removed only **after** the processes are dead; GnuPG will recreate them on next use.
+Then retry HKPS `send-keys`, or prefer web upload and skip keyservers entirely.
+
+If `keys.openpgp.org` requires it, confirm the email address on the key through their UI.
+Keyserver propagation can take minutes to hours; retry validation in the Central Portal
+after publishing.
 
 ### 4. Add secrets to the repository
 

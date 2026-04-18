@@ -91,14 +91,21 @@ jobs:
         if: ${{ !inputs.dry_run }}
         id: upload
         run: |
-          RESPONSE=$(curl --silent --fail --request POST \
+          # Upload returns Content-Type text/plain with a raw deployment UUID, not JSON.
+          # https://central.sonatype.org/publish/publish-portal-api/#uploading-a-deployment-bundle
+          RESPONSE=$(curl --silent --show-error --fail --request POST \
             --header "Authorization: Bearer ${{ secrets.SONATYPE_CENTRAL_TOKEN }}" \
             --form "bundle=@$GITHUB_WORKSPACE/central-bundle.zip" \
             https://central.sonatype.com/api/v1/publisher/upload)
           echo "Response: $RESPONSE"
-          DEPLOYMENT_ID=$(echo "$RESPONSE" | jq -r '.deploymentId // empty')
+          RESPONSE_TRIMMED=$(echo "$RESPONSE" | tr -d '\r\n' | xargs)
+          if [[ "${RESPONSE_TRIMMED:0:1}" == '{' ]]; then
+            DEPLOYMENT_ID=$(echo "$RESPONSE_TRIMMED" | jq -r '.deploymentId // empty')
+          else
+            DEPLOYMENT_ID="$RESPONSE_TRIMMED"
+          fi
           if [[ -z "$DEPLOYMENT_ID" ]]; then
-            echo "::error::Upload failed — no deploymentId in response"
+            echo "::error::Upload failed — no deployment ID in response"
             exit 1
           fi
           echo "deployment_id=$DEPLOYMENT_ID" >> $GITHUB_OUTPUT
@@ -112,7 +119,7 @@ jobs:
           DEPLOYMENT_ID="${{ steps.upload.outputs.deployment_id }}"
           for i in $(seq 1 18); do
             sleep 10
-            STATUS=$(curl --silent \
+            STATUS=$(curl --silent --show-error --fail --request POST \
               --header "Authorization: Bearer ${{ secrets.SONATYPE_CENTRAL_TOKEN }}" \
               "https://central.sonatype.com/api/v1/publisher/status?id=$DEPLOYMENT_ID" \
               | jq -r '.deploymentState // "UNKNOWN"')

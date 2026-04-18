@@ -1,7 +1,0 @@
-# Nyx — semantic versioning & release automation
-# https://github.com/mooltiverse/nyx
-#
-# Version for releases is inferred in CI by the mooltiverse/nyx Action (see release.yml).
-# Local default version lives in gradle.properties.
-
-preset: simple
