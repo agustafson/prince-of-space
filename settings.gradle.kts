@@ -8,6 +8,7 @@ pluginManagement {
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
     id("com.autonomousapps.build-health") version "3.7.0"
+    id("com.mooltiverse.oss.nyx") version "3.1.8-alpha.1"
 }
 
 dependencyResolutionManagement {

@@ -7,15 +7,28 @@ subprojects {
     group = rootProject.group
     version = rootProject.version
 
-  pluginManager.withPlugin("java") {
-    apply(plugin = "com.diffplug.spotless")
+    pluginManager.withPlugin("java") {
+        apply(plugin = "com.diffplug.spotless")
 
-    spotless {
-        java {
-          removeUnusedImports()
-          importOrder("", "java|javax", "\\#")
+        spotless {
+            java {
+                removeUnusedImports()
+                importOrder("", "java|javax", "\\#")
+            }
         }
-      }
+    }
+
+    // Publish all Maven artifacts to a single staging directory so the release workflow
+    // can bundle them into a ZIP for Sonatype Central Portal upload.
+    pluginManager.withPlugin("maven-publish") {
+        configure<PublishingExtension> {
+            repositories {
+                maven {
+                    name = "staging"
+                    url = uri(rootProject.layout.buildDirectory.dir("staging-deploy"))
+                }
+            }
+        }
     }
 }
 

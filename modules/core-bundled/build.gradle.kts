@@ -9,6 +9,8 @@ java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(21))
     }
+    withJavadocJar()
+    withSourcesJar()
 }
 
 tasks.withType<JavaCompile>().configureEach {
@@ -55,6 +57,8 @@ publishing {
             artifactId = "prince-of-space-bundled"
             version = rootProject.version.toString()
             artifact(tasks.shadowJar)
+            artifact(tasks.named("sourcesJar"))
+            artifact(tasks.named("javadocJar"))
             pom {
                 name.set("prince-of-space-bundled")
                 description.set("Shaded prince-of-space with no transitive dependencies")
@@ -64,6 +68,17 @@ publishing {
                         name.set("The Apache License, Version 2.0")
                         url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
                     }
+                }
+                developers {
+                    developer {
+                        id.set("prince-of-space")
+                        name.set("prince-of-space contributors")
+                    }
+                }
+                scm {
+                    connection.set("scm:git:git://github.com/prince-of-space/prince-of-space.git")
+                    developerConnection.set("scm:git:ssh://git@github.com:prince-of-space/prince-of-space.git")
+                    url.set("https://github.com/prince-of-space/prince-of-space")
                 }
                 withXml {
                     val root = asNode()
@@ -78,7 +93,12 @@ publishing {
 }
 
 signing {
-    isRequired = false
+    val key = providers.environmentVariable("GPG_PRIVATE_KEY").orNull
+    val pass = providers.environmentVariable("GPG_PASSPHRASE").orNull
+    if (!key.isNullOrBlank() && !pass.isNullOrBlank()) {
+        useInMemoryPgpKeys(key, pass)
+    }
+    isRequired = !key.isNullOrBlank()
     sign(publishing.publications["maven"])
 }
 

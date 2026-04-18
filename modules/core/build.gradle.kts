@@ -167,6 +167,11 @@ publishing {
 }
 
 signing {
-    isRequired = false
+    val key = providers.environmentVariable("GPG_PRIVATE_KEY").orNull
+    val pass = providers.environmentVariable("GPG_PASSPHRASE").orNull
+    if (!key.isNullOrBlank() && !pass.isNullOrBlank()) {
+        useInMemoryPgpKeys(key, pass)
+    }
+    isRequired = !key.isNullOrBlank()
     sign(publishing.publications["maven"])
 }

@@ -1,0 +1,26 @@
+# Nyx release automation configuration.
+# Reads conventional commits to infer the next semantic version.
+# Tagging, publishing, and GitHub Release creation are handled by the release workflow.
+# See RELEASING.md for the full release process.
+
+# Use the built-in Conventional Commits convention.
+# feat → minor bump, fix → patch bump, breaking (! or BREAKING CHANGE) → major bump.
+commitMessageConventions:
+  enabled:
+    - conventionalCommits
+
+releaseTypes:
+  enabled:
+    - mainline
+  items:
+    mainline:
+      matchBranches: "^main$"
+      # All git operations are performed by the release workflow, not Nyx.
+      gitCommit: "false"
+      gitTag: "false"
+      gitPush: "false"
+      publish: "false"
+
+scheme: SEMVER
+# Starting point for version inference before the first release tag exists.
+initialVersion: "0.1.0"
