@@ -5,6 +5,8 @@ plugins {
     signing
 }
 
+import org.w3c.dom.Element
+
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(21))
@@ -80,11 +82,17 @@ publishing {
                     developerConnection.set("scm:git:ssh://git@github.com:prince-of-space/prince-of-space.git")
                     url.set("https://github.com/agustafson/prince-of-space")
                 }
+                // Use XmlProvider.asElement() (W3C DOM), not Groovy Node — avoids Node/NodeList quirks.
                 withXml {
-                    val root = asNode()
-                    val deps = root.get("dependencies")
-                    if (deps != null) {
-                        (deps as groovy.util.Node).children().clear()
+                    val projectEl = asElement()
+                    val dependencyBlocks = projectEl.getElementsByTagName("dependencies")
+                    for (i in 0 until dependencyBlocks.length) {
+                        val block = dependencyBlocks.item(i)
+                        if (block is Element) {
+                            while (block.hasChildNodes()) {
+                                block.removeChild(block.firstChild)
+                            }
+                        }
                     }
                 }
             }
