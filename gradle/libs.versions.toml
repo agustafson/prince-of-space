@@ -14,7 +14,7 @@ shadow = "9.4.1"
 spotless = "8.4.0"
 test-logger = "4.0.0"
 build-health = "3.7.0"
-spotbugs-gradle = "6.4.8"
+spotbugs-gradle = "6.5.0"
 nyx = "3.1.8-alpha.1"
 [libraries]
 javaparser-core = { module = "com.github.javaparser:javaparser-core", version.ref = "javaparser" }
