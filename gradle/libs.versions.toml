@@ -1,6 +1,6 @@
 [versions]
 javaparser = "3.28.0"
-picocli = "4.7.6"
+picocli = "4.7.7"
 spotless-lib = "4.5.0"
 # Keep aligned with NullAway (0.13.x targets Error Prone ~2.45; 2.49+ breaks NullAway at runtime).
 errorprone = "2.45.0"
