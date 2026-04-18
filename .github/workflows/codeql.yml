@@ -30,7 +30,10 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
+      # CodeQL must see real compiler runs; Gradle build cache / incremental compile can skip
+      # javac so the extractor sees no sources (finalize exit 32). See:
+      # https://gh.io/troubleshooting-code-scanning/no-source-code-seen-during-build
       - name: Build
-        run: ./gradlew classes testClasses --no-daemon
+        run: ./gradlew --no-build-cache clean classes testClasses --no-daemon --no-configuration-cache
 
       - uses: github/codeql-action/analyze@v3
