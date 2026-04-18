@@ -1,6 +1,11 @@
 # Prince of Space
 
+<img src="docs/images/prince-of-space.jpg" alt="Prince of Space" align="right" width="140">
+
 A beautiful, configurable Java code formatter.
+
+> *Named after the 1959 Japanese sci-fi film, [immortalised by Mystery Science Theater 3000](https://www.imdb.com/title/tt0052905/).
+> The Prince's defining trait: your weapons have no effect on him. This formatter feels similarly about your inconsistent indentation.*
 
 ## Why another formatter?
 
