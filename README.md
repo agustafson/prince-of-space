@@ -4,8 +4,8 @@
 
 A beautiful, configurable Java code formatter.
 
-> *Named after the 1959 Japanese sci-fi film, [immortalised by Mystery Science Theater 3000](https://www.imdb.com/title/tt0052905/).
-> The Prince's defining trait: your weapons have no effect on him. This formatter feels similarly about your inconsistent indentation.*
+> *Named after the delightfully bad 1959 Japanese sci-fi film featured in [Mystery Science Theater 3000](https://www.imdb.com/title/tt0094517/) — specifically [Season 8, Episode 16](https://mst3k.fandom.com/wiki/MST3K_816_-_Prince_of_Space).
+> The Prince's defining trait: **your weapons have no effect on him**. This formatter feels similarly about your inconsistent indentation.*
 
 ## Why another formatter?
 
