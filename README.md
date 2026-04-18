@@ -2,7 +2,11 @@
 
 <img src="docs/images/prince-of-space.jpg" alt="Prince of Space" align="right" width="140">
 
-A beautiful, configurable Java code formatter.
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.agustafson/prince-of-space-core.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.agustafson/prince-of-space-core)
+[![CI](https://github.com/agustafson/prince-of-space/actions/workflows/ci.yml/badge.svg)](https://github.com/agustafson/prince-of-space/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+
+A beautiful, configurable Java code formatter — **published on Maven Central** ([`io.github.agustafson`](https://central.sonatype.com/namespace/io.github.agustafson)).
 
 > *Named after the delightfully bad 1959 Japanese sci-fi film featured in [Mystery Science Theater 3000](https://www.imdb.com/title/tt0094517/) — specifically [Season 8, Episode 16](https://mst3k.fandom.com/wiki/MST3K_816_-_Prince_of_Space).
 > The Prince's defining trait: **your weapons have no effect on him**. This formatter feels similarly about your inconsistent indentation.*
@@ -25,11 +29,13 @@ Prince of Space takes its philosophy from Prettier and ktlint: strong, readable 
 
 ## Quick Start
 
+**Current release:** `0.1.0` — use that version in the snippets below, or follow the badge above for the latest.
+
 ### Library (Gradle)
 
 ```kotlin
 dependencies {
-    implementation("io.github.agustafson:prince-of-space-core:VERSION")
+    implementation("io.github.agustafson:prince-of-space-core:0.1.0")
 }
 ```
 
@@ -47,7 +53,7 @@ String formatted = formatter.format(sourceCode);
 <dependency>
     <groupId>io.github.agustafson</groupId>
     <artifactId>prince-of-space-core</artifactId>
-    <version>VERSION</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 
@@ -82,9 +88,7 @@ spotless {
 }
 ```
 
-Ensure `prince-of-space-spotless` (which transitively pulls in `prince-of-space-core`) is on the Spotless plugin classpath — via `buildscript` dependencies, a dedicated `buildSrc` dependency, or your Gradle version's supported mechanism.
-
-For Maven, add `prince-of-space-spotless` as a dependency of `spotless-maven-plugin` and configure a custom step using `PrinceOfSpaceStep.create(...)`.
+Put `io.github.agustafson:prince-of-space-spotless:0.1.0` on the classpath where your build imports `PrinceOfSpaceStep` (for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout). Maven: add the same coordinate as a dependency of `spotless-maven-plugin`, then use `PrinceOfSpaceStep.create(...)` in the plugin configuration.
 
 ### IntelliJ Plugin
 
@@ -182,14 +186,16 @@ if (result instanceof FormatResult.Success success) {
 }
 ```
 
-## Artifacts
+## Artifacts (Maven Central)
 
-| Artifact | When to use |
-|----------|-------------|
-| `prince-of-space-core` | Default — small footprint, you manage JavaParser/SLF4J versions |
-| `prince-of-space-bundled` | Single fat JAR with relocated dependencies — no transitive conflicts |
-| `prince-of-space-spotless` | Spotless `FormatterStep` integration |
-| `prince-of-space-cli` | Shadow JAR for command-line use |
+Group ID: **`io.github.agustafson`**. Replace `0.1.0` with the [latest release](https://central.sonatype.com/namespace/io.github.agustafson) if newer.
+
+| Artifact | Coordinate | When to use |
+|----------|------------|-------------|
+| `prince-of-space-core` | `io.github.agustafson:prince-of-space-core:0.1.0` | Default — small footprint; JavaParser + SLF4J as normal transitives |
+| `prince-of-space-bundled` | `io.github.agustafson:prince-of-space-bundled:0.1.0` | Single fat JAR, dependencies relocated — no classpath clashes |
+| `prince-of-space-spotless` | `io.github.agustafson:prince-of-space-spotless:0.1.0` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) |
+| CLI (shadow JAR) | Build from repo or attach to [GitHub Releases](https://github.com/agustafson/prince-of-space/releases) | Command-line formatting; not always published to Central |
 
 ## Non-goals
 

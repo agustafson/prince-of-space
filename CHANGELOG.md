@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-04-18
+
+First release on **Maven Central** (`io.github.agustafson`).
+
 ### Added
 
 - **Core formatter** — AST-based Java code formatter using JavaParser, with convergence loop (up to 64 passes) guaranteeing idempotent output.
@@ -25,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Test suite** — 200+ tests including unit tests for internal components (`FormattingEngine`, `AnnotationArranger`), wrapping regressions, comment preservation, idempotency fuzz testing, and examples corpus validation.
 - **Real-world eval harness** — validated against Guava (3,221 files) and Spring Framework (9,198 files) with zero parse errors and zero idempotency failures.
 - **Static analysis** — Error Prone, NullAway, SpotBugs, Checkstyle, and Spotless enforced in CI.
-- **CI** — GitHub Actions: build on push/PR across Java 17, 21, and 25; release workflow on version tags.
+- **CI** — GitHub Actions: build on push/PR across Java 17, 21, and 25; manual release workflow with Nyx version inference and Sonatype Central Portal upload.
 - **Documentation** — architecture guide, formatting decisions, technical decision register, contributing guide, showroom scenarios, benchmarks, and robustness harness docs.
 
 ### Fixed
