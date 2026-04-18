@@ -1,26 +1,144 @@
 name: Release
 
-# Publishes a GitHub Release when a version tag is pushed (e.g. v1.2.3).
-# Maven Central publishing must be configured separately (signing + OSSRH credentials).
+# Triggered manually. Infers the next version from conventional commits via Nyx,
+# builds and signs all artifacts, uploads to Sonatype Central Portal, then creates
+# a git tag and a GitHub Release.
+#
+# Required secrets (configure in Settings → Secrets → Actions):
+#   SONATYPE_CENTRAL_TOKEN  — Bearer token from central.sonatype.com → User Token
+#   GPG_PRIVATE_KEY         — Armored GPG private key (gpg --armor --export-secret-keys KEY_ID)
+#   GPG_PASSPHRASE          — Passphrase for the GPG key
+#
+# See RELEASING.md for the full release checklist and how to set up these secrets.
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — infer version and build without publishing or tagging"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
 jobs:
-  github-release:
+  release:
     runs-on: ubuntu-latest
+    environment: release
+
     steps:
       - uses: actions/checkout@v4
         with:
+          # Full history required for Nyx to read all conventional commits and tags.
           fetch-depth: 0
 
-      - uses: softprops/action-gh-release@v2
+      - uses: actions/setup-java@v4
         with:
-          generate_release_notes: true
+          java-version: "21"
+          distribution: "temurin"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Configure git identity for tagging
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # nyxInfer reads git history + conventional commits and sets project.version.
+      - name: Infer next release version with Nyx
+        run: ./gradlew nyxInfer
+
+      # Read the version from the Gradle project (set by Nyx during the settings phase).
+      - name: Read inferred version
+        id: nyx
+        run: |
+          VERSION=$(./gradlew properties -q --no-configuration-cache 2>/dev/null \
+            | grep "^version:" | head -1 | awk '{print $2}')
+          if [[ -z "$VERSION" || "$VERSION" == *"SNAPSHOT"* ]]; then
+            echo "::error::Inferred version '$VERSION' is not a release version. Ensure there are" \
+                 "unreleased conventional commits (feat/fix/!) since the last tag."
+            exit 1
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Releasing: $VERSION"
+
+      - name: Run full test suite
+        run: ./gradlew :core:test :spotless:test :core-bundled:test
+
+      # Build + sign all three publishable modules and collect into build/staging-deploy/.
+      - name: Build and sign publishable artifacts
+        run: |
+          ./gradlew \
+            :core:build :spotless:build :core-bundled:build -x test \
+            publishAllPublicationsToStagingRepository
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      # Bundle the staging directory into a ZIP for Sonatype Central Portal upload.
+      - name: Bundle staging artifacts
+        run: |
+          cd build/staging-deploy
+          zip -r "$GITHUB_WORKSPACE/central-bundle.zip" .
+          echo "Bundle size: $(du -sh "$GITHUB_WORKSPACE/central-bundle.zip" | cut -f1)"
+
+      - name: Upload bundle to Sonatype Central Portal
+        if: ${{ !inputs.dry_run }}
+        id: upload
+        run: |
+          RESPONSE=$(curl --silent --fail --request POST \
+            --header "Authorization: Bearer ${{ secrets.SONATYPE_CENTRAL_TOKEN }}" \
+            --form "bundle=@$GITHUB_WORKSPACE/central-bundle.zip" \
+            https://central.sonatype.com/api/v1/publisher/upload)
+          echo "Response: $RESPONSE"
+          DEPLOYMENT_ID=$(echo "$RESPONSE" | jq -r '.deploymentId // empty')
+          if [[ -z "$DEPLOYMENT_ID" ]]; then
+            echo "::error::Upload failed — no deploymentId in response"
+            exit 1
+          fi
+          echo "deployment_id=$DEPLOYMENT_ID" >> $GITHUB_OUTPUT
+          echo "Deployment ID: $DEPLOYMENT_ID"
+
+      # Central Portal validates checksums, signatures, and POM requirements.
+      # Polls every 10 s for up to 3 minutes.
+      - name: Wait for Central Portal validation
+        if: ${{ !inputs.dry_run }}
+        run: |
+          DEPLOYMENT_ID="${{ steps.upload.outputs.deployment_id }}"
+          for i in $(seq 1 18); do
+            sleep 10
+            STATUS=$(curl --silent \
+              --header "Authorization: Bearer ${{ secrets.SONATYPE_CENTRAL_TOKEN }}" \
+              "https://central.sonatype.com/api/v1/publisher/status?id=$DEPLOYMENT_ID" \
+              | jq -r '.deploymentState // "UNKNOWN"')
+            echo "[$i/18] Status: $STATUS"
+            case "$STATUS" in
+              VALIDATED) echo "Validation passed"; break ;;
+              FAILED)    echo "::error::Central Portal validation failed"; exit 1 ;;
+            esac
+          done
+
+      - name: Publish to Maven Central
+        if: ${{ !inputs.dry_run }}
+        run: |
+          curl --silent --fail --request POST \
+            --header "Authorization: Bearer ${{ secrets.SONATYPE_CENTRAL_TOKEN }}" \
+            "https://central.sonatype.com/api/v1/publisher/deployment/${{ steps.upload.outputs.deployment_id }}"
+          echo "Publication triggered — artifacts will appear on Maven Central within ~15 minutes."
+
+      - name: Tag and push release
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git tag "v${{ steps.nyx.outputs.version }}"
+          git push origin "v${{ steps.nyx.outputs.version }}"
+
+      - name: Create GitHub Release
+        if: ${{ !inputs.dry_run }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${{ steps.nyx.outputs.version }}" \
+            --generate-notes \
+            --title "v${{ steps.nyx.outputs.version }}"
