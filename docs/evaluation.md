@@ -22,7 +22,7 @@ Evaluated on 2026-04-15 with default-balanced config (`preferredLineLength=120`,
 
 Over-long lines are informational warnings — they occur in constructs that have no safe wrap point (very long string literals, generated data files, deeply nested generic signatures). See the full reports in [`eval-results/`](eval-results/) for per-file details.
 
-A full 9-config evaluation (3 width bands x 3 wrap styles) is also available in [`eval-results/2026-04-15.md`](eval-results/2026-04-15.md), confirming zero parse errors and zero idempotency failures across all configurations.
+A full 9-config evaluation (3 width bands x 3 wrap styles) is also available in [`eval-results/2026-04-17.md`](eval-results/2026-04-17.md), confirming zero parse errors and zero idempotency failures across all configurations.
 
 ## Running the eval harness
 
