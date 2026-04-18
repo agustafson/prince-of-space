@@ -5,7 +5,7 @@ spotless-lib = "4.5.0"
 # Keep aligned with NullAway (0.13.x targets Error Prone ~2.45; 2.49+ breaks NullAway at runtime).
 errorprone = "2.45.0"
 errorprone-plugin = "5.1.0"
-nullaway = "0.13.1"
+nullaway = "0.13.3"
 jspecify = "1.0.0"
 slf4j = "2.0.17"
 junit = "6.0.3"
