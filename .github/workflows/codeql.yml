@@ -24,7 +24,7 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - uses: github/codeql-action/init@v3
+      - uses: github/codeql-action/init@v4
         with:
           languages: java-kotlin
 
@@ -36,4 +36,4 @@ jobs:
       - name: Build
         run: ./gradlew --no-build-cache clean classes testClasses --no-daemon --no-configuration-cache
 
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@v4
