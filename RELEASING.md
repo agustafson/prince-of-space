@@ -130,10 +130,14 @@ Publishing the IntelliJ plugin to the **JetBrains Marketplace** and the VS Code 
 ## Version inference rules (Nyx)
 
 **Source of truth is git**, not `gradle.properties` or Maven Central. Nyx looks for release
-tags named like `vX.Y.Z` on the branch; the release workflow creates that tag at the end.
-If **no such tags** exist in the clone (for example tags were never pushed, or CI did not
-fetch tags), Nyx falls back to **`initialVersion`** in `.nyx.yml` — often `0.1.0` — and will
-keep proposing that version until a real `v*` tag appears.
+tags named like `vX.Y.Z` and matches **`.nyx.yml` `matchBranches`** against the **current
+branch name**. GitHub Actions’ `actions/checkout` normally leaves a **detached HEAD**, so
+the branch name is not `main` and Nyx would **not** match `^main$` — it then falls back to
+**`initialVersion`** (e.g. `0.1.0`) every time. The release workflow runs
+`git checkout -B "${GITHUB_REF_NAME}"` before Nyx so the branch name is correct.
+
+If **no `v*` tags** exist in the clone (tags not pushed, or CI did not fetch tags), Nyx also
+falls back to **`initialVersion`** in `.nyx.yml` until a real tag exists.
 
 The `version=` line in `gradle.properties` is a **local / non-release default** (usually
 `*.*.*-SNAPSHOT` on the next patch line). The release workflow overrides it with

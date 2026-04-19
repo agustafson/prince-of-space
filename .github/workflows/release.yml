@@ -50,6 +50,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+      # checkout@v6 leaves a detached HEAD at the commit. Nyx's matchBranches: "^main$"
+      # uses the current branch name — detached HEAD does not match, so Nyx falls back to
+      # initialVersion (0.1.0) and never bumps. Create a local branch at this commit.
+      - name: Use named branch for Nyx (avoid detached HEAD)
+        run: git checkout -B "${GITHUB_REF_NAME}"
+
       # Uses project .nyx.yml (same rules as before). No Nyx Gradle plugin — keeps
       # configuration cache viable; Gradle only receives -Pversion via the env var below.
       - name: Infer next release version with Nyx
@@ -66,6 +72,19 @@ jobs:
             echo "::error::Inferred version '$VERSION' is not a release version. Ensure there are" \
                  "unreleased conventional commits (feat/fix/!) since the last tag."
             exit 1
+          fi
+          # Fail before publishing if we would ship the same semver as the latest v* tag again
+          # (Central rejects duplicate coordinates; Nyx used to fall back to initialVersion when
+          # matchBranches did not match detached HEAD).
+          LAST_TAG="$(git tag -l 'v*' | sort -V | tail -n1)"
+          if [[ -n "$LAST_TAG" ]]; then
+            LAST_VER="${LAST_TAG#v}"
+            if [[ "$VERSION" == "$LAST_VER" ]]; then
+              echo "::error::Inferred version '$VERSION' equals latest tag '$LAST_TAG'. Nothing new to" \
+                   "release, or Nyx did not see commits after that tag. Push conventional commits" \
+                   "since '$LAST_TAG', or fix branch/tag visibility for Nyx."
+              exit 1
+            fi
           fi
           echo "ORG_GRADLE_PROJECT_version=$VERSION" >> "$GITHUB_ENV"
           echo "Releasing: $VERSION"
@@ -122,14 +141,18 @@ jobs:
           DEPLOYMENT_ID="${{ steps.upload.outputs.deployment_id }}"
           for i in $(seq 1 18); do
             sleep 10
-            STATUS=$(curl --silent --show-error --fail --request POST \
+            STATUS_JSON=$(curl --silent --show-error --fail --request POST \
               --header "Authorization: Bearer ${{ secrets.SONATYPE_CENTRAL_TOKEN }}" \
-              "https://central.sonatype.com/api/v1/publisher/status?id=$DEPLOYMENT_ID" \
-              | jq -r '.deploymentState // "UNKNOWN"')
+              "https://central.sonatype.com/api/v1/publisher/status?id=$DEPLOYMENT_ID")
+            STATUS=$(echo "$STATUS_JSON" | jq -r '.deploymentState // "UNKNOWN"')
             echo "[$i/18] Status: $STATUS"
             case "$STATUS" in
               VALIDATED) echo "Validation passed"; break ;;
-              FAILED)    echo "::error::Central Portal validation failed"; exit 1 ;;
+              FAILED)
+                echo "::error::Central Portal validation failed — full status:"
+                echo "$STATUS_JSON" | jq .
+                exit 1
+                ;;
             esac
           done
 
