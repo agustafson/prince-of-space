@@ -139,6 +139,9 @@ spotbugs {
 publishing {
     publications {
         create<MavenPublication>("maven") {
+            // groupId/version come from project (root subprojects convention). Only artifactId
+            // defaults to project.name ("core"); override so it matches archivesName / README.
+            artifactId = "prince-of-space-core"
             from(components["java"])
             pom {
                 name.set("prince-of-space-core")

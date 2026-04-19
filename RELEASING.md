@@ -120,7 +120,10 @@ The workflow will:
 4. Bundle artifacts and upload to Sonatype Central Portal
 5. Poll until the bundle is **VALIDATED** (checksums, signatures, POM requirements)
 6. Publish the deployment (artifacts available on Maven Central within ~15 minutes)
-7. Push a `vX.Y.Z` git tag and create a GitHub Release with auto-generated notes
+7. Build downloadable assets: CLI shadow JAR, IntelliJ plugin ZIP, VS Code `.vsix` (VS Code `package.json` version is set in CI to match the release)
+8. Push a `vX.Y.Z` git tag and create a GitHub Release with auto-generated notes **and those three files attached**
+
+Publishing the IntelliJ plugin to the **JetBrains Marketplace** and the VS Code extension to the **Visual Studio Marketplace** / Open VSX is still **manual** unless you add separate publishing steps and credentials.
 
 ---
 

@@ -138,17 +138,52 @@ jobs:
             "https://central.sonatype.com/api/v1/publisher/deployment/${{ steps.upload.outputs.deployment_id }}"
           echo "Publication triggered — artifacts will appear on Maven Central within ~15 minutes."
 
+      # Not published to Maven Central — attach to GitHub Release for manual download / VS Code / local use.
+      - name: Build CLI shadow JAR and IntelliJ plugin distribution
+        if: ${{ !inputs.dry_run }}
+        run: ./gradlew :cli:shadowJar :intellij-plugin:buildPlugin --no-daemon
+
+      - name: Set up Node (VS Code extension)
+        if: ${{ !inputs.dry_run }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: modules/vscode-extension/package-lock.json
+
+      - name: Package VS Code extension (.vsix)
+        if: ${{ !inputs.dry_run }}
+        working-directory: modules/vscode-extension
+        env:
+          RELEASE_VERSION: ${{ steps.nyx.outputs.version }}
+        run: |
+          npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
+          npm ci
+          npm run compile
+          npx --yes @vscode/vsce@3 package --out "$GITHUB_WORKSPACE/prince-of-space-vscode-${RELEASE_VERSION}.vsix"
+
       - name: Tag and push release
         if: ${{ !inputs.dry_run }}
         run: |
           git tag "v${{ steps.nyx.outputs.version }}"
           git push origin "v${{ steps.nyx.outputs.version }}"
 
-      - name: Create GitHub Release
+      - name: Create GitHub Release (with downloadable assets)
         if: ${{ !inputs.dry_run }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ steps.nyx.outputs.version }}
         run: |
-          gh release create "v${{ steps.nyx.outputs.version }}" \
+          set -euo pipefail
+          CLI_JAR="modules/cli/build/libs/prince-of-space-cli-${RELEASE_VERSION}.jar"
+          IJ_ZIP="$(ls modules/intellij-plugin/build/distributions/*.zip | head -1)"
+          VSIX="$GITHUB_WORKSPACE/prince-of-space-vscode-${RELEASE_VERSION}.vsix"
+          for f in "$CLI_JAR" "$IJ_ZIP" "$VSIX"; do
+            if [[ ! -f "$f" ]]; then echo "::error::Missing release asset: $f"; exit 1; fi
+          done
+          gh release create "v${RELEASE_VERSION}" \
             --generate-notes \
-            --title "v${{ steps.nyx.outputs.version }}"
+            --title "v${RELEASE_VERSION}" \
+            "$CLI_JAR" \
+            "$IJ_ZIP" \
+            "$VSIX"

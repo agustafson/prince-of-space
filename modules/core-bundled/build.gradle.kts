@@ -55,9 +55,8 @@ tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJ
 publishing {
     publications {
         create<MavenPublication>("maven") {
-            groupId = rootProject.group.toString()
+            // groupId/version from project; artifactId would default to "core-bundled".
             artifactId = "prince-of-space-bundled"
-            version = rootProject.version.toString()
             artifact(tasks.shadowJar)
             artifact(tasks.named("sourcesJar"))
             artifact(tasks.named("javadocJar"))

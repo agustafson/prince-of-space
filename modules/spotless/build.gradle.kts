@@ -39,6 +39,8 @@ tasks.test {
 publishing {
     publications {
         create<MavenPublication>("maven") {
+            // groupId/version from project; artifactId would default to "spotless".
+            artifactId = "prince-of-space-spotless"
             from(components["java"])
             pom {
                 name.set("prince-of-space-spotless")

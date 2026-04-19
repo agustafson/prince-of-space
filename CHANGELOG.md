@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Maven publication:** set explicit `artifactId` on `:core` and `:spotless` publications (`prince-of-space-core`, `prince-of-space-spotless`). Gradle’s default was the subproject name (`core`, `spotless`). The bundled artifact already used `prince-of-space-bundled`.
+
 ## [0.1.0] — 2026-04-18
 
 First release on **Maven Central** (`io.github.agustafson`).
