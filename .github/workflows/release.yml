@@ -34,6 +34,9 @@ jobs:
         with:
           # Full history required for Nyx to read all conventional commits and tags.
           fetch-depth: 0
+          # Default checkout does not always fetch tags; without them Nyx sees no prior release
+          # and keeps inferring initialVersion (e.g. 0.1.0 forever).
+          fetch-tags: true
 
       - uses: actions/setup-java@v5
         with:
@@ -187,3 +190,19 @@ jobs:
             "$CLI_JAR" \
             "$IJ_ZIP" \
             "$VSIX"
+
+      # One chore commit per release: local ./gradlew uses the next patch line (e.g. 0.1.1-SNAPSHOT
+      # after shipping v0.1.0). Does not affect Nyx (tags are the source of truth for infer).
+      - name: Bump gradle.properties to next patch SNAPSHOT
+        if: ${{ !inputs.dry_run }}
+        env:
+          RELEASE_VERSION: ${{ steps.nyx.outputs.version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          IFS=. read -r major minor patch <<<"${RELEASE_VERSION}"
+          NEXT_SNAPSHOT="${major}.${minor}.$((patch + 1))-SNAPSHOT"
+          sed -i 's/^version=.*/version='"${NEXT_SNAPSHOT}"'/' gradle.properties
+          git add gradle.properties
+          git commit -m "chore: set version to ${NEXT_SNAPSHOT} after v${RELEASE_VERSION}"
+          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${GITHUB_REF_NAME}"

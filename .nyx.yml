@@ -22,5 +22,7 @@ releaseTypes:
       publish: "false"
 
 scheme: SEMVER
-# Starting point for version inference before the first release tag exists.
+# Used only when there are no matching release tags in git (see RELEASING.md). After the first
+# v* tag exists, Nyx bumps from that tag + conventional commits — not from this file or
+# gradle.properties.
 initialVersion: "0.1.0"

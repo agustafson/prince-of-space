@@ -129,6 +129,22 @@ Publishing the IntelliJ plugin to the **JetBrains Marketplace** and the VS Code 
 
 ## Version inference rules (Nyx)
 
+**Source of truth is git**, not `gradle.properties` or Maven Central. Nyx looks for release
+tags named like `vX.Y.Z` on the branch; the release workflow creates that tag at the end.
+If **no such tags** exist in the clone (for example tags were never pushed, or CI did not
+fetch tags), Nyx falls back to **`initialVersion`** in `.nyx.yml` — often `0.1.0` — and will
+keep proposing that version until a real `v*` tag appears.
+
+The `version=` line in `gradle.properties` is a **local / non-release default** (usually
+`*.*.*-SNAPSHOT` on the next patch line). The release workflow overrides it with
+`ORG_GRADLE_PROJECT_version` while building a release, then **commits** a bump to the next
+patch SNAPSHOT (e.g. after shipping `v0.1.0`, main gets `version=0.1.1-SNAPSHOT`). That is
+**one `chore:` commit per release** — predictable churn, not constant edits. It still does
+**not** drive Nyx; **tags + conventional commits** do.
+
+If `git push` for that commit fails (e.g. branch protection), allow the GitHub Actions app
+to push to `main` or adjust protection rules.
+
 Nyx reads the git log since the last `vX.Y.Z` tag and applies these rules:
 
 | Commit type | Version bump |
@@ -163,6 +179,23 @@ Releases as a download artifact (not published to Maven Central).
 ---
 
 ## Recovery
+
+### Nyx infers `0.1.0` again (or the same version you already released)
+
+1. **Confirm the release tag exists on GitHub:** e.g. `v0.1.0` on the commit you meant to
+   ship. If the workflow failed **before** “Tag and push”, you may have published to
+   Central without creating the tag — create it once:
+   `git tag v0.1.0 <commit-sha> && git push origin v0.1.0`
+2. **Ensure CI sees tags:** the release workflow uses `actions/checkout` with
+   `fetch-tags: true` so Nyx is not blind to existing tags.
+3. **Ensure there are new conventional commits** after that tag (e.g. `fix: …`) so Nyx
+   can infer a **patch** (e.g. `0.1.1`). If `main` has no commits after `v0.1.0`, there is
+   nothing new to release.
+
+Automatically rewriting `gradle.properties` in the workflow does **not** fix Nyx
+inference; it does not use that file for `infer`. Optional follow-up: after each release,
+commit a higher **`-SNAPSHOT`** in `gradle.properties` by hand if you want the default
+local version to reflect “next patch line”.
 
 ### Central Portal validation failed
 
