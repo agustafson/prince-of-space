@@ -147,6 +147,7 @@ jobs:
         if: ${{ !inputs.dry_run }}
         run: |
           DEPLOYMENT_ID="${{ steps.upload.outputs.deployment_id }}"
+          SKIP_CENTRAL_PUBLISH=false
           for i in $(seq 1 18); do
             sleep 10
             STATUS_JSON=$(curl --silent --show-error --fail --request POST \
@@ -159,13 +160,27 @@ jobs:
               FAILED)
                 echo "::error::Central Portal validation failed — full status:"
                 echo "$STATUS_JSON" | jq .
+                # Recovery case: previous run may have already published this exact version,
+                # then failed in a later workflow step (e.g. packaging/tagging). In that case
+                # Central rejects duplicates; continue without re-publishing.
+                if echo "$STATUS_JSON" | jq -e '
+                  [.errors[][]] as $errs
+                  | ($errs | length > 0)
+                  and ($errs | all(test("already exists")))
+                ' >/dev/null; then
+                  echo "::warning::All Central validation errors are duplicate coordinates (already exists)."
+                  echo "::warning::Treating this as already-published and continuing release workflow."
+                  SKIP_CENTRAL_PUBLISH=true
+                  break
+                fi
                 exit 1
                 ;;
             esac
           done
+          echo "SKIP_CENTRAL_PUBLISH=${SKIP_CENTRAL_PUBLISH}" >> "$GITHUB_ENV"
 
       - name: Publish to Maven Central
-        if: ${{ !inputs.dry_run }}
+        if: ${{ !inputs.dry_run && env.SKIP_CENTRAL_PUBLISH != 'true' }}
         run: |
           curl --silent --fail --request POST \
             --header "Authorization: Bearer ${{ secrets.SONATYPE_CENTRAL_TOKEN }}" \
@@ -199,8 +214,18 @@ jobs:
       - name: Tag and push release
         if: ${{ !inputs.dry_run }}
         run: |
-          git tag "v${{ steps.version.outputs.version }}"
-          git push origin "v${{ steps.version.outputs.version }}"
+          set -euo pipefail
+          TAG="v${{ steps.version.outputs.version }}"
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            echo "Tag ${TAG} already exists locally; skipping create."
+          else
+            git tag "${TAG}"
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists on origin; skipping push."
+          else
+            git push origin "${TAG}"
+          fi
 
       - name: Create GitHub Release (with downloadable assets)
         if: ${{ !inputs.dry_run }}
@@ -215,12 +240,22 @@ jobs:
           for f in "$CLI_JAR" "$IJ_ZIP" "$VSIX"; do
             if [[ ! -f "$f" ]]; then echo "::error::Missing release asset: $f"; exit 1; fi
           done
-          gh release create "v${RELEASE_VERSION}" \
-            --generate-notes \
-            --title "v${RELEASE_VERSION}" \
-            "$CLI_JAR" \
-            "$IJ_ZIP" \
-            "$VSIX"
+          TAG="v${RELEASE_VERSION}"
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            echo "GitHub Release ${TAG} already exists; uploading assets with --clobber."
+            gh release upload "${TAG}" \
+              "$CLI_JAR" \
+              "$IJ_ZIP" \
+              "$VSIX" \
+              --clobber
+          else
+            gh release create "${TAG}" \
+              --generate-notes \
+              --title "${TAG}" \
+              "$CLI_JAR" \
+              "$IJ_ZIP" \
+              "$VSIX"
+          fi
 
       # One chore commit per release: local ./gradlew uses the next patch line (e.g. 0.1.1-SNAPSHOT
       # after shipping v0.1.0). Does not affect CI version inference (tags + conventional commits).
@@ -233,7 +268,15 @@ jobs:
           set -euo pipefail
           IFS=. read -r major minor patch <<<"${RELEASE_VERSION}"
           NEXT_SNAPSHOT="${major}.${minor}.$((patch + 1))-SNAPSHOT"
+          if grep -q "^version=${NEXT_SNAPSHOT}$" gradle.properties; then
+            echo "gradle.properties already at ${NEXT_SNAPSHOT}; skipping bump commit."
+            exit 0
+          fi
           sed -i 's/^version=.*/version='"${NEXT_SNAPSHOT}"'/' gradle.properties
           git add gradle.properties
+          if git diff --cached --quiet; then
+            echo "No staged gradle.properties changes; skipping bump commit."
+            exit 0
+          fi
           git commit -m "chore: set version to ${NEXT_SNAPSHOT} after v${RELEASE_VERSION}"
           git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${GITHUB_REF_NAME}"

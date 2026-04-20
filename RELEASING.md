@@ -209,6 +209,16 @@ Check the deployment status at <https://central.sonatype.com/publishing/deployme
 Common causes: missing signatures, malformed POM, missing sources/javadoc. Fix the
 root cause, then re-run the workflow.
 
+If all errors are `already exists` for the same `groupId:artifactId:version`, a previous
+run likely published successfully and failed later in the workflow. The release workflow
+detects this duplicate-only case and continues (skipping re-publish) so tagging/GitHub
+Release can complete.
+
+The release workflow is retry-safe for post-publish steps: it skips tag creation/push if
+`vX.Y.Z` already exists, updates an existing GitHub Release by re-uploading assets
+(`--clobber`), and skips the `gradle.properties` bump commit when already at the next
+snapshot.
+
 ### Workflow succeeded but artifacts not on Maven Central after 30 minutes
 
 Log in to <https://central.sonatype.com/publishing/deployments>, find the deployment,
