@@ -92,11 +92,19 @@ Before triggering the workflow, verify:
 
 ## Triggering a release
 
-Release version inference uses the **Nyx GitHub Action** (`mooltiverse/nyx`) with this
-repository’s `.nyx.yml` — the **Gradle Nyx plugin is not used**, so local `./gradlew`
-stays compatible with the configuration cache. To preview the next version locally, run
-the same Nyx container the action uses (see the [Nyx Docker image](https://github.com/mooltiverse/nyx))
-or trigger a workflow dry run.
+Release version inference runs **Nyx** in CI: it reads the latest `v*` tag and commit
+messages since that tag (same bump rules as the table below). To preview locally, run Nyx
+from Docker:
+
+```bash
+docker run --rm -v "$(pwd):/repo" -w /repo ghcr.io/mooltiverse/nyx:latest infer --configuration-file=.nyx.yml
+```
+
+Ensure tags are fetched first (`git fetch --tags`). Or trigger a workflow **dry run** and
+read the log.
+
+You can **override** the version with the workflow input **`release_version`** (e.g. `0.2.0`)
+when you need to ship without conventional commits or to correct a mistake.
 
 ### Dry run (verify version inference without publishing)
 
@@ -114,7 +122,7 @@ or tag anything. Check the logs to confirm the inferred version is correct.
 3. Click **Run workflow**
 
 The workflow will:
-1. Infer the next version from git tags + conventional commits (Nyx)
+1. Infer the next version from git tags + conventional commits (see below)
 2. Run the full test suite
 3. Build and GPG-sign all artifacts (`core`, `spotless`, `core-bundled`)
 4. Bundle artifacts and upload to Sonatype Central Portal
@@ -129,37 +137,32 @@ Publishing the IntelliJ plugin to the **JetBrains Marketplace** and the VS Code 
 
 ## Version inference rules (Nyx)
 
-**Source of truth is git**, not `gradle.properties` or Maven Central. Nyx looks for release
-tags named like `vX.Y.Z` and matches **`.nyx.yml` `matchBranches`** against the **current
-branch name**. GitHub Actions’ `actions/checkout` normally leaves a **detached HEAD**, so
-the branch name is not `main` and Nyx would **not** match `^main$` — it then falls back to
-**`initialVersion`** (e.g. `0.1.0`) every time. The release workflow runs
-`git checkout -B "${GITHUB_REF_NAME}"` before Nyx so the branch name is correct.
+**Source of truth is git**, not `gradle.properties` or Maven Central. Nyx inspects `vX.Y.Z`
+tags and commit messages after the latest matching tag. If there are no matching bump-worthy
+commits, the inferred version can equal the latest tag and the workflow fails.
 
-If **no `v*` tags** exist in the clone (tags not pushed, or CI did not fetch tags), Nyx also
-falls back to **`initialVersion`** in `.nyx.yml` until a real tag exists.
+The release workflow checks out with **`fetch-depth: 0`** and **`fetch-tags: true`** so tags
+and history are present. If **no `v*` tags** exist yet, Nyx uses **`0.1.0`**
+(`initialVersion` in `.nyx.yml`).
 
 The `version=` line in `gradle.properties` is a **local / non-release default** (usually
 `*.*.*-SNAPSHOT` on the next patch line). The release workflow overrides it with
 `ORG_GRADLE_PROJECT_version` while building a release, then **commits** a bump to the next
 patch SNAPSHOT (e.g. after shipping `v0.1.0`, main gets `version=0.1.1-SNAPSHOT`). That is
-**one `chore:` commit per release** — predictable churn, not constant edits. It still does
-**not** drive Nyx; **tags + conventional commits** do.
+**one `chore:` commit per release** — predictable churn. It does **not** drive CI
+inference; **Nyx + tags + conventional commits** do.
 
 If `git push` for that commit fails (e.g. branch protection), allow the GitHub Actions app
 to push to `main` or adjust protection rules.
 
-Nyx reads the git log since the last `vX.Y.Z` tag and applies these rules:
-
-| Commit type | Version bump |
-|-------------|-------------|
+| Commit pattern | Version bump |
+|----------------|--------------|
 | `feat:` | minor (`0.1.0` → `0.2.0`) |
-| `fix:`, `chore:`, `docs:`, `style:`, `refactor:`, `test:`, `ci:` | patch (`0.1.0` → `0.1.1`) |
-| `feat!:`, `fix!:`, or `BREAKING CHANGE:` in footer | major (`0.1.0` → `1.0.0`) |
+| `fix:`, `chore:`, `docs:`, `style:`, `refactor:`, `test:`, `ci:`, `perf:`, `build:` | patch (`0.1.0` → `0.1.1`) |
+| `type!:` / `type(scope)!:` or `BREAKING CHANGE:` footer | major (`0.1.0` → `1.0.0`) |
 
-If no releasable commits exist (e.g. only `chore:` commits), Nyx will still infer a
-patch version. If the inferred version is the same as the last tag, the workflow will
-abort with an error.
+The **highest** bump among commits since the last tag wins. If the inferred version equals
+the latest `v*` tag, the workflow aborts with an error (nothing new to ship).
 
 ---
 
@@ -184,22 +187,21 @@ Releases as a download artifact (not published to Maven Central).
 
 ## Recovery
 
-### Nyx infers `0.1.0` again (or the same version you already released)
+### Inference fails or equals the last tag (`0.1.0` again, or “nothing new to release”)
 
 1. **Confirm the release tag exists on GitHub:** e.g. `v0.1.0` on the commit you meant to
    ship. If the workflow failed **before** “Tag and push”, you may have published to
    Central without creating the tag — create it once:
    `git tag v0.1.0 <commit-sha> && git push origin v0.1.0`
 2. **Ensure CI sees tags:** the release workflow uses `actions/checkout` with
-   `fetch-tags: true` so Nyx is not blind to existing tags.
-3. **Ensure there are new conventional commits** after that tag (e.g. `fix: …`) so Nyx
-   can infer a **patch** (e.g. `0.1.1`). If `main` has no commits after `v0.1.0`, there is
-   nothing new to release.
+   `fetch-tags: true` and full history.
+3. **Ensure there are commits after that tag** with **conventional messages** (`fix:`, `feat:`,
+   etc.). Reproduce locally with Nyx (Docker command above) after `git fetch --tags`.
+   If you must ship without those commits, set workflow input **`release_version`**.
 
-Automatically rewriting `gradle.properties` in the workflow does **not** fix Nyx
-inference; it does not use that file for `infer`. Optional follow-up: after each release,
-commit a higher **`-SNAPSHOT`** in `gradle.properties` by hand if you want the default
-local version to reflect “next patch line”.
+`gradle.properties` is **not** used for inference in CI. Optional: after each release, commit
+a higher **`-SNAPSHOT`** in `gradle.properties` if you want the default local version to
+reflect the “next patch line”.
 
 ### Central Portal validation failed
 

@@ -1,7 +1,8 @@
 name: Release
 
-# Triggered manually. Infers the next version with the Nyx GitHub Action (Docker),
-# passes it to Gradle via ORG_GRADLE_PROJECT_version, then builds and signs all
+# Triggered manually. Infers the next version with Nyx (git tags + conventional commits),
+# or an optional manual override. Passes version to Gradle via
+# ORG_GRADLE_PROJECT_version, then builds and signs all
 # artifacts, uploads to Sonatype Central Portal, then creates
 # a git tag and a GitHub Release.
 #
@@ -20,6 +21,11 @@ on:
         required: false
         type: boolean
         default: false
+      release_version:
+        description: "Override release version (e.g. 0.2.0). Leave empty to infer from tags + commits."
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: write
@@ -32,10 +38,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          # Full history required for Nyx to read all conventional commits and tags.
+          # Full history + tags for Nyx version inference.
           fetch-depth: 0
-          # Default checkout does not always fetch tags; without them Nyx sees no prior release
-          # and keeps inferring initialVersion (e.g. 0.1.0 forever).
           fetch-tags: true
 
       - uses: actions/setup-java@v5
@@ -50,39 +54,43 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      # checkout@v6 leaves a detached HEAD at the commit. Nyx's matchBranches: "^main$"
-      # uses the current branch name — detached HEAD does not match, so Nyx falls back to
-      # initialVersion (0.1.0) and never bumps. Create a local branch at this commit.
-      - name: Use named branch for Nyx (avoid detached HEAD)
+      - name: Use named branch at current ref (clearer git state for tagging later)
         run: git checkout -B "${GITHUB_REF_NAME}"
 
-      # Uses project .nyx.yml (same rules as before). No Nyx Gradle plugin — keeps
-      # configuration cache viable; Gradle only receives -Pversion via the env var below.
       - name: Infer next release version with Nyx
+        if: ${{ inputs.release_version == '' }}
         id: nyx
-        uses: mooltiverse/nyx@main
+        uses: mooltiverse/nyx@3.1.7
         with:
           command: infer
           configurationFile: .nyx.yml
 
-      - name: Validate inferred version and export for Gradle
+      - name: Resolve release version
+        id: version
         run: |
-          VERSION="${{ steps.nyx.outputs.version }}"
+          set -euo pipefail
+          if [[ -n "${{ inputs.release_version }}" ]]; then
+            VERSION="${{ inputs.release_version }}"
+            echo "Using workflow input override: ${VERSION}" >&2
+          else
+            VERSION="${{ steps.nyx.outputs.version }}"
+            echo "Using Nyx inferred version: ${VERSION}" >&2
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate version and export for Gradle
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
           if [[ -z "$VERSION" || "$VERSION" == *"SNAPSHOT"* ]]; then
-            echo "::error::Inferred version '$VERSION' is not a release version. Ensure there are" \
-                 "unreleased conventional commits (feat/fix/!) since the last tag."
+            echo "::error::Version '$VERSION' is not valid for release."
             exit 1
           fi
-          # Fail before publishing if we would ship the same semver as the latest v* tag again
-          # (Central rejects duplicate coordinates; Nyx used to fall back to initialVersion when
-          # matchBranches did not match detached HEAD).
           LAST_TAG="$(git tag -l 'v*' | sort -V | tail -n1)"
           if [[ -n "$LAST_TAG" ]]; then
             LAST_VER="${LAST_TAG#v}"
             if [[ "$VERSION" == "$LAST_VER" ]]; then
-              echo "::error::Inferred version '$VERSION' equals latest tag '$LAST_TAG'. Nothing new to" \
-                   "release, or Nyx did not see commits after that tag. Push conventional commits" \
-                   "since '$LAST_TAG', or fix branch/tag visibility for Nyx."
+              echo "::error::Version '$VERSION' equals latest tag '$LAST_TAG'. Nothing new to release," \
+                   "or use workflow input release_version to override."
               exit 1
             fi
           fi
@@ -181,7 +189,7 @@ jobs:
         if: ${{ !inputs.dry_run }}
         working-directory: modules/vscode-extension
         env:
-          RELEASE_VERSION: ${{ steps.nyx.outputs.version }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
           npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
           npm ci
@@ -191,14 +199,14 @@ jobs:
       - name: Tag and push release
         if: ${{ !inputs.dry_run }}
         run: |
-          git tag "v${{ steps.nyx.outputs.version }}"
-          git push origin "v${{ steps.nyx.outputs.version }}"
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
 
       - name: Create GitHub Release (with downloadable assets)
         if: ${{ !inputs.dry_run }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_VERSION: ${{ steps.nyx.outputs.version }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
           CLI_JAR="modules/cli/build/libs/prince-of-space-cli-${RELEASE_VERSION}.jar"
@@ -215,11 +223,11 @@ jobs:
             "$VSIX"
 
       # One chore commit per release: local ./gradlew uses the next patch line (e.g. 0.1.1-SNAPSHOT
-      # after shipping v0.1.0). Does not affect Nyx (tags are the source of truth for infer).
+      # after shipping v0.1.0). Does not affect CI version inference (tags + conventional commits).
       - name: Bump gradle.properties to next patch SNAPSHOT
         if: ${{ !inputs.dry_run }}
         env:
-          RELEASE_VERSION: ${{ steps.nyx.outputs.version }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **CI** — Release workflow uses Nyx again for version inference, pinned to a stable action version and configured so conventional `chore/docs/style/refactor/test/ci/perf/build` commits count as patch bumps.
+
 ### Fixed
 
 - **Maven publication:** set explicit `artifactId` on `:core` and `:spotless` publications (`prince-of-space-core`, `prince-of-space-spotless`). Gradle’s default was the subproject name (`core`, `spotless`). The bundled artifact already used `prince-of-space-bundled`.

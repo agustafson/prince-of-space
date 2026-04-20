@@ -2,7 +2,7 @@
 
 ## Conventional Commits
 
-Use [Conventional Commits](https://www.conventionalcommits.org/) so release tooling (Nyx) and changelogs stay consistent.
+Use [Conventional Commits](https://www.conventionalcommits.org/) so release version inference (Nyx) and changelogs stay consistent.
 
 Examples:
 

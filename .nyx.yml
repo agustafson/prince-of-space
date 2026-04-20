@@ -1,13 +1,23 @@
-# Nyx release automation configuration.
-# Reads conventional commits to infer the next semantic version.
+# Nyx configuration used by .github/workflows/release.yml to infer release versions
+# from git tags + conventional commits.
 # Tagging, publishing, and GitHub Release creation are handled by the release workflow.
-# See RELEASING.md for the full release process.
 
 # Use the built-in Conventional Commits convention.
 # feat → minor bump, fix → patch bump, breaking (! or BREAKING CHANGE) → major bump.
 commitMessageConventions:
   enabled:
     - conventionalCommits
+  items:
+    conventionalCommits:
+      # Conventional Commits first-line parser: type(scope)!: subject
+      expression: "(?m)^(?<type>[a-zA-Z0-9_]+)(\\((?<scope>[a-zA-Z0-9 \\-_]+)\\))?(!)?:( (?<title>.+))$(?s).*"
+      bumpExpressions:
+        # Any breaking marker (! or BREAKING CHANGE footer) forces major.
+        major: "(?s)(?m)^[a-zA-Z0-9_]+(\\([a-zA-Z0-9 \\-_]+\\))?(!: .*|.*^(BREAKING( |-)CHANGE: )).*"
+        # Features drive minor unless breaking.
+        minor: "(?s)(?m)^feat(!{0})(\\([a-zA-Z0-9 \\-_]+\\))?: (?!.*^(BREAKING( |-)CHANGE: )).*"
+        # Treat non-feature conventional types as patch in this project.
+        patch: "(?s)(?m)^(fix|chore|docs|style|refactor|test|ci|perf|build)(!{0})(\\([a-zA-Z0-9 \\-_]+\\))?: (?!.*^(BREAKING( |-)CHANGE: )).*"
 
 releaseTypes:
   enabled:
@@ -22,7 +32,5 @@ releaseTypes:
       publish: "false"
 
 scheme: SEMVER
-# Used only when there are no matching release tags in git (see RELEASING.md). After the first
-# v* tag exists, Nyx bumps from that tag + conventional commits — not from this file or
-# gradle.properties.
+# Used only when there are no matching release tags in git (see RELEASING.md).
 initialVersion: "0.1.0"
