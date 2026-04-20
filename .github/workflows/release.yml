@@ -179,7 +179,7 @@ jobs:
 
       - name: Set up Node (VS Code extension)
         if: ${{ !inputs.dry_run }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: npm
@@ -191,8 +191,8 @@ jobs:
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
           npm ci
+          npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
           npm run compile
           npx --yes @vscode/vsce@3 package --out "$GITHUB_WORKSPACE/prince-of-space-vscode-${RELEASE_VERSION}.vsix"
 
