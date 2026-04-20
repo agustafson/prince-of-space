@@ -22,6 +22,11 @@
     "onLanguage:java"
   ],
   "main": "./out/extension.js",
+  "files": [
+    "out/**",
+    "README.md",
+    "LICENSE"
+  ],
   "contributes": {
     "configuration": {
       "title": "Prince of Space",
