@@ -219,6 +219,10 @@ The release workflow is retry-safe for post-publish steps: it skips tag creation
 (`--clobber`), and skips the `gradle.properties` bump commit when already at the next
 snapshot.
 
+If branch protection blocks direct pushes to `main`, the workflow logs a warning and
+continues (release remains successful). In that case, apply the `gradle.properties`
+`-SNAPSHOT` bump through a normal PR.
+
 ### Workflow succeeded but artifacts not on Maven Central after 30 minutes
 
 Log in to <https://central.sonatype.com/publishing/deployments>, find the deployment,

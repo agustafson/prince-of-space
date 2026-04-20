@@ -279,4 +279,9 @@ jobs:
             exit 0
           fi
           git commit -m "chore: set version to ${NEXT_SNAPSHOT} after v${RELEASE_VERSION}"
-          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${GITHUB_REF_NAME}"
+          # Branch protection may forbid direct pushes to main. Do not fail the release if this
+          # housekeeping commit cannot be pushed; the next run can still use Nyx + tags safely.
+          if ! git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${GITHUB_REF_NAME}"; then
+            echo "::warning::Could not push ${NEXT_SNAPSHOT} bump commit (likely branch protection)."
+            echo "::warning::Create this commit via PR manually, or allow GitHub Actions to bypass protection."
+          fi
