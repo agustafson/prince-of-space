@@ -4,6 +4,7 @@
 
 | Document | Contents |
 |----------|----------|
+| [Canonical Formatting Rules](canonical-formatting-rules.md) | Normative formatter contract used for implementation, bug fixes, and behavior changes |
 | [Formatting Rules](formatting-rules.md) | All formatting rules, the 8 configuration options, and examples of how each option affects output |
 | [Output Showcase](output-showcase.md) | Side-by-side comparison of `balanced`, `wide`, and `narrow` wrap styles, continuation indent, and closing-paren placement |
 | [Interactive Comparator](comparator.md) | Pick a Java version and two configs to compare formatted output side-by-side |

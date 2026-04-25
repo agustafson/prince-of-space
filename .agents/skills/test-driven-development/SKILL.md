@@ -35,7 +35,7 @@ Skip strict TDD only when the change is purely mechanical (rename, move) with ex
 
 - Prefer tests next to or under the module’s conventional test source set (`src/test/java`).
 - Use **golden-file** or snapshot-style assertions when output text must stay stable (formatter output, error messages).
-- For determinism-sensitive code, tests should pin **inputs and config** (including `languageLevel`, line endings); align with `docs/FORMATTING_OPTIONS.md` at the repo root.
+- For determinism-sensitive formatter work, tests should pin **inputs and config** (including `languageLevel`, line endings); align behavior with `docs/canonical-formatting-rules.md`.
 
 ## Agent checklist
 

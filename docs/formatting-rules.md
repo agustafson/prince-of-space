@@ -1,5 +1,8 @@
 # Formatting Decisions & Configuration Options
 
+> This document is a user-facing explainer with examples.
+> The normative formatter contract is `docs/canonical-formatting-rules.md`.
+
 This document lists the key formatting decision points for the Prince of Space formatter. Each section describes a decision area, the options, what other formatters do, and our proposed default.
 
 ---

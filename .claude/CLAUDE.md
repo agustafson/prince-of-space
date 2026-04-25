@@ -11,7 +11,8 @@ A configurable Java code formatter. See `README.md` for an overview and `docs/te
 | `ARCHITECTURE.md` | Package layout, coding conventions, module structure, config options |
 | `CONTRIBUTING.md` | Commit conventions, build requirements, PR checks |
 | `docs/technical-decision-register.md` | Canonical log of technical/product decisions and rationale |
-| `docs/formatting-rules.md` | All formatting rules and the 8 config knobs |
+| `docs/canonical-formatting-rules.md` | Canonical, normative formatter behavior rules (MUST follow for formatter changes) |
+| `docs/formatting-rules.md` | User-facing explainer and examples for config knobs and formatting behavior |
 
 ## Build commands
 
@@ -33,3 +34,4 @@ Always run `:core:test` after any change to `modules/core/`. A clean `./gradlew 
 - `Formatter` must not import JavaParser or any other third-party library directly.
 - Tests for package-private classes live in the same package as the class (`src/test/java/io/princeofspace/internal/`).
 - Every test touching `Formatter` must assert idempotency: `format(format(x)) == format(x)`.
+- For any formatter behavior change or bugfix, treat `docs/canonical-formatting-rules.md` as the canonical contract. If behavior changes intentionally, update that document in the same PR.
