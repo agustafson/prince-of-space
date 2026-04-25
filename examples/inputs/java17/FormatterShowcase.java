@@ -74,6 +74,11 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
         return legacyField != null && !legacyField.isBlank() && items != null && !items.isEmpty() && items.stream().allMatch(item -> item != null && !item.isBlank()) && complexGenericField != null && complexGenericField.size() > 0;
     }
 
+    // Scenario 9b: Boolean operator chain with nested wrapped method chain operand
+    public boolean hasMatchingItem(String query) {
+        return items != null && items.stream().map(String::trim).filter(s -> !s.isBlank()).map(String::toLowerCase).anyMatch(s -> s.contains(query.toLowerCase()));
+    }
+
     // Scenario 10: If/else without braces
     public String categorize(int value) {
         if (value < 0) return "negative";

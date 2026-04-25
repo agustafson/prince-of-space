@@ -4,6 +4,7 @@ import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.BinaryExpr;
 import com.github.javaparser.ast.expr.EnclosedExpr;
 import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.utils.StringEscapeUtils;
 import io.princeofspace.model.WrapStyle;
@@ -21,6 +22,7 @@ final class BinaryExprFormatter {
     private static final int MIN_LEAVES_FOR_FORCED_STRING_RECHUNK = 128;
     private static final int LOGICAL_OPERATOR_WITH_SPACES_WIDTH = 4; // e.g. " && " / " || "
     private static final int STRING_CONCAT_OPERATOR_WITH_SPACES_WIDTH = 3; // " + "
+    private static final int NESTED_CHAIN_LEFT_SHIFT_INDENT_MULTIPLIER = 2;
 
     private final LayoutContext ctx;
     private final CommentUtils comments;
@@ -57,7 +59,7 @@ final class BinaryExprFormatter {
             }
             String os = n.getOperator().asString();
             if (ctx.config().wrapStyle() == WrapStyle.BALANCED || ctx.config().wrapStyle() == WrapStyle.NARROW) {
-                boolean prevTrailing = printExprWithTrailingCommentAfter(parts.get(0), arg);
+                boolean prevTrailing = printExprWithTrailingCommentAfterWithNestedChainIndent(parts.get(0), arg);
                 for (int i = 1; i < parts.size(); i++) {
                     boolean interOperandComment = comments.hasCommentBetweenNodes(parts.get(i - 1), parts.get(i));
                     if (comments.hasLeadingLineOrBlockComment(parts.get(i)) || interOperandComment) {
@@ -70,7 +72,7 @@ final class BinaryExprFormatter {
                         ctx.printCont();
                         ctx.print(os);
                         ctx.print(" ");
-                        prevTrailing = printExprWithTrailingCommentAfter(parts.get(i), arg);
+                        prevTrailing = printExprWithTrailingCommentAfterWithNestedChainIndent(parts.get(i), arg);
                     }
                 }
             } else {
@@ -103,7 +105,7 @@ final class BinaryExprFormatter {
             }
             String os = n.getOperator().asString();
             if (ctx.config().wrapStyle() == WrapStyle.BALANCED || ctx.config().wrapStyle() == WrapStyle.NARROW) {
-                boolean prevTrailing = printExprWithTrailingCommentAfter(parts.get(0), arg);
+                boolean prevTrailing = printExprWithTrailingCommentAfterWithNestedChainIndent(parts.get(0), arg);
                 for (int i = 1; i < parts.size(); i++) {
                     boolean interOperandComment = comments.hasCommentBetweenNodes(parts.get(i - 1), parts.get(i));
                     if (comments.hasLeadingLineOrBlockComment(parts.get(i)) || interOperandComment) {
@@ -116,7 +118,7 @@ final class BinaryExprFormatter {
                         ctx.printCont();
                         ctx.print(os);
                         ctx.print(" ");
-                        prevTrailing = printExprWithTrailingCommentAfter(parts.get(i), arg);
+                        prevTrailing = printExprWithTrailingCommentAfterWithNestedChainIndent(parts.get(i), arg);
                     }
                 }
             } else {
@@ -164,7 +166,7 @@ final class BinaryExprFormatter {
                 return;
             }
             if (ctx.config().wrapStyle() == WrapStyle.NARROW) {
-                boolean prevTrailing = printExprWithTrailingCommentAfter(parts.get(0), arg);
+                boolean prevTrailing = printExprWithTrailingCommentAfterWithNestedChainIndent(parts.get(0), arg);
                 for (int i = 1; i < parts.size(); i++) {
                     if (comments.hasLeadingLineOrBlockComment(parts.get(i))) {
                         printBinaryChainOperandWithInterposedLeadingComments(parts.get(i), "+", arg);
@@ -175,7 +177,7 @@ final class BinaryExprFormatter {
                         }
                         ctx.printCont();
                         ctx.print("+ ");
-                        prevTrailing = printExprWithTrailingCommentAfter(parts.get(i), arg);
+                        prevTrailing = printExprWithTrailingCommentAfterWithNestedChainIndent(parts.get(i), arg);
                     }
                 }
             } else {
@@ -258,7 +260,7 @@ final class BinaryExprFormatter {
 
     /** Greedily packs binary operands while respecting line length. */
     void printBinaryGreedy(List<Expression> parts, String op, Void arg, int budget) {
-        boolean prevTrailing = printExprWithTrailingCommentAfter(parts.get(0), arg);
+        boolean prevTrailing = printExprWithTrailingCommentAfterWithNestedChainIndent(parts.get(0), arg);
         int used = ctx.column();
         for (int i = 1; i < parts.size(); i++) {
             int opLen = op.length() + 2; // " op "
@@ -286,9 +288,36 @@ final class BinaryExprFormatter {
                 ctx.print(" ");
                 used += opLen;
             }
-            prevTrailing = printExprWithTrailingCommentAfter(parts.get(i), arg);
+            prevTrailing = printExprWithTrailingCommentAfterWithNestedChainIndent(parts.get(i), arg);
             used = ctx.column();
         }
+    }
+
+    private boolean printExprWithTrailingCommentAfterWithNestedChainIndent(Expression expr, Void arg) {
+        if (!isMethodChainExpression(stripEnclosed(expr))) {
+            return printExprWithTrailingCommentAfter(expr, arg);
+        }
+        int nestedChainColumn = Math.max(
+                0,
+                ctx.column()
+                        - (ctx.config().indentSize() * NESTED_CHAIN_LEFT_SHIFT_INDENT_MULTIPLIER));
+        ctx.indentWithAlignToSafe(nestedChainColumn);
+        try {
+            return printExprWithTrailingCommentAfter(expr, arg);
+        } finally {
+            ctx.unindent();
+        }
+    }
+
+    private static Expression stripEnclosed(Expression e) {
+        while (e instanceof EnclosedExpr enc) {
+            e = enc.getInner();
+        }
+        return e;
+    }
+
+    private static boolean isMethodChainExpression(Expression e) {
+        return e instanceof MethodCallExpr mc && mc.getScope().isPresent();
     }
 
     /**

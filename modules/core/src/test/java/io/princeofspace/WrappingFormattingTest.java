@@ -884,6 +884,32 @@ class WrappingFormattingTest {
     }
 
     @Test
+    void logicalAnd_withWrappedMethodChainOperand_indentsChainDeeperThanBooleanOperator() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(70)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .build());
+        String input =
+                """
+                import java.util.List;
+
+                class T {
+                    boolean m(List<String> items, String q) {
+                        return items != null && items.stream().map(String::trim).filter(s -> !s.isEmpty()).anyMatch(s -> s.contains(q));
+                    }
+                }
+                """;
+        String out = f.format(input);
+        String operatorLine = lineContaining(out, "&& items");
+        String firstChainLine = lineContaining(out, ".stream()");
+        assertThat(leadingSpaces(firstChainLine)).isGreaterThan(leadingSpaces(operatorLine));
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
     void maxLineLength_enforcedForWideMethodParameters() {
         int max = 55;
         Formatter f =
