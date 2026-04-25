@@ -106,3 +106,11 @@ Use it as the primary source of *why* design choices exist.
 - **Rationale:** Additive continuation indent yields consistent visual depth across nested contexts and avoids surprising left shifts for wrapped chains inside expressions.
 - **Consequences:** Wrapped segments in nested expressions use the same continuation math as top-level wrapped segments; docs and tests should assert additive behavior.
 - **Related docs:** `docs/formatting-rules.md`, `modules/core/src/test/java/io/princeofspace/WrappingFormattingTest.java`
+
+### TDR-013: Showroom rule-uniformity migration is complete
+- **Date:** 2026-04
+- **Status:** Accepted
+- **Decision:** Treat `docs/rule-uniformity-migration-plan.md` Tasks 1.1 through 6.2 as done: `wrapStyle` behavior is consistent across the showroom’s list-like and wrapping constructs, with regression coverage in `WrappingFormattingTest` and an overview check in `RuleUniformityTest`.
+- **Rationale:** One wrap vocabulary (`wide` / `balanced` / `narrow`) keeps configuration predictable; the rule-uniformity plan drove alignment between docs, the Java printer, and golden outputs.
+- **Consequences:** Further wrapping tweaks should update `docs/formatting-rules.md` and the showroom in lockstep; avoid reintroducing per-construct ad-hoc wrap semantics without a TDR.
+- **Related docs:** `docs/rule-uniformity-migration-plan.md`, `docs/formatting-rules.md`, `modules/core/src/test/java/io/princeofspace/RuleUniformityTest.java`

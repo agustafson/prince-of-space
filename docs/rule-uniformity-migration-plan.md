@@ -489,7 +489,7 @@ Same. Scenario for try-with-resources in goldens reflows.
 
 ---
 
-## Task 6.1 — Implement `AnnotationArranger`
+## Task 6.1 — Implement `AnnotationArranger` ✅ COMPLETED
 
 ### Read first
 
@@ -543,7 +543,7 @@ Same. Goldens for type bodies will lose the blank line after `{`.
 
 ---
 
-## Task 6.3 — Final docs + `RuleUniformityTest`
+## Task 6.3 — Final docs + `RuleUniformityTest` ✅ COMPLETED
 
 ### Read first
 

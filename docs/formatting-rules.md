@@ -90,6 +90,8 @@ When wrapping is triggered, how do we distribute elements across lines?
 
 The `balanced` strategy (Prettier's approach) avoids the messy middle ground where some args are on one line and others on the next. Either it all fits, or each gets its own line.
 
+**Uniform “list-like” shape:** the same `wrapStyle` semantics apply everywhere the formatter breaks a delimited list (method/constructor arguments, `implements` / `extends` / `permits` lists, `enum` constants, array initializers, `for` loop headers, `try`-with-resources, multi-`case` labels, generic type parameters/arguments, and so on). In short: **`wide`** greedily packs elements until a line is full, then continues; **`balanced`** and **`narrow`** use the fit-or-tall pattern—if the whole list does not fit on the remainder of the line, each element is placed on its own continuation line (with `narrow` sometimes using deeper continuation indent where the engine already does so for other constructs).
+
 ---
 
 ### 5. Multi-Line Parameter Closing Style
