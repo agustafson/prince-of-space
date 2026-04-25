@@ -1,7 +1,7 @@
-package io.princeofspace.model;
+package io.princeofspace.internal;
 
 import com.github.javaparser.ParserConfiguration.LanguageLevel;
-import io.princeofspace.internal.JavaParserLanguageLevels;
+import io.princeofspace.model.JavaLanguageLevel;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
