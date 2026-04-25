@@ -403,7 +403,7 @@ Same. Scenario 44 in goldens should show clean alignment.
 
 ---
 
-## Task 5.2 — `for(init; cond; update)` and for-each headers wrap
+## Task 5.2 — `for(init; cond; update)` and for-each headers wrap ✅ COMPLETED
 
 ### Read first
 

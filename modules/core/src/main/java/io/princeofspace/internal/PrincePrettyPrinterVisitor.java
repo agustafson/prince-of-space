@@ -31,6 +31,8 @@ import com.github.javaparser.ast.stmt.AssertStmt;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.CatchClause;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
+import com.github.javaparser.ast.stmt.ForEachStmt;
+import com.github.javaparser.ast.stmt.ForStmt;
 import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.stmt.SwitchEntry;
 import com.github.javaparser.ast.stmt.TryStmt;
@@ -271,6 +273,45 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     @Override
+    public void visit(ForStmt n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        boolean headerWrap = forStmtHeaderNeedsWrap(n);
+        printer.print("for (");
+        if (headerWrap) {
+            if (fmt.wrapStyle() == WrapStyle.WIDE) {
+                printForStmtHeaderWrappedWide(n, arg);
+            } else {
+                printForStmtHeaderWrappedBalanced(n, arg);
+            }
+        } else {
+            printForStmtHeaderUnwrapped(n, arg);
+        }
+        printer.print(") ");
+        n.getBody().accept(this, arg);
+    }
+
+    @Override
+    public void visit(ForEachStmt n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        boolean headerWrap = forEachHeaderNeedsWrap(n);
+        printer.print("for (");
+        n.getVariable().accept(this, arg);
+        if (headerWrap) {
+            printer.print(" :");
+            printer.println();
+            printCont();
+            n.getIterable().accept(this, arg);
+        } else {
+            printer.print(" : ");
+            n.getIterable().accept(this, arg);
+        }
+        printer.print(") ");
+        n.getBody().accept(this, arg);
+    }
+
+    @Override
     public void visit(TryStmt n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
@@ -307,6 +348,107 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.print(" finally ");
             n.getFinallyBlock().get().accept(this, arg);
         }
+    }
+
+    private boolean forStmtHeaderNeedsWrap(ForStmt n) {
+        return column() + 5 + forStmtHeaderInnerFlatWidth(n) + 1 > fmt.lineLength();
+    }
+
+    private int forStmtHeaderInnerFlatWidth(ForStmt n) {
+        int w = 0;
+        boolean first = true;
+        if (n.getInitialization() != null) {
+            for (Expression e : n.getInitialization()) {
+                if (!first) {
+                    w += 2;
+                }
+                first = false;
+                w += WidthMeasurer.flatWidth(e, fmt);
+            }
+        }
+        w += 2; // "; "
+        if (n.getCompare().isPresent()) {
+            w += WidthMeasurer.flatWidth(n.getCompare().get(), fmt);
+        }
+        w += 2; // "; "
+        first = true;
+        if (n.getUpdate() != null) {
+            for (Expression e : n.getUpdate()) {
+                if (!first) {
+                    w += 2;
+                }
+                first = false;
+                w += WidthMeasurer.flatWidth(e, fmt);
+            }
+        }
+        return w;
+    }
+
+    private void printForStmtHeaderUnwrapped(ForStmt n, Void arg) {
+        if (n.getInitialization() != null) {
+            for (Iterator<Expression> i = n.getInitialization().iterator(); i.hasNext(); ) {
+                i.next().accept(this, arg);
+                if (i.hasNext()) {
+                    printer.print(", ");
+                }
+            }
+        }
+        printer.print("; ");
+        if (n.getCompare().isPresent()) {
+            n.getCompare().get().accept(this, arg);
+        }
+        printer.print("; ");
+        if (n.getUpdate() != null) {
+            for (Iterator<Expression> i = n.getUpdate().iterator(); i.hasNext(); ) {
+                i.next().accept(this, arg);
+                if (i.hasNext()) {
+                    printer.print(", ");
+                }
+            }
+        }
+    }
+
+    private void printForStmtHeaderWrappedBalanced(ForStmt n, Void arg) {
+        printer.println();
+        printCont();
+        if (n.getInitialization() != null) {
+            for (Iterator<Expression> i = n.getInitialization().iterator(); i.hasNext(); ) {
+                i.next().accept(this, arg);
+                if (i.hasNext()) {
+                    printer.print(", ");
+                }
+            }
+        }
+        printer.print(";");
+        printer.println();
+        printCont();
+        if (n.getCompare().isPresent()) {
+            n.getCompare().get().accept(this, arg);
+        }
+        printer.print(";");
+        printer.println();
+        printCont();
+        if (n.getUpdate() != null) {
+            for (Iterator<Expression> i = n.getUpdate().iterator(); i.hasNext(); ) {
+                i.next().accept(this, arg);
+                if (i.hasNext()) {
+                    printer.print(", ");
+                }
+            }
+        }
+    }
+
+    private void printForStmtHeaderWrappedWide(ForStmt n, Void arg) {
+        printForStmtHeaderWrappedBalanced(n, arg);
+    }
+
+    private boolean forEachHeaderNeedsWrap(ForEachStmt n) {
+        int oneLineWidth = 5
+                + n.getVariable().toString().length()
+                + 3
+                + WidthMeasurer.flatWidth(n.getIterable(), fmt)
+                + 1;
+        return column() + oneLineWidth > fmt.lineLength();
     }
 
     private int column() {

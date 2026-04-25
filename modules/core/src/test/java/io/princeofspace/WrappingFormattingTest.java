@@ -1771,4 +1771,64 @@ class WrappingFormattingTest {
         assertThat(out).contains("c.replace(\"-\", \"_\")");
         assertThat(f.format(out)).isEqualTo(out);
     }
+
+    @Test
+    void forLoopHeader_balanced_wrapsAllThreeClauses() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(46)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .closingParenOnNewLine(false)
+                                .build());
+        String input =
+                """
+                class T {
+                    void m(int n) {
+                        for (int i = 0, j = 0; i < n && j < n + 1 && n > 0; i++, j++) {
+                            System.out.println(i);
+                        }
+                    }
+                }
+                """;
+        String out = f.format(input);
+        assertThat(out).contains("for (");
+        assertThat(out).contains("i++, j++");
+        assertThat(out).contains("int i = 0, j = 0");
+        int semiAfterInit = out.indexOf("int i = 0, j = 0");
+        int semi1 = out.indexOf(';', semiAfterInit);
+        int nlAfterFirst = out.indexOf('\n', semi1);
+        int semi2 = out.indexOf(';', semi1 + 1);
+        assertThat(semi2).isGreaterThan(nlAfterFirst);
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void forEachLoopHeader_balanced_wrapsAfterColon() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(50)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .closingParenOnNewLine(false)
+                                .build());
+        String input =
+                """
+                class T {
+                    void m(java.util.List<String> xs) {
+                        for (String s : xs.getItems().getInner().getValues().asList().asIterable()) {
+                        }
+                    }
+                }
+                """;
+        String out = f.format(input);
+        assertThat(out).contains("for (String s :");
+        assertThat(out)
+                .as("iterable should continue on a new line after the colon when the header is too long")
+                .contains(":\n");
+        assertThat(out).contains("asIterable()");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
 }

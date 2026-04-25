@@ -305,10 +305,10 @@ public class FormatterShowcase
     // Scenario 31: Long for-loop header
     public int sumWithLongForHeader() {
         int sum = 0;
-        for (int i = 0, j = 0; i < items.size()
-                && j < items.size()
-                && legacyField != null
-                && legacyField.length() > 0; i++, j++) {
+        for (
+                int i = 0, j = 0;
+                i < items.size() && j < items.size() && legacyField != null && legacyField.length() > 0;
+                i++, j++) {
             sum += i + j;
         }
         return sum;
@@ -316,7 +316,8 @@ public class FormatterShowcase
 
     // Scenario 32: For-each with long element type
     public void forEachLongElementType() {
-        for (java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> e : complexGenericField.entrySet()) {
+        for (java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> e :
+                complexGenericField.entrySet()) {
             if (e.getKey() != null) {
                 sumWithLongForHeader();
             }
