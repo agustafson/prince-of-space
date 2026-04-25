@@ -27,7 +27,7 @@ CI runs tests, Spotless, Checkstyle, SpotBugs, Error Prone, and dependency healt
 ## Code
 
 - Prefer **small public API** changes — every public type is a compatibility promise.
-- **JSpecify** nullability on public API; **NullAway** enforces the rest in `io.princeofspace`.
+- **JSpecify** nullability on public API; **NullAway** runs as **ERROR** on `compileJava` for `io.princeofspace` (main sources only; disabled on `compileTestJava`).
 - Any formatting behavior change should add/update a representative case in `examples/inputs/*/FormatterShowcase.java`
   and regenerate `examples/outputs/*` (goldens). This keeps human-readable showcase coverage aligned with
   regression tests.

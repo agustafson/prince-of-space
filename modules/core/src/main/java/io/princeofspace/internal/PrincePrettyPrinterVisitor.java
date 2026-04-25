@@ -499,7 +499,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.print("<>");
             return;
         }
-        NodeList<Type> args = n.getTypeArguments().orElse(null);
+        if (n.getTypeArguments().isEmpty()) {
+            return;
+        }
+        NodeList<Type> args = n.getTypeArguments().get();
         if (isNullOrEmpty(args)) {
             return;
         }

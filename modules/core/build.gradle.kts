@@ -1,3 +1,4 @@
+import net.ltgt.gradle.errorprone.CheckSeverity
 import net.ltgt.gradle.errorprone.errorprone
 
 plugins {
@@ -47,8 +48,19 @@ tasks.withType<Javadoc>().configureEach {
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
     options.release.set(17)
+}
+
+tasks.named<JavaCompile>("compileJava") {
     options.errorprone {
         option("NullAway:AnnotatedPackages", "io.princeofspace")
+        check("NullAway", CheckSeverity.ERROR)
+    }
+}
+
+tasks.named<JavaCompile>("compileTestJava") {
+    options.errorprone {
+        // NullAway is enforced on main sources only; test sources stay unchecked (see compileJava).
+        check("NullAway", CheckSeverity.OFF)
     }
 }
 
