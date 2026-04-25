@@ -142,7 +142,7 @@ final class MethodChainFormatter {
             if (a instanceof LambdaExpr lambda && lambda.getBody() instanceof BlockStmt) {
                 w += lambdaHeaderWidth(lambda);
             } else {
-                w += ctx.est(a);
+                w += WidthMeasurer.flatWidth(a, ctx.config());
             }
         }
         return w;
