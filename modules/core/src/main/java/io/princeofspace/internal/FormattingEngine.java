@@ -49,7 +49,7 @@ public final class FormattingEngine {
     /**
      * Parses and formats the given source, or returns a typed failure without throwing.
      *
-     * <p>Internally applies up to {@value #MAX_CONVERGENCE_PASSES} additional format passes so that
+     * <p>Internally applies up to a bounded number of additional format passes so that
      * the returned source is a <em>fixed point</em>: formatting it again produces identical output.
      * This guarantees idempotency ({@code format(format(x)).equals(format(x))}) even when
      * JavaParser re-attaches comments differently after the first layout pass.

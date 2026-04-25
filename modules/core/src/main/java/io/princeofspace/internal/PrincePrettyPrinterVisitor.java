@@ -72,6 +72,15 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     private static final int BALANCED_PAREN_HEADROOM_DIVISOR = 3;
     private static final int LARGE_STRING_FORCE_BREAK_THRESHOLD = 500;
     private static final int SWITCH_GUARD_KEYWORD_WIDTH = 6; // " when "
+    /** Width of {@code for (} in header flat-width and wrap heuristics. */
+    private static final int FOR_LOOP_OPEN_PREFIX_WIDTH = 5;
+    /** Width of the closing {@code )} in {@code for (...)} one-line width estimates. */
+    private static final int FOR_LOOP_HEADER_CLOSING_PAREN_WIDTH = 1;
+    /**
+     * Width of {@code " : "} between variable and iterable in a one-line for-each width estimate
+     * (unwrapped form uses a space on each side of {@code :}).
+     */
+    private static final int FOR_EACH_INLINE_SEPARATOR_WIDTH = 3;
 
     private final FormatterConfig fmt;
     final LayoutContext ctx;
@@ -344,7 +353,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     private boolean forStmtHeaderNeedsWrap(ForStmt n) {
-        return column() + 5 + forStmtHeaderInnerFlatWidth(n) + 1 > fmt.lineLength();
+        return column() + FOR_LOOP_OPEN_PREFIX_WIDTH + forStmtHeaderInnerFlatWidth(n) + FOR_LOOP_HEADER_CLOSING_PAREN_WIDTH
+                > fmt.lineLength();
     }
 
     private int forStmtHeaderInnerFlatWidth(ForStmt n) {
@@ -436,11 +446,11 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     private boolean forEachHeaderNeedsWrap(ForEachStmt n) {
-        int oneLineWidth = 5
+        int oneLineWidth = FOR_LOOP_OPEN_PREFIX_WIDTH
                 + n.getVariable().toString().length()
-                + 3
+                + FOR_EACH_INLINE_SEPARATOR_WIDTH
                 + WidthMeasurer.flatWidth(n.getIterable(), fmt)
-                + 1;
+                + FOR_LOOP_HEADER_CLOSING_PAREN_WIDTH;
         return column() + oneLineWidth > fmt.lineLength();
     }
 
