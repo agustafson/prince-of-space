@@ -165,7 +165,7 @@ final class BinaryExprFormatter {
                 }
                 return;
             }
-            if (ctx.config().wrapStyle() == WrapStyle.NARROW) {
+            if (!useGreedyPackingForList(BinaryExpr.Operator.PLUS)) {
                 boolean prevTrailing = printExprWithTrailingCommentAfterWithNestedChainIndent(parts.get(0), arg);
                 for (int i = 1; i < parts.size(); i++) {
                     if (comments.hasLeadingLineOrBlockComment(parts.get(i))) {
@@ -186,6 +186,13 @@ final class BinaryExprFormatter {
             return;
         }
         ctx.acceptDefault(n, arg);
+    }
+
+    private boolean useGreedyPackingForList(BinaryExpr.Operator op) {
+        if (op == BinaryExpr.Operator.PLUS) {
+            return ctx.config().wrapStyle() == WrapStyle.WIDE;
+        }
+        return ctx.config().wrapStyle() == WrapStyle.WIDE;
     }
 
     /**

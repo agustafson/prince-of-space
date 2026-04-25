@@ -243,6 +243,8 @@ boolean result = isVeryLongConditionA()
 ```
 
 Operators at line start makes logical structure visible from the left margin.
+String concatenation (`+`) follows the same wrap-style policy as other binary operators:
+`balanced`/`narrow` use one operand per continuation line, while `wide` greedily packs.
 
 ---
 

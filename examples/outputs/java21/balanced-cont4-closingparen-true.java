@@ -255,8 +255,13 @@ public class FormatterShowcase
 
     // Scenario 16: Long string concatenation
     public String buildMessage() {
-        var traditional = "Hello " + legacyField + ", you have " + items.size() + " items in your collection. "
-            + "Please review them at your earliest convenience. " + "If you have any questions, please contact support.";
+        var traditional = "Hello "
+            + legacyField
+            + ", you have "
+            + items.size()
+            + " items in your collection. "
+            + "Please review them at your earliest convenience. "
+            + "If you have any questions, please contact support.";
         return traditional;
     }
 
@@ -538,13 +543,15 @@ public class FormatterShowcase
     public void longAssert() {
         assert legacyField != null && items != null && !items.isEmpty() : 
             "legacyField and items must be populated before calling longAssert in production systems with "
-            + "strict validation rules " + "enabled";
+            + "strict validation rules "
+            + "enabled";
     }
 
     // Scenario 39b: Long string literal in method argument
     public void longExceptionMessage() {
         throw new IllegalStateException("Component scan for configuration class [%s] could not be used with "
-            + "conditions in REGISTER_BEAN phase: " + "%s".formatted(legacyField, items)
+            + "conditions in REGISTER_BEAN phase: "
+            + "%s".formatted(legacyField, items)
         );
     }
 
@@ -649,7 +656,8 @@ public class FormatterShowcase
     public void assertChunkBoundaryWordSplit(boolean enabled) {
         assert enabled : 
             "legacyField and items must be populated before calling assertChunkBoundaryWordSplit in "
-            + "production systems with strict validation rules enabled and mandatory audit " + "logging";
+            + "production systems with strict validation rules enabled and mandatory audit "
+            + "logging";
     }
 
     // Scenario 48: Break after '=' while keeping RHS on one continuation line
@@ -715,7 +723,8 @@ public class FormatterShowcase
         cappedLogNoCustomerData(l -> l.warn(
             "Bad thing happened and we have lots of information to tell you in this warning payload",
             new IllegalStateException("Bad thing happened and this diagnostic stack summary is also intentionally "
-            + "very long to force " + "wrapping"
+            + "very long to force "
+            + "wrapping"
         )));
     }
 

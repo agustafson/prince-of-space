@@ -135,7 +135,7 @@ A small set of golden lines may shift (where the old `est` was incorrect). Inspe
 
 ---
 
-## Task 2.1 — Unify `BALANCED` for string concatenation
+## Task 2.1 — Unify `BALANCED` for string concatenation ✅ COMPLETED
 
 **Why:** `BALANCED` everywhere else means "fit-or-tall". For `+` it currently means "greedy". Make it "fit-or-tall" too.
 

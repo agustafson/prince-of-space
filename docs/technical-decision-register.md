@@ -90,3 +90,11 @@ Use it as the primary source of *why* design choices exist.
 - **Rationale:** The project is beyond early scaffolding; historical plans are useful context but no longer primary guidance.
 - **Consequences:** Keep research/priorities historical context, and remove stale implementation-plan/roadmap checklists from active docs.
 - **Related docs:** `docs/research-notes.md`, `docs/project-priorities.md`
+
+### TDR-011: WrapStyle behavior for string concatenation is construct-uniform
+- **Date:** 2026-04
+- **Status:** Accepted
+- **Decision:** Treat `+` string concatenation wrapping the same as other list-like constructs for `WrapStyle` policy.
+- **Rationale:** `BALANCED` should mean fit-or-tall consistently; allowing greedy packing only for string concatenation made behavior surprising and undermined predictability.
+- **Consequences:** `BALANCED` and `NARROW` now put each `+` operand on its own continuation line when wrapping; `WIDE` retains greedy packing.
+- **Related docs:** `docs/rule-uniformity-migration-plan.md`, `docs/formatting-rules.md`, `modules/core/src/test/java/io/princeofspace/WrappingFormattingTest.java`

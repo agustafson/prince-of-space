@@ -775,7 +775,7 @@ class WrappingFormattingTest {
     }
 
     @Test
-    void stringConcatenation_balanced_keepsGreedyFirstLinePacking() {
+    void stringConcatenation_balanced_putsEachOperandOnItsOwnLine() {
         Formatter f =
                 new Formatter(
                         FormatterConfig.builder()
@@ -796,23 +796,50 @@ class WrappingFormattingTest {
 
         String out = f.format(input);
 
-        assertThat(out)
-                .contains(
-                        "        String traditional = \"Hello \" + legacyField + \", you have \" + items.size() + \" items in your collection. \"\n");
-        assertThat(out)
-                .contains(
-                        "            + \"Please review them at your earliest convenience. \" + \"If you have any questions, please contact support.\";\n");
+        assertThat(out).contains("        String traditional = \"Hello \"\n");
+        assertThat(out).contains("            + legacyField\n");
+        assertThat(out).contains("            + \", you have \"\n");
+        assertThat(out).contains("            + items.size()\n");
         assertThat(f.format(out)).isEqualTo(out);
     }
 
     @Test
-    void stringConcatenation_balanced_java21_keepsGreedyFirstLinePacking() {
+    void stringConcatenation_balanced_java21_putsEachOperandOnItsOwnLine() {
         Formatter f =
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
                                 .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
+                                .javaLanguageLevel(JavaLanguageLevel.of(21))
+                                .build());
+        String input =
+                """
+                class T {
+                    String buildMessage(String legacyField, java.util.List<String> items) {
+                        var traditional = "Hello " + legacyField + ", you have " + items.size() + " items in your collection. " + "Please review them at your earliest convenience. " + "If you have any questions, please contact support.";
+                        return traditional;
+                    }
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("        var traditional = \"Hello \"\n");
+        assertThat(out).contains("            + legacyField\n");
+        assertThat(out).contains("            + \", you have \"\n");
+        assertThat(out).contains("            + items.size()\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void stringConcatenation_wide_keepsGreedyPacking() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(120)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
                                 .javaLanguageLevel(JavaLanguageLevel.of(21))
                                 .build());
         String input =
