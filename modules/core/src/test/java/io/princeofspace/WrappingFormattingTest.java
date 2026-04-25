@@ -650,6 +650,56 @@ class WrappingFormattingTest {
     }
 
     @Test
+    void arrayInitializer_balanced_putsEachElementOnItsOwnLine() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(70)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .build());
+        String input =
+                """
+                class T {
+                    static final String[] DEFAULT_COLUMNS = {"id", "name", "email", "created_at", "updated_at", "status", "role", "department"};
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("{\n");
+        assertThat(out).contains("\"id\",\n");
+        assertThat(out).contains("\"name\",\n");
+        assertThat(out).contains("\"email\",\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void arrayInitializer_narrow_putsEachElementOnItsOwnLine() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(70)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.NARROW)
+                                .build());
+        String input =
+                """
+                class T {
+                    static final String[] DEFAULT_COLUMNS = {"id", "name", "email", "created_at", "updated_at", "status", "role", "department"};
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("{\n");
+        assertThat(out).contains("\"id\",\n");
+        assertThat(out).contains("\"name\",\n");
+        assertThat(out).contains("\"email\",\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
     void enumConstants_wide_accountForDeclarationColumnWhenGreedyPacking() {
         Formatter f =
                 new Formatter(

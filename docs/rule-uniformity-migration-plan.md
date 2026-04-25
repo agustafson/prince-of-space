@@ -213,7 +213,7 @@ REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens
 
 ---
 
-## Task 2.3 — Make array initializers obey `WrapStyle`
+## Task 2.3 — Make array initializers obey `WrapStyle` ✅ COMPLETED
 
 Same shape as Task 2.2.
 
