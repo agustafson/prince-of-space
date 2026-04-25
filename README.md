@@ -8,7 +8,7 @@
 
 A beautiful, configurable Java code formatter — **published on Maven Central** ([`io.github.agustafson`](https://central.sonatype.com/namespace/io.github.agustafson)).
 
-> *Named after the delightfully bad 1959 Japanese sci-fi film featured in [Mystery Science Theater 3000](https://www.imdb.com/title/tt0094517/) — specifically [Season 8, Episode 16](https://mst3k.fandom.com/wiki/MST3K_816_-_Prince_of_Space).
+> *Named after the hilariously bad 1959 Japanese sci-fi film featured in [Mystery Science Theater 3000](https://www.imdb.com/title/tt0094517/) — specifically [Season 8, Episode 16](https://mst3k.fandom.com/wiki/MST3K_816_-_Prince_of_Space).
 > The Prince's defining trait: **your weapons have no effect on him**. This formatter feels similarly about your inconsistent indentation.*
 
 ## Why another formatter?
