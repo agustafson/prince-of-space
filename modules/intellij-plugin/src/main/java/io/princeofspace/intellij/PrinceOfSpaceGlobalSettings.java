@@ -73,6 +73,17 @@ public final class PrinceOfSpaceGlobalSettings
             if (wrapStyle == null || wrapStyle.isBlank()) {
                 wrapStyle = WrapStyle.BALANCED.name();
             }
+            indentSize = clamp(indentSize, 1, 32, 4);
+            continuationIndentSize = clamp(continuationIndentSize, 1, 32, 4);
+            lineLength = clamp(lineLength, 20, 500, 120);
+            javaRelease = clamp(javaRelease, 1, 25, 17);
+        }
+
+        private static int clamp(int value, int min, int max, int fallback) {
+            if (value <= 0) {
+                return fallback;
+            }
+            return Math.min(max, Math.max(min, value));
         }
 
         @Override

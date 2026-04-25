@@ -89,8 +89,8 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
                         .addVerticalGap(8)
                         .addComponent(boldSection("Indentation"))
                         .addLabeledComponent("Indent style:", indentStyleCombo)
-                        .addLabeledComponent("Indent size:", indentSizeSpinner)
-                        .addLabeledComponent("Continuation indent size:", continuationIndentSpinner)
+                        .addLabeledComponent("Indent size (units per block level):", indentSizeSpinner)
+                        .addLabeledComponent("Continuation indent size (units on wrapped lines):", continuationIndentSpinner)
                         .addVerticalGap(8)
                         .addComponent(boldSection("Line width"))
                         .addLabeledComponent("Line length:", lineLengthSpinner)
@@ -108,6 +108,9 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
                 new JBLabel(
                         "<html><body style='width:420px;'>"
                                 + "These options match the formatter's public configuration<br/>"
+                                + "using a single <b>line length</b> threshold for wrapping.<br/><br/>"
+                                + "Indent sizes are measured in the selected indent style units<br/>"
+                                + "(spaces when using spaces, tabs when using tabs).<br/><br/>"
                                 + "(see project documentation).<br/><br/>"
                                 + "Manual <b>Code → Reformat with Prince of Space…</b> uses the same "
                                 + "settings."
