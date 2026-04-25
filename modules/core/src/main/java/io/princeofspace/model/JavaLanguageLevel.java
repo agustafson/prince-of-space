@@ -1,5 +1,7 @@
 package io.princeofspace.model;
 
+import io.princeofspace.internal.JavaParserLanguageLevels;
+
 import java.io.Serial;
 import java.io.Serializable;
 

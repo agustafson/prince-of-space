@@ -2,9 +2,9 @@ package io.princeofspace.cli;
 
 import io.princeofspace.Formatter;
 import io.princeofspace.FormatterException;
+import io.princeofspace.internal.JavaParserLanguageLevels;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.JavaLanguageLevel;
-import io.princeofspace.model.JavaParserLanguageLevels;
 import picocli.CommandLine;
 
 import java.io.BufferedReader;

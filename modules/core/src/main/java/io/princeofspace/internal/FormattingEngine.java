@@ -8,7 +8,6 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import io.princeofspace.FormatResult;
 import io.princeofspace.model.FormatterConfig;
-import io.princeofspace.model.JavaParserLanguageLevels;
 
 import java.util.List;
 
