@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { spawn } from "child_process";
 import * as path from "path";
+import { cliFormatterArgs } from "./cliArgs";
 
 export async function resolveCliJar(
   explicit: string | undefined,
@@ -41,7 +42,7 @@ export function formatJavaSource(
   token: vscode.CancellationToken,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    const proc = spawn(javaBin, ["-jar", jar, "--stdin", "--java-version", String(javaVersion)], {
+    const proc = spawn(javaBin, cliFormatterArgs(jar, javaVersion), {
       stdio: ["pipe", "pipe", "pipe"],
     });
     const out: Buffer[] = [];
