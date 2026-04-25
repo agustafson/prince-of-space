@@ -15,6 +15,7 @@ import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.WrapStyle;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -113,7 +114,7 @@ final class DeclarationFormatter {
     void drainOrphanCommentsBeforeFirstBodyElement(
             Node typeDecl,
             NodeList<BodyDeclaration<?>> members,
-            NodeList<EnumConstantDeclaration> enumEntriesOrNull,
+            @Nullable NodeList<EnumConstantDeclaration> enumEntriesOrNull,
             Void arg) {
         if (typeDecl.getOrphanComments().isEmpty()) {
             return;
@@ -372,8 +373,7 @@ final class DeclarationFormatter {
         int flatWidth = enumConstantsFlatWidth(n.getEntries());
         int oneLineEnum = ctx.column() + 3 + flatWidth + 2;
         boolean fitsOneLine =
-                oneLineEnum <= fmt.preferredLineLength()
-                        && oneLineEnum <= fmt.maxLineLength()
+                oneLineEnum <= fmt.lineLength()
                         && !hasBodies
                         && !hasMembers;
         if (fitsOneLine && n.getEntries().isNonEmpty()) {
@@ -409,11 +409,11 @@ final class DeclarationFormatter {
     private void printEnumConstants(EnumDeclaration n, Void arg, boolean hasBodies) {
         if (fmt.wrapStyle() == WrapStyle.WIDE && !hasBodies) {
             boolean first = true;
-            int budget = fmt.preferredLineLength();
+            int budget = fmt.lineLength();
             for (EnumConstantDeclaration e : n.getEntries()) {
                 int need = e.toString().length() + (first ? 0 : 2);
                 if (!first
-                        && (ctx.column() + need > budget || argumentListFormatter.wouldExceedMaxLine(need))) {
+                        && (ctx.column() + need > budget || argumentListFormatter.wouldExceedLineLength(need))) {
                     ctx.print(",");
                     ctx.println();
                 } else if (!first) {

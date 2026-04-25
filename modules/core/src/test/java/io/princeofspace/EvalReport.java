@@ -28,8 +28,7 @@ record EvalReport(
                 double avgMs = attempted == 0 ? 0.0 : (double) run.elapsedMs() / attempted;
 
                 sb.append("### ").append(config.name())
-                        .append(" (preferred=").append(config.preferred())
-                        .append(", max=").append(config.max())
+                        .append(" (lineLength=").append(config.lineLength())
                         .append(", wrapStyle=").append(config.wrapStyle())
                         .append(")\n");
                 sb.append("- Files: ").append(total).append(" scanned, ").append(attempted).append(" attempted\n");

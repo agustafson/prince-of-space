@@ -16,8 +16,7 @@ import java.io.Serializable;
  *
  * @param indentStyle block indentation: spaces or tab characters per step
  * @param indentSize number of {@link IndentStyle} units per logical indent level
- * @param preferredLineLength soft target width before wrapping
- * @param maxLineLength hard cap target; exceeded only when no wrap point exists
+ * @param lineLength target line width; wrapping is triggered when a line exceeds this
  * @param continuationIndentSize {@link IndentStyle} units for each wrapped continuation line
  * @param wrapStyle how aggressively to break lines when wrapping
  * @param closingParenOnNewLine when argument lists wrap, whether the closing {@code )} is on its own line
@@ -27,8 +26,7 @@ import java.io.Serializable;
 public record FormatterConfig(
         IndentStyle indentStyle,
         int indentSize,
-        int preferredLineLength,
-        int maxLineLength,
+        int lineLength,
         int continuationIndentSize,
         WrapStyle wrapStyle,
         boolean closingParenOnNewLine,
@@ -49,15 +47,8 @@ public record FormatterConfig(
         if (continuationIndentSize <= 0)
             throw new IllegalArgumentException(
                     "continuationIndentSize must be > 0, got: " + continuationIndentSize);
-        if (preferredLineLength <= 0)
-            throw new IllegalArgumentException(
-                    "preferredLineLength must be > 0, got: " + preferredLineLength);
-        if (maxLineLength <= 0)
-            throw new IllegalArgumentException("maxLineLength must be > 0, got: " + maxLineLength);
-        if (maxLineLength < preferredLineLength)
-            throw new IllegalArgumentException(
-                    "maxLineLength (" + maxLineLength + ") must be >= preferredLineLength ("
-                            + preferredLineLength + ")");
+        if (lineLength <= 0)
+            throw new IllegalArgumentException("lineLength must be > 0, got: " + lineLength);
     }
 
     /**
@@ -83,8 +74,7 @@ public record FormatterConfig(
 
         private IndentStyle indentStyle = IndentStyle.SPACES;
         private int indentSize = 4;
-        private int preferredLineLength = 120;
-        private int maxLineLength = 150;
+        private int lineLength = 120;
         private int continuationIndentSize = 4;
         private WrapStyle wrapStyle = WrapStyle.BALANCED;
         private boolean closingParenOnNewLine = true;
@@ -116,24 +106,13 @@ public record FormatterConfig(
         }
 
         /**
-         * Sets the soft wrap width.
+         * Sets the target line width.
          *
-         * @param preferredLineLength soft wrap width
+         * @param lineLength target line width
          * @return this builder
          */
-        public Builder preferredLineLength(int preferredLineLength) {
-            this.preferredLineLength = preferredLineLength;
-            return this;
-        }
-
-        /**
-         * Sets the hard maximum line width target.
-         *
-         * @param maxLineLength hard maximum line width target
-         * @return this builder
-         */
-        public Builder maxLineLength(int maxLineLength) {
-            this.maxLineLength = maxLineLength;
+        public Builder lineLength(int lineLength) {
+            this.lineLength = lineLength;
             return this;
         }
 
@@ -201,8 +180,7 @@ public record FormatterConfig(
             return new FormatterConfig(
                     indentStyle,
                     indentSize,
-                    preferredLineLength,
-                    maxLineLength,
+                    lineLength,
                     continuationIndentSize,
                     wrapStyle,
                     closingParenOnNewLine,

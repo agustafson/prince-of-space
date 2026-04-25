@@ -22,8 +22,7 @@ First release on **Maven Central** (`io.github.agustafson`).
 ### Added
 
 - **Core formatter** — AST-based Java code formatter using JavaParser, with convergence loop (up to 64 passes) guaranteeing idempotent output.
-- **8 configuration options** — `indentStyle`, `indentSize`, `preferredLineLength`, `maxLineLength`, `continuationIndentSize`, `wrapStyle`, `closingParenOnNewLine`, `trailingCommas` — exposed via `FormatterConfig` record with builder.
-- **Two-threshold line length** — soft preferred width triggers wrapping; hard maximum target is exceeded only when no wrap point exists.
+- **8 configuration options** — `indentStyle`, `indentSize`, `lineLength`, `continuationIndentSize`, `wrapStyle`, `closingParenOnNewLine`, `trailingCommas`, `javaLanguageLevel` — exposed via `FormatterConfig` record with builder.
 - **`JavaLanguageLevel` record** — first-party type for language level configuration, replacing direct use of JavaParser's `LanguageLevel` in the public API. Supports any Java version (1–25+) with optional preview flag.
 - **Sealed `FormatResult` API** — `Formatter.formatResult()` returns `FormatResult.Success` or `FormatResult.Failure` (subtypes: `ParseFailure`, `EmptyCompilationUnit`) for non-throwing error handling.
 - **CLI** (`:cli`) — Picocli-based command-line tool with `--check`, `--stdin`/`--stdout`, `--java-version`, recursive directory formatting, and git-aware file discovery.
@@ -44,4 +43,4 @@ First release on **Maven Central** (`io.github.agustafson`).
 
 - Idempotency across trailing comments, wrapped chains, lambda-call indentation, string literal wrapping, and comment-adjacent spacing.
 - IntelliJ plugin `untilBuild` set to unbounded (`provider { null }`) for forward compatibility.
-- `maxLineLength` documentation clarified as a hard target (best-effort) rather than an absolute guarantee.
+- Line length documentation clarified as a target (best-effort) rather than an absolute guarantee.

@@ -141,11 +141,10 @@ class IdempotencyFailureSamplerTest {
         return "outputs differ";
     }
 
-    private record EvalConfig(String name, int preferred, int max, WrapStyle wrapStyle) {
+    private record EvalConfig(String name, int lineLength, WrapStyle wrapStyle) {
         FormatterConfig toFormatterConfig() {
             return FormatterConfig.builder()
-                    .preferredLineLength(preferred)
-                    .maxLineLength(max)
+                    .lineLength(lineLength)
                     .wrapStyle(wrapStyle)
                     .build();
         }
@@ -153,15 +152,15 @@ class IdempotencyFailureSamplerTest {
 
     private static EvalConfig configFromName(String name) {
         return switch (name) {
-            case "aggressive-wide" -> new EvalConfig(name, 80, 100, WrapStyle.WIDE);
-            case "aggressive-balanced" -> new EvalConfig(name, 80, 100, WrapStyle.BALANCED);
-            case "aggressive-narrow" -> new EvalConfig(name, 80, 100, WrapStyle.NARROW);
-            case "moderate-wide" -> new EvalConfig(name, 100, 120, WrapStyle.WIDE);
-            case "moderate-balanced" -> new EvalConfig(name, 100, 120, WrapStyle.BALANCED);
-            case "moderate-narrow" -> new EvalConfig(name, 100, 120, WrapStyle.NARROW);
-            case "default-wide" -> new EvalConfig(name, 120, 150, WrapStyle.WIDE);
-            case "default-balanced" -> new EvalConfig(name, 120, 150, WrapStyle.BALANCED);
-            case "default-narrow" -> new EvalConfig(name, 120, 150, WrapStyle.NARROW);
+            case "aggressive-wide" -> new EvalConfig(name, 80, WrapStyle.WIDE);
+            case "aggressive-balanced" -> new EvalConfig(name, 80, WrapStyle.BALANCED);
+            case "aggressive-narrow" -> new EvalConfig(name, 80, WrapStyle.NARROW);
+            case "moderate-wide" -> new EvalConfig(name, 100, WrapStyle.WIDE);
+            case "moderate-balanced" -> new EvalConfig(name, 100, WrapStyle.BALANCED);
+            case "moderate-narrow" -> new EvalConfig(name, 100, WrapStyle.NARROW);
+            case "default-wide" -> new EvalConfig(name, 120, WrapStyle.WIDE);
+            case "default-balanced" -> new EvalConfig(name, 120, WrapStyle.BALANCED);
+            case "default-narrow" -> new EvalConfig(name, 120, WrapStyle.NARROW);
             default -> throw new IllegalArgumentException("Unknown config: " + name);
         };
     }

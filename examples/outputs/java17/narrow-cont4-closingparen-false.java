@@ -467,13 +467,16 @@ public class FormatterShowcase
     // Scenario 39: Long assert message
     public void longAssert() {
         assert legacyField != null && items != null && !items.isEmpty() : 
-            "legacyField and items must be populated before calling longAssert in production systems with strict validation rules enabled";
+            "legacyField and items must be populated before calling longAssert in production systems with "
+            + "strict validation rules "
+            + "enabled";
     }
 
     // Scenario 39b: Long string literal in method argument
     public void longExceptionMessage() {
-        throw new IllegalStateException("Component scan for configuration class [%s] could not be used with conditions in REGISTER_BEAN phase: %s"
-            .formatted(legacyField, items));
+        throw new IllegalStateException("Component scan for configuration class [%s] could not be used with "
+            + "conditions in REGISTER_BEAN phase: "
+            + "%s".formatted(legacyField, items));
     }
 
     // Scenario 39c: Text block with formatted arguments
@@ -529,7 +532,7 @@ public class FormatterShowcase
             .concat(legacyField != null ? legacyField : "x");
     }
 
-    // Scenario 44: Lambda with long parameter list (hard maxLineLength)
+    // Scenario 44: Lambda with long parameter list (line length)
     public void longLambdaParameters() {
         java.util.function.BiFunction<
             java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>>,
@@ -543,7 +546,7 @@ public class FormatterShowcase
         cmp.apply(null, null);
     }
 
-    // Scenario 45: Switch entry with many labels (hard maxLineLength)
+    // Scenario 45: Switch entry with many labels (line length)
     public int switchManyLabels(String s) {
         return switch (s) {
             case "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa" -> 1;

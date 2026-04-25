@@ -209,8 +209,7 @@ class FormatterTest {
         Formatter f =
                 new Formatter(
                         FormatterConfig.builder()
-                                .preferredLineLength(50)
-                                .maxLineLength(120)
+                                .lineLength(50)
                                 .continuationIndentSize(4)
                                 .wrapStyle(io.princeofspace.model.WrapStyle.BALANCED)
                                 .closingParenOnNewLine(true)
@@ -380,8 +379,7 @@ class FormatterTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .trailingCommas(true)
-                                .preferredLineLength(40)
-                                .maxLineLength(120)
+                                .lineLength(40)
                                 .build());
         String input =
                 """
@@ -419,8 +417,7 @@ class FormatterTest {
         Formatter f =
                 new Formatter(
                         FormatterConfig.builder()
-                                .preferredLineLength(55)
-                                .maxLineLength(120)
+                                .lineLength(55)
                                 .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
@@ -666,8 +663,7 @@ class FormatterTest {
     void idempotency_switchExpr_lineCommentAfterArrow_onOwnLine() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()
-                        .preferredLineLength(80)
-                        .maxLineLength(100)
+                        .lineLength(80)
                         .wrapStyle(WrapStyle.WIDE)
                         .build());
         String input =
@@ -723,8 +719,7 @@ class FormatterTest {
             Formatter f =
                     new Formatter(
                             FormatterConfig.builder()
-                                    .preferredLineLength(80)
-                                    .maxLineLength(100)
+                                    .lineLength(80)
                                     .wrapStyle(wrap)
                                     .build());
             String once = f.format(input);
@@ -748,8 +743,7 @@ class FormatterTest {
             Formatter f =
                     new Formatter(
                             FormatterConfig.builder()
-                                    .preferredLineLength(80)
-                                    .maxLineLength(100)
+                                    .lineLength(80)
                                     .wrapStyle(wrap)
                                     .build());
             String once = f.format(input);
@@ -775,8 +769,7 @@ class FormatterTest {
             Formatter f =
                     new Formatter(
                             FormatterConfig.builder()
-                                    .preferredLineLength(80)
-                                    .maxLineLength(100)
+                                    .lineLength(80)
                                     .wrapStyle(wrap)
                                     .build());
             String once = f.format(input);
@@ -804,8 +797,7 @@ class FormatterTest {
             Formatter f =
                     new Formatter(
                             FormatterConfig.builder()
-                                    .preferredLineLength(80)
-                                    .maxLineLength(100)
+                                    .lineLength(80)
                                     .wrapStyle(wrap)
                                     .build());
             String once = f.format(input);
@@ -820,8 +812,7 @@ class FormatterTest {
     void idempotency_lineCommentBeforeLambdaInitializer_breaksAfterEquals() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()
-                        .preferredLineLength(80)
-                        .maxLineLength(100)
+                        .lineLength(80)
                         .wrapStyle(WrapStyle.WIDE)
                         .build());
         String input =
@@ -843,8 +834,7 @@ class FormatterTest {
     void idempotency_lineCommentBeforeSingleLambdaArgument_breaksAfterOpeningParen() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()
-                        .preferredLineLength(80)
-                        .maxLineLength(100)
+                        .lineLength(80)
                         .wrapStyle(WrapStyle.WIDE)
                         .build());
         String input = """
@@ -879,8 +869,7 @@ class FormatterTest {
     void idempotency_trailingCommentAfterSingleLambdaArgument_breaksToCommentLine() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()
-                        .preferredLineLength(80)
-                        .maxLineLength(100)
+                        .lineLength(80)
                         .wrapStyle(WrapStyle.WIDE)
                         .build());
         String input = """
@@ -913,8 +902,7 @@ class FormatterTest {
     void idempotency_emptyLineCommentBetweenWrappedChainSegments_doesNotDriftIntoNextArgs() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()
-                        .preferredLineLength(80)
-                        .maxLineLength(100)
+                        .lineLength(80)
                         .wrapStyle(WrapStyle.WIDE)
                         .build());
         String input = """
@@ -955,8 +943,7 @@ class FormatterTest {
     void idempotency_emptyLineCommentAfterWrappedMultiArgCall_doesNotDriftIntoArgs() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()
-                        .preferredLineLength(80)
-                        .maxLineLength(100)
+                        .lineLength(80)
                         .wrapStyle(WrapStyle.WIDE)
                         .build());
         String input = """
@@ -987,8 +974,7 @@ class FormatterTest {
     void idempotency_emptyLineCommentInReturnedWrappedChain_doesNotDriftAroundReturn() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()
-                        .preferredLineLength(80)
-                        .maxLineLength(100)
+                        .lineLength(80)
                         .wrapStyle(WrapStyle.WIDE)
                         .build());
         String input = """
@@ -1051,8 +1037,7 @@ class FormatterTest {
     void idempotency_firstCommentedArgumentInScopedCall_doesNotDriftOntoQualifier() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()
-                        .preferredLineLength(80)
-                        .maxLineLength(100)
+                        .lineLength(80)
                         .wrapStyle(WrapStyle.WIDE)
                         .build());
         String input = """
@@ -1075,8 +1060,7 @@ class FormatterTest {
     void idempotency_lineCommentBeforeSingleExtendedType_breaksAfterExtendsKeyword() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()
-                        .preferredLineLength(80)
-                        .maxLineLength(100)
+                        .lineLength(80)
                         .wrapStyle(WrapStyle.WIDE)
                         .build());
         String input = """
@@ -1099,8 +1083,7 @@ class FormatterTest {
     void idempotency_trailingCommentAfterWrappedChainCall_doesNotForceBreakInsideSingleArg() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()
-                        .preferredLineLength(80)
-                        .maxLineLength(100)
+                        .lineLength(80)
                         .wrapStyle(WrapStyle.WIDE)
                         .build());
         String input = """
@@ -1126,8 +1109,7 @@ class FormatterTest {
     void idempotency_commentsInterspersedInMethodArguments_doNotReorder() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()
-                        .preferredLineLength(80)
-                        .maxLineLength(100)
+                        .lineLength(80)
                         .wrapStyle(WrapStyle.WIDE)
                         .build());
         String input = """
@@ -1159,8 +1141,7 @@ class FormatterTest {
     void idempotency_endOfLineCommentAfterStatement_staysAttachedWithoutExtraBlankLine() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()
-                        .preferredLineLength(80)
-                        .maxLineLength(100)
+                        .lineLength(80)
                         .wrapStyle(WrapStyle.WIDE)
                         .build());
         String input = """

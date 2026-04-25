@@ -88,9 +88,9 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
         return e.toString().length();
     }
 
-    /** Returns whether adding width would exceed max configured line length. */
-    boolean wouldExceedMaxLine(int additionalWidth) {
-        return column() + additionalWidth > fmt.maxLineLength();
+    /** Returns whether adding width would exceed configured line length. */
+    boolean wouldExceedLineLength(int additionalWidth) {
+        return column() + additionalWidth > fmt.lineLength();
     }
 
     // ── visitor dispatch ──────────────────────────────────────────────────────

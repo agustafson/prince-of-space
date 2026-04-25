@@ -21,36 +21,20 @@ With **`spaces`**, `indentSize` is how many space characters make up one indent 
 
 ---
 
-### 2. Preferred Line Length & Maximum Line Length
+### 2. Line Length
 
-Rather than a single hard limit, we use a two-threshold approach:
+A single target line width. The formatter tries to keep lines at or below this length by wrapping when necessary. Some constructs cannot be wrapped — such as very long string literals, generated data files, or deeply nested expressions with no safe break point — and will exceed `lineLength` when no wrap point exists. Comment and text-block content are preserved verbatim.
 
-- **`preferredLineLength`** (soft limit): The formatter *tries* to keep lines at or below this length. This is where wrapping decisions are first triggered.
-- **`maxLineLength`** (hard target): The formatter tries not to exceed this length for code layout decisions (method/constructor signatures, chains, operators, type clauses, switch labels/guards, lambda params, generic type arguments, etc.). Lines between preferred and max are allowed when wrapping at the preferred length would produce ugly results (e.g., a single-token continuation line, or breaking an expression that's only slightly over). Some constructs cannot be wrapped — such as very long string literals, generated data files, or deeply nested expressions with no safe break point — and will exceed `maxLineLength` when no wrap point exists. Comment and text-block content are preserved verbatim.
-
-This is similar to how Prettier treats `printWidth` as a guide rather than a hard wall, and how rustfmt has per-construct widths alongside `max_width`.
-
-**Examples of where the soft/hard distinction helps:**
+This is similar to how Prettier treats `printWidth` as a guide rather than a hard wall.
 
 ```java
-// Line is 125 chars. Preferred is 120, max is 150.
-// Wrapping here would produce an ugly single-token continuation, so we allow it:
-var result = someService.processRequest(requestId, userName, Optional.of(defaultConfig));
-
-// Line is 145 chars. Still under max, but wrapping produces clean output, so we wrap:
+// Line is 125 chars, lineLength is 120. Wrapping produces clean output, so we wrap:
 var result = someService.processRequest(
         requestId, userName, Optional.of(defaultConfig), additionalParams);
-
-// Line is 155 chars. Over max; wraps if a clean break point exists:
-var result = someService.processRequest(
-        requestId,
-        userName,
-        Optional.of(defaultConfig),
-        additionalParams);
 ```
 
-**Config:** `preferredLineLength: <number>`, `maxLineLength: <number>`
-**Default:** `120`, `150`
+**Config:** `lineLength: <number>`
+**Default:** `120`
 
 ---
 
@@ -172,14 +156,13 @@ enum Status {
 |--------|------|---------|-------------|
 | `indentStyle` | `spaces` \| `tabs` | `spaces` | Use tabs or spaces for indentation |
 | `indentSize` | integer | `4` | Number of spaces or tabs per indent level |
-| `preferredLineLength` | integer | `120` | Soft line width target; wrapping is triggered here |
-| `maxLineLength` | integer | `150` | Hard line width target; exceeded only when no wrap point exists |
+| `lineLength` | integer | `120` | Target line width; wrapping is triggered here |
 | `continuationIndentSize` | integer | `4` | Spaces or tabs for continuation lines (same unit convention as `indentSize`) |
 | `wrapStyle` | `wide` \| `narrow` \| `balanced` | `balanced` | How to handle line wrapping |
 | `closingParenOnNewLine` | boolean | `true` | Whether closing `)` goes on its own line in multi-line params/args |
 | `trailingCommas` | boolean | `false` | Add trailing commas in enum constants and array initializers |
 
-**Total: 8 options.**
+**Total: 7 options.**
 
 ---
 
@@ -187,7 +170,7 @@ enum Status {
 
 ### Method Chaining (Fluent APIs / Builders / Streams)
 
-When a chain **wraps** (preferred line length exceeded, or a lambda-heavy chain forces wrapping), each **chained** call is placed on its **own** line with a **leading dot** (same idea as Kotlin’s fluent style and Prettier’s typical JS/TS chains). The **receiver** is alone on the first line; every `.method(...)` after it starts a continuation line. Continuation lines are indented with `continuationIndentSize` from the **statement** start (not dot-aligned into the horizon).
+When a chain **wraps** (line length exceeded, or a lambda-heavy chain forces wrapping), each **chained** call is placed on its **own** line with a **leading dot** (same idea as Kotlin’s fluent style and Prettier’s typical JS/TS chains). The **receiver** is alone on the first line; every `.method(...)` after it starts a continuation line. Continuation lines are indented with `continuationIndentSize` from the **statement** start (not dot-aligned into the horizon).
 
 ```java
 // Multi-segment chain (two or more .method() links after the receiver)

@@ -42,8 +42,7 @@ final class BinaryExprFormatter {
             }
             if (!comments.anyOperandHasLeadingLineOrBlockComment(parts)
                     && !comments.anyOperandHasTrailingLineOrBlockComment(parts)
-                    && flat <= ctx.config().preferredLineLength()
-                    && flat <= ctx.config().maxLineLength()) {
+                    && flat <= ctx.config().lineLength()) {
                 ctx.accept(parts.get(0), arg);
                 String os = n.getOperator().asString();
                 for (int i = 1; i < parts.size(); i++) {
@@ -89,8 +88,7 @@ final class BinaryExprFormatter {
             }
             if (!comments.anyOperandHasLeadingLineOrBlockComment(parts)
                     && !comments.anyOperandHasTrailingLineOrBlockComment(parts)
-                    && flat <= ctx.config().preferredLineLength()
-                    && flat <= ctx.config().maxLineLength()) {
+                    && flat <= ctx.config().lineLength()) {
                 ctx.accept(parts.get(0), arg);
                 String os = n.getOperator().asString();
                 for (int i = 1; i < parts.size(); i++) {
@@ -135,7 +133,7 @@ final class BinaryExprFormatter {
                         && !comments.anyOperandHasTrailingLineOrBlockComment(concatLeavesAsExpr)
                         && !anyInterOperandComments(concatLeavesAsExpr)) {
                     String merged = mergeStringLiteralValues(concatLeaves);
-                    int max = ctx.config().maxLineLength();
+                    int max = ctx.config().lineLength();
                     int mergedQuotedLen = StringEscapeUtils.escapeJava(merged).length() + 2;
                     boolean mergedWouldOverflowSingleLiteral = ctx.column() + mergedQuotedLen > max;
                     boolean hasEscapesSensitiveToBoundaryPlacement = merged.indexOf('\\') >= 0;
@@ -155,8 +153,7 @@ final class BinaryExprFormatter {
             }
             if (!comments.anyOperandHasLeadingLineOrBlockComment(parts)
                     && !comments.anyOperandHasTrailingLineOrBlockComment(parts)
-                    && flat <= ctx.config().preferredLineLength()
-                    && flat <= ctx.config().maxLineLength()) {
+                    && flat <= ctx.config().lineLength()) {
                 ctx.accept(parts.get(0), arg);
                 for (int i = 1; i < parts.size(); i++) {
                     ctx.print(" + ");
@@ -254,10 +251,10 @@ final class BinaryExprFormatter {
 
     /** Greedy packing for binary operator chains: pack as many operands per line as fit. */
     void printBinaryGreedy(List<Expression> parts, String op, Void arg) {
-        printBinaryGreedy(parts, op, arg, ctx.config().preferredLineLength());
+        printBinaryGreedy(parts, op, arg, ctx.config().lineLength());
     }
 
-    /** Greedily packs binary operands while respecting preferred and max line limits. */
+    /** Greedily packs binary operands while respecting line length. */
     void printBinaryGreedy(List<Expression> parts, String op, Void arg, int budget) {
         boolean prevTrailing = printExprWithTrailingCommentAfter(parts.get(0), arg);
         int used = ctx.column();
@@ -266,15 +263,14 @@ final class BinaryExprFormatter {
             int partLen = ctx.est(parts.get(i));
             boolean leadingComment = comments.hasLeadingLineOrBlockComment(parts.get(i));
             boolean interOperandComment = comments.hasCommentBetweenNodes(parts.get(i - 1), parts.get(i));
-            boolean overPreferred = used + opLen + partLen > budget;
-            boolean overMax = used + opLen + partLen > ctx.config().maxLineLength();
+            boolean overBudget = used + opLen + partLen > budget;
             if (leadingComment || interOperandComment) {
                 printBinaryChainOperandWithInterposedLeadingComments(parts.get(i), op, arg);
                 prevTrailing = false;
                 used = ctx.column();
                 continue;
             }
-            if (prevTrailing || overPreferred || overMax) {
+            if (prevTrailing || overBudget) {
                 if (!prevTrailing) {
                     ctx.println();
                 }

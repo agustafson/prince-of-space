@@ -17,8 +17,7 @@ class FormatterConfigTest {
 
         assertThat(config.indentStyle()).isEqualTo(IndentStyle.SPACES);
         assertThat(config.indentSize()).isEqualTo(4);
-        assertThat(config.preferredLineLength()).isEqualTo(120);
-        assertThat(config.maxLineLength()).isEqualTo(150);
+        assertThat(config.lineLength()).isEqualTo(120);
         assertThat(config.continuationIndentSize()).isEqualTo(4);
         assertThat(config.wrapStyle()).isEqualTo(WrapStyle.BALANCED);
         assertThat(config.closingParenOnNewLine()).isTrue();
@@ -47,14 +46,12 @@ class FormatterConfigTest {
     }
 
     @Test
-    void builder_overridesLineLengths() {
+    void builder_overridesLineLength() {
         FormatterConfig config = FormatterConfig.builder()
-                .preferredLineLength(80)
-                .maxLineLength(100)
+                .lineLength(80)
                 .build();
 
-        assertThat(config.preferredLineLength()).isEqualTo(80);
-        assertThat(config.maxLineLength()).isEqualTo(100);
+        assertThat(config.lineLength()).isEqualTo(80);
     }
 
     @Test
@@ -122,35 +119,10 @@ class FormatterConfigTest {
     }
 
     @Test
-    void validation_maxLessThanPreferredThrows() {
-        assertThatThrownBy(() -> FormatterConfig.builder()
-                        .preferredLineLength(120)
-                        .maxLineLength(100)
-                        .build())
+    void validation_lineLengthZeroThrows() {
+        assertThatThrownBy(() -> FormatterConfig.builder().lineLength(0).build())
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("maxLineLength")
-                .hasMessageContaining("preferredLineLength");
-    }
-
-    @Test
-    void validation_maxEqualToPreferredIsAllowed() {
-        FormatterConfig config = FormatterConfig.builder()
-                .preferredLineLength(100)
-                .maxLineLength(100)
-                .build();
-        assertThat(config.maxLineLength()).isEqualTo(100);
-    }
-
-    @Test
-    void validation_preferredLineLengthZeroThrows() {
-        assertThatThrownBy(() -> FormatterConfig.builder().preferredLineLength(0).build())
-                .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    void validation_maxLineLengthZeroThrows() {
-        assertThatThrownBy(() -> FormatterConfig.builder().maxLineLength(0).build())
-                .isInstanceOf(IllegalArgumentException.class);
+                .hasMessageContaining("lineLength");
     }
 
     @Test
@@ -192,8 +164,7 @@ class FormatterConfigTest {
         String str = FormatterConfig.defaults().toString();
         assertThat(str).contains("indentStyle=SPACES");
         assertThat(str).contains("indentSize=4");
-        assertThat(str).contains("preferredLineLength=120");
-        assertThat(str).contains("maxLineLength=150");
+        assertThat(str).contains("lineLength=120");
         assertThat(str).contains("wrapStyle=BALANCED");
     }
 }

@@ -55,8 +55,7 @@ final class MethodChainFormatter {
             return;
         }
         Expression base = baseOpt.get();
-        boolean wrap = mustHardWrapChain(base, calls)
-                || mustWrapChain(base, calls)
+        boolean wrap = mustWrapChain(base, calls)
                 || shouldWrapLambdaHeavyChain(base, calls)
                 || comments.chainHasLineOrBlockComments(base, calls);
         if (!wrap) {
@@ -250,14 +249,9 @@ final class MethodChainFormatter {
                 || base instanceof SuperExpr;
     }
 
-    /** Returns true when the chain exceeds preferred line length budget. */
+    /** Returns true when the chain exceeds the configured line length. */
     boolean mustWrapChain(Expression base, List<MethodCallExpr> calls) {
-        return ctx.column() + chainOneLineWidth(base, calls) > ctx.config().preferredLineLength();
-    }
-
-    /** Returns true when the chain exceeds hard max line length budget. */
-    boolean mustHardWrapChain(Expression base, List<MethodCallExpr> calls) {
-        return ctx.column() + chainOneLineWidth(base, calls) > ctx.config().maxLineLength();
+        return ctx.column() + chainOneLineWidth(base, calls) > ctx.config().lineLength();
     }
 
     /** Heuristic wrap trigger for chains that contain lambda arguments. */

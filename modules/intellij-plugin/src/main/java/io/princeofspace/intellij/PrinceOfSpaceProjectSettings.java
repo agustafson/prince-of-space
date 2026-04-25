@@ -45,8 +45,7 @@ public final class PrinceOfSpaceProjectSettings implements PersistentStateCompon
         return FormatterConfig.builder()
                 .indentStyle(indentStyle)
                 .indentSize(s.indentSize)
-                .preferredLineLength(s.preferredLineLength)
-                .maxLineLength(s.maxLineLength)
+                .lineLength(s.lineLength)
                 .continuationIndentSize(s.continuationIndentSize)
                 .wrapStyle(wrapStyle)
                 .closingParenOnNewLine(s.closingParenOnNewLine)
@@ -88,8 +87,7 @@ public final class PrinceOfSpaceProjectSettings implements PersistentStateCompon
 
         public @NotNull String indentStyle = IndentStyle.SPACES.name();
         public int indentSize = 4;
-        public int preferredLineLength = 120;
-        public int maxLineLength = 150;
+        public int lineLength = 120;
         public int continuationIndentSize = 4;
         public @NotNull String wrapStyle = WrapStyle.BALANCED.name();
         public boolean closingParenOnNewLine = true;
@@ -125,8 +123,7 @@ public final class PrinceOfSpaceProjectSettings implements PersistentStateCompon
             return formatOnSave == state.formatOnSave
                     && useGlobalFormatterSettings == state.useGlobalFormatterSettings
                     && indentSize == state.indentSize
-                    && preferredLineLength == state.preferredLineLength
-                    && maxLineLength == state.maxLineLength
+                    && lineLength == state.lineLength
                     && continuationIndentSize == state.continuationIndentSize
                     && closingParenOnNewLine == state.closingParenOnNewLine
                     && trailingCommas == state.trailingCommas
@@ -143,8 +140,7 @@ public final class PrinceOfSpaceProjectSettings implements PersistentStateCompon
                     useGlobalFormatterSettings,
                     indentStyle,
                     indentSize,
-                    preferredLineLength,
-                    maxLineLength,
+                    lineLength,
                     continuationIndentSize,
                     wrapStyle,
                     closingParenOnNewLine,

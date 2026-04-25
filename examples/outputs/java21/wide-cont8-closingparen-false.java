@@ -466,13 +466,14 @@ public class FormatterShowcase
     // Scenario 39: Long assert message
     public void longAssert() {
         assert legacyField != null && items != null && !items.isEmpty() : 
-                "legacyField and items must be populated before calling longAssert in production systems with strict validation rules enabled";
+                "legacyField and items must be populated before calling longAssert in production systems "
+                + "with strict validation rules " + "enabled";
     }
 
     // Scenario 39b: Long string literal in method argument
     public void longExceptionMessage() {
-        throw new IllegalStateException("Component scan for configuration class [%s] could not be used with conditions in REGISTER_BEAN phase: %s"
-                .formatted(legacyField, items));
+        throw new IllegalStateException("Component scan for configuration class [%s] could not be used with "
+                + "conditions in REGISTER_BEAN phase: " + "%s".formatted(legacyField, items));
     }
 
     // Scenario 39c: Text block with formatted arguments
@@ -524,7 +525,7 @@ public class FormatterShowcase
                 .concat(legacyField != null ? legacyField : "x");
     }
 
-    // Scenario 44: Lambda with long parameter list (hard maxLineLength)
+    // Scenario 44: Lambda with long parameter list (line length)
     public void longLambdaParameters() {
         java.util.function.BiFunction<java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>>,
                 java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>>, Integer> cmp =
@@ -535,12 +536,13 @@ public class FormatterShowcase
         cmp.apply(null, null);
     }
 
-    // Scenario 45: Switch entry with long guard (hard maxLineLength)
+    // Scenario 45: Switch entry with long guard (line length)
     public String switchLongGuard(Object o) {
         return switch (o) {
             case String s
                     when s.length() > 0 && legacyField != null && !legacyField.isBlank() && items != null
-                    && !items.isEmpty() && s.contains(legacyField) && s.trim().toLowerCase().startsWith("prefix") -> "string-match";
+                    && !items.isEmpty() && s.contains(legacyField) && s.trim().toLowerCase().startsWith("prefix") -> "s"
+                    + "t" + "r" + "i" + "n" + "g" + "-" + "m" + "a" + "t" + "c" + "h";
             default -> "other";
         };
     }

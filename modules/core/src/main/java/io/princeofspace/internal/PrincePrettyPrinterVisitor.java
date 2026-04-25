@@ -368,10 +368,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             boolean first = true;
             for (Type t : args) {
                 int need = t.toString().length() + (first ? 0 : 2);
-                if (first && (column() + need > fmt.preferredLineLength() || argumentListFormatter.wouldExceedMaxLine(need))) {
+                if (first && column() + need > fmt.lineLength()) {
                     printer.println();
                     printCont();
-                } else if (!first && (column() + need > fmt.preferredLineLength() || argumentListFormatter.wouldExceedMaxLine(need))) {
+                } else if (!first && column() + need > fmt.lineLength()) {
                     printer.print(",");
                     printer.println();
                     printCont();
@@ -469,7 +469,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
         int flat = column() + ctx.est(n.getCondition()) + 3 + ctx.est(n.getThenExpr()) + 3 + ctx.est(n.getElseExpr());
-        if (flat <= fmt.preferredLineLength() && flat <= fmt.maxLineLength()) {
+        if (flat <= fmt.lineLength()) {
             n.getCondition().accept(this, arg);
             printer.print(" ? ");
             n.getThenExpr().accept(this, arg);
@@ -545,13 +545,13 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     private void printAssertMessageRespectingMaxLine(Expression msg, Void arg) {
-        if (column() + ctx.est(msg) > fmt.maxLineLength()) {
+        if (column() + ctx.est(msg) > fmt.lineLength()) {
             printer.println();
             printCont();
         }
         if (msg instanceof StringLiteralExpr sl) {
             int quotedLen = StringEscapeUtils.escapeJava(sl.getValue()).length() + 2;
-            if (column() + quotedLen > fmt.maxLineLength()) {
+            if (column() + quotedLen > fmt.lineLength()) {
                 emitChunkedStringLiteral(sl.getValue());
                 return;
             }
@@ -561,7 +561,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     /**
      * Emits a chain of string literals joined by {@code +} so each physical line stays within
-     * {@link FormatterConfig#maxLineLength()} (assert message must remain a single expression).
+     * {@link FormatterConfig#lineLength()} (assert message must remain a single expression).
      */
     void emitChunkedStringLiteral(String raw) {
         printWrappedStringLiteralChunks(raw);
@@ -579,7 +579,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (pieces.size() <= MAX_SHALLOW_LINEAR_STRING_CONCAT_PARTS) {
             String first = pieces.get(0);
             int firstPieceLen = StringEscapeUtils.escapeJava(first).length() + 2;
-            int firstLineRoom = Math.max(1, fmt.maxLineLength() - column() - 2);
+            int firstLineRoom = Math.max(1, fmt.lineLength() - column() - 2);
             if (firstPieceLen > firstLineRoom) {
                 pieces = splitRawIntoStringPieces(raw, Math.min(stableMaxRoomAfterPlusPrefix(), firstLineRoom));
             }
@@ -607,7 +607,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 WORST_CASE_BLOCK_INDENTS_FOR_STRING_CHUNKING * fmt.indentSize()
                         + fmt.continuationIndentSize()
                         + 2;
-        int maxRoom = fmt.maxLineLength() - openingQuoteColumn - 2;
+        int maxRoom = fmt.lineLength() - openingQuoteColumn - 2;
         return Math.max(maxRoom, 1);
     }
 
@@ -618,7 +618,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
      * <p>When the fragment count exceeds {@link #MAX_SHALLOW_LINEAR_STRING_CONCAT_PARTS}, emit uses a
      * balanced parenthesized tree. The left spine prints a run of {@code '('} on the same physical
      * line as the opening quote of the first fragment; reserve a fixed worst-case width so the first
-     * fragment never exceeds {@link FormatterConfig#maxLineLength()} and a re-format pass does not
+     * fragment never exceeds {@link FormatterConfig#lineLength()} and a re-format pass does not
      * pick a different split.
      */
     private static final int BALANCED_STRING_CONCAT_PAREN_HEADROOM = 48;
@@ -650,19 +650,40 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     private static int growPieceEndIndexForChunking(String raw, int i, int maxRoom) {
         int grow = i;
+        int preferredBreak = -1;
         while (grow < raw.length()) {
-            int growNext = grow + Character.charCount(raw.codePointAt(grow));
+            int cp = raw.codePointAt(grow);
+            int growNext = grow + Character.charCount(cp);
             String trial = raw.substring(i, growNext);
             int trialLen = StringEscapeUtils.escapeJava(trial).length() + 2;
             if (trialLen > maxRoom) {
                 break;
             }
             grow = growNext;
+            if (isPreferredStringChunkBoundary(cp)) {
+                preferredBreak = grow;
+            }
         }
         if (grow == i) {
-            grow = i + Character.charCount(raw.codePointAt(i));
+            return i + Character.charCount(raw.codePointAt(i));
         }
-        return grow;
+        // Prefer semantic boundaries (space/punctuation/end-of-line) so words are not split mid-token.
+        return preferredBreak > i ? preferredBreak : grow;
+    }
+
+    private static boolean isPreferredStringChunkBoundary(int codePoint) {
+        return Character.isWhitespace(codePoint)
+                || codePoint == '-'
+                || codePoint == '_'
+                || codePoint == ','
+                || codePoint == '.'
+                || codePoint == ';'
+                || codePoint == ':'
+                || codePoint == '!'
+                || codePoint == '?'
+                || codePoint == ')'
+                || codePoint == ']'
+                || codePoint == '}';
     }
 
     /** Multi-line concat for precomputed fragments (line breaks inserted only when emitting). */
@@ -755,7 +776,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (!isNullOrEmpty(n.getValues())) {
             int arrayFlat = column() + methodChainFormatter.argsFlatWidth(n.getValues()) + 2;
             boolean multi =
-                    arrayFlat > fmt.preferredLineLength() || arrayFlat > fmt.maxLineLength();
+                    arrayFlat > fmt.lineLength();
             if (multi) {
                 if (fmt.wrapStyle() == WrapStyle.WIDE) {
                     // Greedy inline packing
@@ -830,14 +851,16 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 printer.println();
                 printCont();
             } else {
+                boolean inlineWouldOverflow = ctx.column() + 1 + ctx.est(init) > fmt.lineLength();
+                int continuationRhsBudget = Math.max(1, fmt.lineLength() - (fmt.continuationIndentSize() + 4));
+                boolean rhsFitsSingleContinuationLine = ctx.est(init) <= continuationRhsBudget;
                 // Break before long string-like initializers when the combined line would exceed limits.
                 // Restrict to string literals, text blocks, and literal-only "+" chains so array/object
                 // initializers are not mis-measured via toString().
                 int tailWidth = tailWidthAfterEqualsForInitializerBreakHeuristic(init);
                 boolean longStringLikeInitializer = initializerNeedsForcedBreakBeforeChunking(init);
-                if (tailWidth >= 0
-                        && (ctx.column() + tailWidth > fmt.maxLineLength()
-                                || ctx.column() + tailWidth > fmt.preferredLineLength())) {
+                if ((inlineWouldOverflow && rhsFitsSingleContinuationLine)
+                        || (tailWidth >= 0 && ctx.column() + tailWidth > fmt.lineLength())) {
                     printer.println();
                     printCont();
                 } else if (longStringLikeInitializer) {
@@ -946,7 +969,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
         int quotedLen = StringEscapeUtils.escapeJava(n.getValue()).length() + 2;
-        if (column() + quotedLen > fmt.maxLineLength() && !isInsideStringConcatChain(n)) {
+        if (column() + quotedLen > fmt.lineLength() && !isInsideStringConcatChain(n)) {
             emitChunkedStringLiteral(n.getValue());
         } else {
             // Do not call super.visit: DefaultPrettyPrinterVisitor would print orphan + comment again.
@@ -995,7 +1018,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         entry.getGuard().ifPresent(
                 guard -> {
                     int flat = column() + 6 + ctx.est(guard); // " when " + guard
-                    if (flat <= fmt.preferredLineLength() && flat <= fmt.maxLineLength()) {
+                    if (flat <= fmt.lineLength()) {
                         printer.print(" when ");
                         guard.accept(this, arg);
                         return;

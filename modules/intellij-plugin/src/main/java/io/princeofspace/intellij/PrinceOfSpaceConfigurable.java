@@ -37,8 +37,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
     private ComboBox<String> indentStyleCombo;
     private JSpinner indentSizeSpinner;
     private JSpinner continuationIndentSpinner;
-    private JSpinner preferredLineLengthSpinner;
-    private JSpinner maxLineLengthSpinner;
+    private JSpinner lineLengthSpinner;
     private ComboBox<String> wrapStyleCombo;
     private JBCheckBox closingParenOnNewLine;
     private JBCheckBox trailingCommas;
@@ -68,8 +67,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         indentStyleCombo = new ComboBox<>(Arrays.stream(IndentStyle.values()).map(Enum::name).toArray(String[]::new));
         indentSizeSpinner = new JSpinner(new SpinnerNumberModel(4, 1, 32, 1));
         continuationIndentSpinner = new JSpinner(new SpinnerNumberModel(4, 1, 32, 1));
-        preferredLineLengthSpinner = new JSpinner(new SpinnerNumberModel(120, 20, 500, 1));
-        maxLineLengthSpinner = new JSpinner(new SpinnerNumberModel(150, 20, 800, 1));
+        lineLengthSpinner = new JSpinner(new SpinnerNumberModel(120, 20, 500, 1));
         wrapStyleCombo = new ComboBox<>(Arrays.stream(WrapStyle.values()).map(Enum::name).toArray(String[]::new));
         closingParenOnNewLine = new JBCheckBox("Place closing \")\" on its own line when argument lists wrap");
         trailingCommas = new JBCheckBox("Use trailing commas in multi-line enums and array literals");
@@ -95,8 +93,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
                         .addLabeledComponent("Continuation indent size:", continuationIndentSpinner)
                         .addVerticalGap(8)
                         .addComponent(boldSection("Line width"))
-                        .addLabeledComponent("Preferred line length:", preferredLineLengthSpinner)
-                        .addLabeledComponent("Max line length:", maxLineLengthSpinner)
+                        .addLabeledComponent("Line length:", lineLengthSpinner)
                         .addVerticalGap(8)
                         .addComponent(boldSection("Wrapping"))
                         .addLabeledComponent("Wrap style:", wrapStyleCombo)
@@ -167,8 +164,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         t.useGlobalFormatterSettings = s.useGlobalFormatterSettings;
         t.indentStyle = s.indentStyle;
         t.indentSize = s.indentSize;
-        t.preferredLineLength = s.preferredLineLength;
-        t.maxLineLength = s.maxLineLength;
+        t.lineLength = s.lineLength;
         t.continuationIndentSize = s.continuationIndentSize;
         t.wrapStyle = s.wrapStyle;
         t.closingParenOnNewLine = s.closingParenOnNewLine;
@@ -182,8 +178,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         PrinceOfSpaceGlobalSettings.State t = new PrinceOfSpaceGlobalSettings.State();
         t.indentStyle = s.indentStyle;
         t.indentSize = s.indentSize;
-        t.preferredLineLength = s.preferredLineLength;
-        t.maxLineLength = s.maxLineLength;
+        t.lineLength = s.lineLength;
         t.continuationIndentSize = s.continuationIndentSize;
         t.wrapStyle = s.wrapStyle;
         t.closingParenOnNewLine = s.closingParenOnNewLine;
@@ -203,8 +198,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
             indentStyleCombo.setSelectedItem(globalState.indentStyle);
             indentSizeSpinner.setValue(globalState.indentSize);
             continuationIndentSpinner.setValue(globalState.continuationIndentSize);
-            preferredLineLengthSpinner.setValue(globalState.preferredLineLength);
-            maxLineLengthSpinner.setValue(globalState.maxLineLength);
+            lineLengthSpinner.setValue(globalState.lineLength);
             wrapStyleCombo.setSelectedItem(globalState.wrapStyle);
             closingParenOnNewLine.setSelected(globalState.closingParenOnNewLine);
             trailingCommas.setSelected(globalState.trailingCommas);
@@ -214,8 +208,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
             indentStyleCombo.setSelectedItem(projectState.indentStyle);
             indentSizeSpinner.setValue(projectState.indentSize);
             continuationIndentSpinner.setValue(projectState.continuationIndentSize);
-            preferredLineLengthSpinner.setValue(projectState.preferredLineLength);
-            maxLineLengthSpinner.setValue(projectState.maxLineLength);
+            lineLengthSpinner.setValue(projectState.lineLength);
             wrapStyleCombo.setSelectedItem(projectState.wrapStyle);
             closingParenOnNewLine.setSelected(projectState.closingParenOnNewLine);
             trailingCommas.setSelected(projectState.trailingCommas);
@@ -232,8 +225,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         s.indentStyle = (String) indentStyleCombo.getSelectedItem();
         s.indentSize = (Integer) indentSizeSpinner.getValue();
         s.continuationIndentSize = (Integer) continuationIndentSpinner.getValue();
-        s.preferredLineLength = (Integer) preferredLineLengthSpinner.getValue();
-        s.maxLineLength = (Integer) maxLineLengthSpinner.getValue();
+        s.lineLength = (Integer) lineLengthSpinner.getValue();
         s.wrapStyle = (String) wrapStyleCombo.getSelectedItem();
         s.closingParenOnNewLine = closingParenOnNewLine.isSelected();
         s.trailingCommas = trailingCommas.isSelected();
@@ -248,8 +240,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         s.indentStyle = (String) indentStyleCombo.getSelectedItem();
         s.indentSize = (Integer) indentSizeSpinner.getValue();
         s.continuationIndentSize = (Integer) continuationIndentSpinner.getValue();
-        s.preferredLineLength = (Integer) preferredLineLengthSpinner.getValue();
-        s.maxLineLength = (Integer) maxLineLengthSpinner.getValue();
+        s.lineLength = (Integer) lineLengthSpinner.getValue();
         s.wrapStyle = (String) wrapStyleCombo.getSelectedItem();
         s.closingParenOnNewLine = closingParenOnNewLine.isSelected();
         s.trailingCommas = trailingCommas.isSelected();
@@ -269,11 +260,8 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         if (s.indentSize <= 0 || s.continuationIndentSize <= 0) {
             throw new ConfigurationException("Indent sizes must be positive.");
         }
-        if (s.preferredLineLength <= 0 || s.maxLineLength <= 0) {
-            throw new ConfigurationException("Line lengths must be positive.");
-        }
-        if (s.maxLineLength < s.preferredLineLength) {
-            throw new ConfigurationException("Max line length must be greater than or equal to preferred line length.");
+        if (s.lineLength <= 0) {
+            throw new ConfigurationException("Line length must be positive.");
         }
         if (!s.useProjectLanguageLevel) {
             try {
@@ -295,11 +283,8 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         if (s.indentSize <= 0 || s.continuationIndentSize <= 0) {
             throw new ConfigurationException("Indent sizes must be positive.");
         }
-        if (s.preferredLineLength <= 0 || s.maxLineLength <= 0) {
-            throw new ConfigurationException("Line lengths must be positive.");
-        }
-        if (s.maxLineLength < s.preferredLineLength) {
-            throw new ConfigurationException("Max line length must be greater than or equal to preferred line length.");
+        if (s.lineLength <= 0) {
+            throw new ConfigurationException("Line length must be positive.");
         }
     }
 

@@ -11,7 +11,7 @@ Prince of Space is validated against two large, well-known Java codebases to cat
 
 ## Latest results
 
-Evaluated on 2026-04-15 with default-balanced config (`preferredLineLength=120`, `maxLineLength=150`, `wrapStyle=BALANCED`).
+Evaluated on 2026-04-15 with default-balanced config (`lineLength=120`, `wrapStyle=BALANCED`).
 
 | Project | Files | Parse errors | Idempotency failures | Over-long lines | Time |
 |---------|-------|-------------|----------------------|-----------------|------|

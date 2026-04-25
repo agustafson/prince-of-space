@@ -43,7 +43,7 @@ final class ArgumentListFormatter {
      */
     boolean argsNeedWrap(NodeList<? extends Expression> args) {
         int width = ctx.column() + 1 + methodChainFormatter.argsFlatWidth(args);
-        return width > fmt.preferredLineLength() || width > fmt.maxLineLength();
+        return width > fmt.lineLength();
     }
 
     /**
@@ -135,7 +135,7 @@ final class ArgumentListFormatter {
             boolean avoidLoneLastItem,
             int extraLastLineBudget) {
         boolean first = true;
-        int budget = fmt.preferredLineLength() - trailingWidth;
+        int budget = fmt.lineLength() - trailingWidth;
         Iterator<? extends Expression> iter = args.iterator();
         int remaining = args.size();
         Expression previous = null;
@@ -148,7 +148,7 @@ final class ArgumentListFormatter {
             int lineBudget = budget + (extraLastLineBudget > 0 && remaining == 1 ? extraLastLineBudget : 0);
             if (!first
                     && (ctx.column() + need > lineBudget
-                            || wouldExceedMaxLine(need)
+                            || wouldExceedLineLength(need)
                             || shouldWrapForLoneLastItem
                             || hasInterveningComment
                             || currentHasLeadingComment)) {
@@ -182,15 +182,15 @@ final class ArgumentListFormatter {
     /** Whether formal parameters need to wrap given the current column and width limits. */
     boolean paramsNeedWrap(NodeList<Parameter> ps) {
         int width = ctx.column() + 1 + paramsFlatWidth(ps);
-        return width > fmt.preferredLineLength() || width > fmt.maxLineLength();
+        return width > fmt.lineLength();
     }
 
     /**
      * Whether appending {@code additionalWidth} characters on the current line would exceed the
-     * configured hard line limit.
+     * configured line length.
      */
-    boolean wouldExceedMaxLine(int additionalWidth) {
-        return ctx.wouldExceedMaxLine(additionalWidth);
+    boolean wouldExceedLineLength(int additionalWidth) {
+        return ctx.wouldExceedLineLength(additionalWidth);
     }
 
     /** Prints formal parameters inside {@code (...)} with wrapping consistent with formatter config. */
@@ -214,16 +214,16 @@ final class ArgumentListFormatter {
                 Parameter p = ps.get(idx);
                 int need = p.toString().length() + (first ? 0 : 2);
                 boolean isLast = idx == n - 1;
-                int lineBudget = fmt.preferredLineLength();
+                int lineBudget = fmt.lineLength();
                 if (isLast) {
                     // When ")" stays on the last param line, reserve ") {" / ");"; when ")" is alone on
                     // the next line, that width is not needed on the param line.
                     lineBudget += fmt.closingParenOnNewLine() ? 3 : -3;
                 }
-                if (first && (ctx.column() + need > lineBudget || wouldExceedMaxLine(need))) {
+                if (first && (ctx.column() + need > lineBudget || wouldExceedLineLength(need))) {
                     ctx.println();
                     ctx.printCont();
-                } else if (!first && (ctx.column() + need > lineBudget || wouldExceedMaxLine(need))) {
+                } else if (!first && (ctx.column() + need > lineBudget || wouldExceedLineLength(need))) {
                     ctx.print(",");
                     ctx.println();
                     ctx.printCont();
@@ -265,7 +265,7 @@ final class ArgumentListFormatter {
             return false;
         }
         int width = ctx.column() + 1 + typeParametersFlatWidth(ps) + 1;
-        return width > fmt.preferredLineLength() || width > fmt.maxLineLength();
+        return width > fmt.lineLength();
     }
 
     /** Prints {@code <T, U, ...>} type parameters with optional line wrapping. */
@@ -292,14 +292,14 @@ final class ArgumentListFormatter {
                 TypeParameter p = typeParameters.get(idx);
                 int need = p.toString().length() + (first ? 0 : 2);
                 boolean isLast = idx == n - 1;
-                int lineBudget = fmt.preferredLineLength();
+                int lineBudget = fmt.lineLength();
                 if (isLast) {
                     lineBudget += 1;
                 }
                 if (first && ctx.column() + need > lineBudget) {
                     ctx.println();
                     ctx.printCont();
-                } else if (!first && (ctx.column() + need > lineBudget || wouldExceedMaxLine(need))) {
+                } else if (!first && (ctx.column() + need > lineBudget || wouldExceedLineLength(need))) {
                     ctx.print(",");
                     ctx.println();
                     ctx.printCont();
@@ -342,6 +342,6 @@ final class ArgumentListFormatter {
             return false;
         }
         int width = ctx.column() + 1 + typeArgumentsFlatWidth(args) + 1;
-        return width > fmt.preferredLineLength() || width > fmt.maxLineLength();
+        return width > fmt.lineLength();
     }
 }

@@ -51,13 +51,11 @@ class IdempotencyFuzzTest {
     void formatTwiceStable_forPseudoRandomConfigs() {
         SplittableRandom rng = new SplittableRandom(0xFEEDBEEFL);
         for (int round = 0; round < fuzzIterations(); round++) {
-            int preferred = 40 + rng.nextInt(90);
-            int max = preferred + rng.nextInt(100);
+            int lineLen = 40 + rng.nextInt(90);
             WrapStyle[] styles = {WrapStyle.WIDE, WrapStyle.BALANCED, WrapStyle.NARROW};
             FormatterConfig cfg =
                     FormatterConfig.builder()
-                            .preferredLineLength(preferred)
-                            .maxLineLength(max)
+                            .lineLength(lineLen)
                             .continuationIndentSize(4 + rng.nextInt(2) * 4)
                             .wrapStyle(styles[rng.nextInt(styles.length)])
                             .closingParenOnNewLine(rng.nextBoolean())

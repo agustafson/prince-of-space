@@ -304,7 +304,7 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
         return items.stream().filter(item -> item != null && !item.isEmpty()).map(String::trim).sorted().findFirst().orElse("none").toUpperCase().concat("-").concat(legacyField != null ? legacyField : "x");
     }
 
-    // Scenario 44: Lambda with long parameter list (hard maxLineLength)
+    // Scenario 44: Lambda with long parameter list (line length)
     public void longLambdaParameters() {
         java.util.function.BiFunction<
                         java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>>,
@@ -318,7 +318,7 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
         cmp.apply(null, null);
     }
 
-    // Scenario 45: Switch entry with many labels (hard maxLineLength)
+    // Scenario 45: Switch entry with many labels (line length)
     public int switchManyLabels(String s) {
         return switch (s) {
             case "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa" -> 1;

@@ -35,12 +35,12 @@ Use it as the primary source of *why* design choices exist.
 - **Consequences:** New public classes are rare; `Formatter` delegates to internal engine classes.
 - **Related docs:** `ARCHITECTURE.md`
 
-### TDR-004: Preferred + max line width model
+### TDR-004: Single line length threshold
 - **Date:** 2026-04
-- **Status:** Accepted
-- **Decision:** Use dual thresholds (`preferredLineLength` soft target + `maxLineLength` hard cap) instead of a single width.
-- **Rationale:** Produces cleaner formatting decisions than a strict single-wall model.
-- **Consequences:** Wrapping logic uses both thresholds; tests must cover behavior around both.
+- **Status:** Accepted (revised)
+- **Decision:** Use a single `lineLength` threshold instead of dual `preferredLineLength` + `maxLineLength`.
+- **Rationale:** The dual-threshold model added complexity without meaningful benefit — the gap between preferred and max was rarely useful and made the API harder to understand. A single threshold is simpler, matches Prettier's `printWidth` model, and produces equivalent output.
+- **Consequences:** Single wrapping threshold; simpler config surface.
 - **Related docs:** `docs/formatting-rules.md`, `modules/core/src/test/java/io/princeofspace/WrappingFormattingTest.java`
 
 ### TDR-005: Wrap styles are strategy-level, not per-construct settings

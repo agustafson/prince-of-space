@@ -104,8 +104,7 @@ This design means the public API is stable even when JavaParser adds new enum va
 | `wrapStyle` | `balanced` |
 | `indentStyle` | `spaces` |
 | `indentSize` | `4` |
-| `preferredLineLength` | `120` |
-| `maxLineLength` | `150` |
+| `lineLength` | `120` |
 | `continuationIndentSize` | `4` |
 | `closingParenOnNewLine` | `true` |
 | `trailingCommas` | `false` |

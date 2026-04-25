@@ -57,27 +57,26 @@ class RealWorldEvalTest {
     // Config permutations
     // ---------------------------------------------------------------------------
 
-    record EvalConfig(String name, int preferred, int max, WrapStyle wrapStyle) {
+    record EvalConfig(String name, int lineLength, WrapStyle wrapStyle) {
 
         FormatterConfig toFormatterConfig() {
             return FormatterConfig.builder()
-                    .preferredLineLength(preferred)
-                    .maxLineLength(max)
+                    .lineLength(lineLength)
                     .wrapStyle(wrapStyle)
                     .build();
         }
     }
 
     private static final List<EvalConfig> CONFIGS = List.of(
-            new EvalConfig("aggressive-wide", 80, 100, WrapStyle.WIDE),
-            new EvalConfig("aggressive-balanced", 80, 100, WrapStyle.BALANCED),
-            new EvalConfig("aggressive-narrow", 80, 100, WrapStyle.NARROW),
-            new EvalConfig("moderate-wide", 100, 120, WrapStyle.WIDE),
-            new EvalConfig("moderate-balanced", 100, 120, WrapStyle.BALANCED),
-            new EvalConfig("moderate-narrow", 100, 120, WrapStyle.NARROW),
-            new EvalConfig("default-wide", 120, 150, WrapStyle.WIDE),
-            new EvalConfig("default-balanced", 120, 150, WrapStyle.BALANCED),
-            new EvalConfig("default-narrow", 120, 150, WrapStyle.NARROW));
+            new EvalConfig("aggressive-wide", 80, WrapStyle.WIDE),
+            new EvalConfig("aggressive-balanced", 80, WrapStyle.BALANCED),
+            new EvalConfig("aggressive-narrow", 80, WrapStyle.NARROW),
+            new EvalConfig("moderate-wide", 100, WrapStyle.WIDE),
+            new EvalConfig("moderate-balanced", 100, WrapStyle.BALANCED),
+            new EvalConfig("moderate-narrow", 100, WrapStyle.NARROW),
+            new EvalConfig("default-wide", 120, WrapStyle.WIDE),
+            new EvalConfig("default-balanced", 120, WrapStyle.BALANCED),
+            new EvalConfig("default-narrow", 120, WrapStyle.NARROW));
 
     /** Directory segments that indicate generated / build output — skip their subtrees. */
     private static final Set<String> SKIP_DIRS =
@@ -266,7 +265,7 @@ class RealWorldEvalTest {
 
         for (Path file : files) {
             String relative = relativize(projectRoot, file);
-            int max = config.maxLineLength();
+            int max = config.lineLength();
 
             final String once;
             final int srcLong;

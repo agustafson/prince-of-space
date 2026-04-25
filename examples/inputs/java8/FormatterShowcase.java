@@ -258,7 +258,7 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
         return items.stream().filter(item -> item != null && !item.isEmpty()).map(String::trim).sorted().findFirst().orElse("none").toUpperCase().concat("-").concat(legacyField != null ? legacyField : "x");
     }
 
-    // Scenario 44: Lambda with long parameter list (hard maxLineLength)
+    // Scenario 44: Lambda with long parameter list (line length)
     public void longLambdaParameters() {
         java.util.function.BiFunction<
                         java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>>,

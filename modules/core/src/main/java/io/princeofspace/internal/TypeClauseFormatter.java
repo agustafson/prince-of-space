@@ -50,7 +50,7 @@ final class TypeClauseFormatter {
         int header = ctx.column();
         // Check if everything fits on the current line (include " {" trailing)
         int inlineWidth = header + 12 + implementsTypesWidth(types) + 2;
-        if (inlineWidth <= fmt.preferredLineLength() && inlineWidth <= fmt.maxLineLength()) {
+        if (inlineWidth <= fmt.lineLength()) {
             ctx.print(" implements");
             printInlineTypeClauseList(types, arg);
             return false;
@@ -103,8 +103,7 @@ final class TypeClauseFormatter {
         int header = ctx.column();
         int permitsInline = header + 9 + implementsTypesWidth(types);
         if (fmt.wrapStyle() != WrapStyle.NARROW
-                && permitsInline <= fmt.preferredLineLength()
-                && permitsInline <= fmt.maxLineLength()) {
+                && permitsInline <= fmt.lineLength()) {
             ctx.print(" permits");
             printInlineTypeClauseList(types, arg);
             return false;
@@ -135,11 +134,11 @@ final class TypeClauseFormatter {
 
     /** Greedy comma-wrapped printing of class/interface types (WIDE throws/implements-style). */
     void printTypeListGreedy(NodeList<ClassOrInterfaceType> types, Void arg) {
-        int budget = fmt.preferredLineLength() - 2;
+        int budget = fmt.lineLength() - 2;
         boolean first = true;
         for (ClassOrInterfaceType t : types) {
             int need = t.toString().length() + (first ? 0 : 2);
-            if (!first && (ctx.column() + need > budget || ctx.wouldExceedMaxLine(need))) {
+            if (!first && (ctx.column() + need > budget || ctx.wouldExceedLineLength(need))) {
                 ctx.print(",");
                 ctx.println();
                 ctx.printCont();
@@ -195,7 +194,7 @@ final class TypeClauseFormatter {
             return;
         }
         int inline = ctx.column() + 7 + referenceTypesFlatWidth(types);
-        if (inline <= fmt.preferredLineLength() && inline <= fmt.maxLineLength()) {
+        if (inline <= fmt.lineLength()) {
             ctx.print(" throws ");
             for (Iterator<ReferenceType> i = types.iterator(); i.hasNext(); ) {
                 ctx.accept(i.next(), arg);
@@ -236,11 +235,11 @@ final class TypeClauseFormatter {
     }
 
     void printReferenceTypeListGreedy(NodeList<ReferenceType> types, Void arg) {
-        int budget = fmt.preferredLineLength() - 2;
+        int budget = fmt.lineLength() - 2;
         boolean first = true;
         for (ReferenceType t : types) {
             int need = t.toString().length() + (first ? 0 : 2);
-            if (!first && (ctx.column() + need > budget || ctx.wouldExceedMaxLine(need))) {
+            if (!first && (ctx.column() + need > budget || ctx.wouldExceedLineLength(need))) {
                 ctx.print(",");
                 ctx.println();
                 ctx.printCont();
@@ -267,11 +266,11 @@ final class TypeClauseFormatter {
     }
 
     void printUnionTypeListGreedy(NodeList<ReferenceType> types, Void arg) {
-        int budget = fmt.preferredLineLength() - 2;
+        int budget = fmt.lineLength() - 2;
         boolean first = true;
         for (ReferenceType t : types) {
             int need = t.toString().length() + (first ? 0 : 3);
-            if (!first && (ctx.column() + need > budget || ctx.wouldExceedMaxLine(need))) {
+            if (!first && (ctx.column() + need > budget || ctx.wouldExceedLineLength(need))) {
                 ctx.println();
                 ctx.printCont();
                 ctx.print("| ");
@@ -293,7 +292,7 @@ final class TypeClauseFormatter {
             return;
         }
         int inline = ctx.column() + referenceTypesUnionFlatWidth(types);
-        if (inline <= fmt.preferredLineLength() && inline <= fmt.maxLineLength()) {
+        if (inline <= fmt.lineLength()) {
             boolean first = true;
             for (ReferenceType t : types) {
                 if (!first) {

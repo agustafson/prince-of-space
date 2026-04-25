@@ -110,8 +110,7 @@ The `modules/vscode-extension/` directory contains a TypeScript extension that r
 | `wrapStyle` | `balanced` | `wide`, `balanced`, or `narrow` wrapping              |
 | `indentStyle` | `spaces` | `spaces` or `tabs`                                    |
 | `indentSize` | `4` | Units per indent level (spaces or tabs)               |
-| `preferredLineLength` | `120` | Soft target — wrapping starts here                    |
-| `maxLineLength` | `150` | Hard target — exceeded only when no wrap point exists |
+| `lineLength` | `120` | Target line width — wrapping is triggered here        |
 | `continuationIndentSize` | `4` | Units for continuation lines                          |
 | `closingParenOnNewLine` | `true` | Closing `)` on its own line when args wrap            |
 | `trailingCommas` | `false` | Trailing commas in multi-line enums/arrays            |

@@ -202,7 +202,7 @@ examples/outputs/
   java25/
 ```
 
-Each file is the full `FormatterShowcase.java` formatted with that combination of options (the three vary-able options are `wrapStyle`, `continuationIndentSize`, and `closingParenOnNewLine`; `indentStyle`, `indentSize`, `preferredLineLength`, `maxLineLength`, and `trailingCommas` are held at their defaults).
+Each file is the full `FormatterShowcase.java` formatted with that combination of options (the three vary-able options are `wrapStyle`, `continuationIndentSize`, and `closingParenOnNewLine`; `indentStyle`, `indentSize`, `lineLength`, and `trailingCommas` are held at their defaults).
 
 To regenerate after changing formatting behaviour:
 
