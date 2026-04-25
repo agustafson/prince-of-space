@@ -13,13 +13,13 @@
 
 | Document | Contents |
 |----------|----------|
-| [Architecture](architecture.md) | Package layout, coding conventions, module structure, and test strategy |
-| [Contributing Guide](contributing.md) | Commit conventions, build requirements, and PR checks |
+| [Architecture](../ARCHITECTURE.md) | Package layout, coding conventions, module structure, and test strategy |
+| [Contributing Guide](../CONTRIBUTING.md) | Commit conventions, build requirements, and PR checks |
 | [Decision Register](technical-decision-register.md) | Canonical log of architectural and product decisions with rationale |
 | [Showroom Scenarios](showroom-scenarios.md) | How the 48 showroom golden files are structured across Java levels and scenarios |
 | [Evaluation](evaluation.md) | Real-world evaluation harness: how to run it, latest results against Guava and Spring |
 | [Benchmarks](benchmarks.md) | Performance smoke tests and future JMH plans |
-| [Changelog](changelog.md) | Release history |
+| [Changelog](../CHANGELOG.md) | Release history |
 
 ## Historical reference
 

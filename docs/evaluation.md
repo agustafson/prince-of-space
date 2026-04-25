@@ -65,16 +65,16 @@ Reports are overwritten on re-run for the same day.
 
 ## Config permutations
 
-The full eval runs 9 configs per project:
+The full eval runs 9 configs per project across three `lineLength` bands and three wrap styles:
 
-| Name | Preferred | Max | Wrap style | Rationale |
-|------|-----------|-----|------------|-----------|
-| `aggressive-wide` | 80 | 100 | Wide | Max wrapping stress |
-| `aggressive-balanced` | 80 | 100 | Balanced | |
-| `aggressive-narrow` | 80 | 100 | Narrow | |
-| `moderate-wide` | 100 | 120 | Wide | Sensible defaults for many projects |
-| `moderate-balanced` | 100 | 120 | Balanced | Primary eval config |
-| `moderate-narrow` | 100 | 120 | Narrow | |
-| `default-wide` | 120 | 150 | Wide | Formatter's own defaults |
-| `default-balanced` | 120 | 150 | Balanced | Stability when wrapping rarely fires |
-| `default-narrow` | 120 | 150 | Narrow | |
+| Name | `lineLength` | Wrap style | Rationale |
+|------|--------------|------------|-----------|
+| `aggressive-wide` | 80 | Wide | Max wrapping stress |
+| `aggressive-balanced` | 80 | Balanced | |
+| `aggressive-narrow` | 80 | Narrow | |
+| `moderate-wide` | 100 | Wide | Sensible defaults for many projects |
+| `moderate-balanced` | 100 | Balanced | Primary eval config |
+| `moderate-narrow` | 100 | Narrow | |
+| `default-wide` | 120 | Wide | Formatter's own default `lineLength` |
+| `default-balanced` | 120 | Balanced | Stability when wrapping rarely fires |
+| `default-narrow` | 120 | Narrow | |

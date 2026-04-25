@@ -23,7 +23,7 @@ Prince of Space takes its philosophy from Prettier and ktlint: strong, readable 
 ## Features
 
 - **8 configuration options** covering indentation, line length, wrapping, and trailing commas
-- **Two-threshold line length** — a soft preferred width and a hard maximum target, so wrapping looks natural
+- **Single-threshold line length** — one `lineLength` target keeps wrapping predictable and the configuration surface small
 - **Idempotent** — formatting already-formatted code produces identical output (`format(format(x)) == format(x)`)
 - **Java 8 through 25+** — parses any Java language level; runs on JDK 17+
 - **Multiple integrations** — library API, CLI, Spotless plugin, IntelliJ plugin, VS Code extension
@@ -115,6 +115,7 @@ The `modules/vscode-extension/` directory contains a TypeScript extension that r
 | `continuationIndentSize` | `4` | Units for continuation lines                          |
 | `closingParenOnNewLine` | `true` | Closing `)` on its own line when args wrap            |
 | `trailingCommas` | `false` | Trailing commas in multi-line enums/arrays            |
+| `javaLanguageLevel` | `17` | Java syntax level accepted by the parser              |
 
 ### Wrap style
 
@@ -216,7 +217,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for commit conventions and PR requirement
 
 ## Documentation
 
-See **[docs/README.md](docs/README.md)** for a full index. Key documents:
+See **[docs/index.md](docs/index.md)** for a full index. Key documents:
 
 | Document | Contents |
 |----------|----------|

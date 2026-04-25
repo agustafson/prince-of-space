@@ -172,6 +172,18 @@ enum Status {
 
 ---
 
+### 7. Java Language Level
+
+The formatter parses input according to a configured Java release. This determines which syntax
+JavaParser will accept, such as records, sealed types, switch expressions, text blocks, and newer
+language features supported by the bundled parser version. It does not introduce extra style knobs;
+it only controls the accepted source-language surface.
+
+**Config:** `javaLanguageLevel: JavaLanguageLevel.of(<release>)` in the API, or `--java-version <release>` in the CLI
+**Default:** `JavaLanguageLevel.of(17)`
+
+---
+
 ## Part 2: Configuration Summary
 
 | Option | Type | Default | Description |
@@ -183,8 +195,9 @@ enum Status {
 | `wrapStyle` | `wide` \| `narrow` \| `balanced` | `balanced` | How to handle line wrapping |
 | `closingParenOnNewLine` | boolean | `true` | Whether closing `)` goes on its own line in multi-line params/args |
 | `trailingCommas` | boolean | `false` | Add trailing commas in enum constants and array initializers |
+| `javaLanguageLevel` | `JavaLanguageLevel` | `JavaLanguageLevel.of(17)` | Java syntax release accepted by the parser |
 
-**Total: 7 options.**
+**Total: 8 options.**
 
 ---
 
