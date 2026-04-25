@@ -447,7 +447,7 @@ Same. Scenario 45 (Java 17+ trees only) reflows.
 
 ---
 
-## Task 5.4 — Trailing space after `assert … :`
+## Task 5.4 — Trailing space after `assert … :` ✅ COMPLETED
 
 ### Read first
 
