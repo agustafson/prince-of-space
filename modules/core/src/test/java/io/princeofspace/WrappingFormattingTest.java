@@ -627,6 +627,77 @@ class WrappingFormattingTest {
     }
 
     @Test
+    void typeParameters_balanced_wrapsEachWhenOverflow() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(90)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .build());
+        String input =
+                """
+                class T {
+                    <A extends java.util.Map<String, java.util.List<java.util.Optional<String>>>, B extends java.util.Map<String, java.util.List<java.util.Optional<String>>>, C extends java.util.Map<String, java.util.List<java.util.Optional<String>>>> void m() {}
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("<\n");
+        assertThat(out).contains("A extends java.util.Map<String, java.util.List<java.util.Optional<String>>>,\n");
+        assertThat(out).contains("B extends java.util.Map<String, java.util.List<java.util.Optional<String>>>,\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void typeParameters_wide_packsGreedily() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(120)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .build());
+        String input =
+                """
+                class T {
+                    <A extends java.util.Map<String, java.util.List<java.util.Optional<String>>>, B extends java.util.Map<String, java.util.List<java.util.Optional<String>>>, C extends java.util.Map<String, java.util.List<java.util.Optional<String>>>> void m() {}
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("<A extends java.util.Map<String, java.util.List<java.util.Optional<String>>>,\n");
+        assertThat(out).contains("B extends java.util.Map<String, java.util.List<java.util.Optional<String>>>,\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void typeParameters_narrow_oneParameterPerLine() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(120)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.NARROW)
+                                .build());
+        String input =
+                """
+                class T {
+                    <A extends java.util.Map<String, java.util.List<java.util.Optional<String>>>, B extends java.util.Map<String, java.util.List<java.util.Optional<String>>>, C extends java.util.Map<String, java.util.List<java.util.Optional<String>>>> void m() {}
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("<\n");
+        assertThat(out).contains("A extends java.util.Map<String, java.util.List<java.util.Optional<String>>>,\n");
+        assertThat(out).contains("B extends java.util.Map<String, java.util.List<java.util.Optional<String>>>,\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
     void arrayInitializer_wide_keepsRoomForClosingBrace() {
         Formatter f =
                 new Formatter(

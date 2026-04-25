@@ -237,7 +237,7 @@ Same as Task 2.2. Existing WIDE assertions must keep passing.
 
 ---
 
-## Task 2.4 — Make type-parameter lists wrap
+## Task 2.4 — Make type-parameter lists wrap ✅ COMPLETED
 
 ### Read first
 
