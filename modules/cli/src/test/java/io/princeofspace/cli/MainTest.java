@@ -2,7 +2,6 @@ package io.princeofspace.cli;
 
 import io.princeofspace.Formatter;
 import io.princeofspace.model.FormatterConfig;
-import io.princeofspace.model.JavaLanguageLevel;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
@@ -16,7 +15,6 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MainTest {
 
@@ -70,22 +68,6 @@ class MainTest {
 
         int code = new CommandLine(new Main()).execute("--check", f.toString());
         assertThat(code).isEqualTo(1);
-    }
-
-    @Test
-    void parseLanguageLevel_mapsVersions() {
-        assertThat(Main.parseLanguageLevel(8)).isEqualTo(JavaLanguageLevel.of(8));
-        assertThat(Main.parseLanguageLevel(9)).isEqualTo(JavaLanguageLevel.of(9));
-        assertThat(Main.parseLanguageLevel(21)).isEqualTo(JavaLanguageLevel.of(21));
-        assertThat(Main.parseLanguageLevel(25)).isEqualTo(JavaLanguageLevel.of(25));
-    }
-
-    @Test
-    void parseLanguageLevel_unknownModernReleaseMessageMentionsJavaParser() {
-        assertThatThrownBy(() -> Main.parseLanguageLevel(999999))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("JAVA_999999")
-                .hasMessageContaining("javaparser");
     }
 
     @Test
