@@ -1,5 +1,7 @@
 package io.princeofspace.model;
 
+import org.jspecify.annotations.NullMarked;
+
 import java.io.Serial;
 import java.io.Serializable;
 
@@ -23,6 +25,7 @@ import java.io.Serializable;
  * @param trailingCommas whether to emit trailing commas in enums/array literals when multi-line
  * @param javaLanguageLevel language level passed to JavaParser
  */
+@NullMarked
 public record FormatterConfig(
         IndentStyle indentStyle,
         int indentSize,

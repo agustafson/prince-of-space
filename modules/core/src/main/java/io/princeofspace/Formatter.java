@@ -2,6 +2,7 @@ package io.princeofspace;
 
 import io.princeofspace.internal.FormattingEngine;
 import io.princeofspace.model.FormatterConfig;
+import org.jspecify.annotations.NullMarked;
 
 import java.nio.file.Path;
 
@@ -19,6 +20,7 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>For a non-throwing API, use {@link #formatResult(String)} and pattern-match on {@link FormatResult}.
  */
+@NullMarked
 public final class Formatter {
 
     private final FormattingEngine engine;

@@ -1,5 +1,7 @@
 package io.princeofspace;
 
+import org.jspecify.annotations.NullMarked;
+
 import java.util.List;
 
 /**
@@ -10,6 +12,7 @@ import java.util.List;
  * <p>Failures are modeled as a sealed hierarchy so callers can handle parse errors distinctly from
  * other pipeline issues.
  */
+@NullMarked
 public sealed interface FormatResult permits FormatResult.Success, FormatResult.Failure {
 
     /**
