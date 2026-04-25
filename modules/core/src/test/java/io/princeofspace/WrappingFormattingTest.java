@@ -1115,7 +1115,7 @@ class WrappingFormattingTest {
     }
 
     @Test
-    void logicalAnd_withWrappedMethodChainOperand_indentsChainDeeperThanBooleanOperator() {
+    void logicalAnd_withWrappedMethodChainOperand_chainDotsAtContinuationIndent() {
         Formatter f =
                 new Formatter(
                         FormatterConfig.builder()
@@ -1136,7 +1136,8 @@ class WrappingFormattingTest {
         String out = f.format(input);
         String operatorLine = lineContaining(out, "&& items");
         String firstChainLine = lineContaining(out, ".stream()");
-        assertThat(leadingSpaces(firstChainLine)).isGreaterThan(leadingSpaces(operatorLine));
+        assertThat(leadingSpaces(firstChainLine))
+                .isEqualTo(leadingSpaces(operatorLine) + 4);
         assertThat(f.format(out)).isEqualTo(out);
     }
 

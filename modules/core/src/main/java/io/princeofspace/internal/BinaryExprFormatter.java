@@ -22,7 +22,6 @@ final class BinaryExprFormatter {
     private static final int MIN_LEAVES_FOR_FORCED_STRING_RECHUNK = 128;
     private static final int LOGICAL_OPERATOR_WITH_SPACES_WIDTH = 4; // e.g. " && " / " || "
     private static final int STRING_CONCAT_OPERATOR_WITH_SPACES_WIDTH = 3; // " + "
-    private static final int NESTED_CHAIN_LEFT_SHIFT_INDENT_MULTIPLIER = 2;
 
     private final LayoutContext ctx;
     private final CommentUtils comments;
@@ -59,7 +58,7 @@ final class BinaryExprFormatter {
             }
             String os = n.getOperator().asString();
             if (ctx.config().wrapStyle() == WrapStyle.BALANCED || ctx.config().wrapStyle() == WrapStyle.NARROW) {
-                boolean prevTrailing = printExprWithTrailingCommentAfterWithNestedChainIndent(parts.get(0), arg);
+                boolean prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(0), arg);
                 for (int i = 1; i < parts.size(); i++) {
                     boolean interOperandComment = comments.hasCommentBetweenNodes(parts.get(i - 1), parts.get(i));
                     if (comments.hasLeadingLineOrBlockComment(parts.get(i)) || interOperandComment) {
@@ -72,7 +71,7 @@ final class BinaryExprFormatter {
                         ctx.printCont();
                         ctx.print(os);
                         ctx.print(" ");
-                        prevTrailing = printExprWithTrailingCommentAfterWithNestedChainIndent(parts.get(i), arg);
+                        prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(i), arg);
                     }
                 }
             } else {
@@ -105,7 +104,7 @@ final class BinaryExprFormatter {
             }
             String os = n.getOperator().asString();
             if (ctx.config().wrapStyle() == WrapStyle.BALANCED || ctx.config().wrapStyle() == WrapStyle.NARROW) {
-                boolean prevTrailing = printExprWithTrailingCommentAfterWithNestedChainIndent(parts.get(0), arg);
+                boolean prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(0), arg);
                 for (int i = 1; i < parts.size(); i++) {
                     boolean interOperandComment = comments.hasCommentBetweenNodes(parts.get(i - 1), parts.get(i));
                     if (comments.hasLeadingLineOrBlockComment(parts.get(i)) || interOperandComment) {
@@ -118,7 +117,7 @@ final class BinaryExprFormatter {
                         ctx.printCont();
                         ctx.print(os);
                         ctx.print(" ");
-                        prevTrailing = printExprWithTrailingCommentAfterWithNestedChainIndent(parts.get(i), arg);
+                        prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(i), arg);
                     }
                 }
             } else {
@@ -166,7 +165,7 @@ final class BinaryExprFormatter {
                 return;
             }
             if (!useGreedyPackingForList(BinaryExpr.Operator.PLUS)) {
-                boolean prevTrailing = printExprWithTrailingCommentAfterWithNestedChainIndent(parts.get(0), arg);
+                boolean prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(0), arg);
                 for (int i = 1; i < parts.size(); i++) {
                     if (comments.hasLeadingLineOrBlockComment(parts.get(i))) {
                         printBinaryChainOperandWithInterposedLeadingComments(parts.get(i), "+", arg);
@@ -177,7 +176,7 @@ final class BinaryExprFormatter {
                         }
                         ctx.printCont();
                         ctx.print("+ ");
-                        prevTrailing = printExprWithTrailingCommentAfterWithNestedChainIndent(parts.get(i), arg);
+                        prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(i), arg);
                     }
                 }
             } else {
@@ -267,7 +266,7 @@ final class BinaryExprFormatter {
 
     /** Greedily packs binary operands while respecting line length. */
     void printBinaryGreedy(List<Expression> parts, String op, Void arg, int budget) {
-        boolean prevTrailing = printExprWithTrailingCommentAfterWithNestedChainIndent(parts.get(0), arg);
+        boolean prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(0), arg);
         int used = ctx.column();
         for (int i = 1; i < parts.size(); i++) {
             int opLen = op.length() + 2; // " op "
@@ -295,20 +294,17 @@ final class BinaryExprFormatter {
                 ctx.print(" ");
                 used += opLen;
             }
-            prevTrailing = printExprWithTrailingCommentAfterWithNestedChainIndent(parts.get(i), arg);
+            prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(i), arg);
             used = ctx.column();
         }
     }
 
-    private boolean printExprWithTrailingCommentAfterWithNestedChainIndent(Expression expr, Void arg) {
+    private boolean printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(
+            Expression expr, Void arg) {
         if (!isMethodChainExpression(stripEnclosed(expr))) {
             return printExprWithTrailingCommentAfter(expr, arg);
         }
-        int nestedChainColumn = Math.max(
-                0,
-                ctx.column()
-                        - (ctx.config().indentSize() * NESTED_CHAIN_LEFT_SHIFT_INDENT_MULTIPLIER));
-        ctx.indentWithAlignToSafe(nestedChainColumn);
+        ctx.indent();
         try {
             return printExprWithTrailingCommentAfter(expr, arg);
         } finally {
@@ -317,14 +313,14 @@ final class BinaryExprFormatter {
     }
 
     private static Expression stripEnclosed(Expression e) {
-        while (e instanceof EnclosedExpr enc) {
-            e = enc.getInner();
+        while (e instanceof EnclosedExpr enclosedExpr) {
+            e = enclosedExpr.getInner();
         }
         return e;
     }
 
     private static boolean isMethodChainExpression(Expression e) {
-        return e instanceof MethodCallExpr mc && mc.getScope().isPresent();
+        return e instanceof MethodCallExpr methodCallExpr && methodCallExpr.getScope().isPresent();
     }
 
     /**

@@ -151,11 +151,11 @@ public class FormatterShowcase
     public boolean hasMatchingItem(String query) {
         return items != null
                 && items
-                   .stream()
-                   .map(String::trim)
-                   .filter(s -> !s.isBlank())
-                   .map(String::toLowerCase)
-                   .anyMatch(s -> s.contains(query.toLowerCase()));
+                    .stream()
+                    .map(String::trim)
+                    .filter(s -> !s.isBlank())
+                    .map(String::toLowerCase)
+                    .anyMatch(s -> s.contains(query.toLowerCase()));
     }
 
     // Scenario 10: If/else without braces
@@ -745,10 +745,10 @@ public class FormatterShowcase
                         .collect(Collectors.joining(":")))
                 .anyMatch(s -> s.contains(query.toLowerCase().trim())
                         && s
-                           .chars()
-                           .mapToObj(c -> String.valueOf((char) c))
-                           .collect(Collectors.joining())
-                           .startsWith(query.substring(0, Math.min(query.length(), 3)).toLowerCase()));
+                            .chars()
+                            .mapToObj(c -> String.valueOf((char) c))
+                            .collect(Collectors.joining())
+                            .startsWith(query.substring(0, Math.min(query.length(), 3)).toLowerCase()));
     }
 
     // Scenario 52: Nested lambda call should avoid dangling ')' before ';'

@@ -294,7 +294,7 @@ REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens
 
 ---
 
-## Task 3.2 — Drop the `column - 2*indentSize` chain shift inside binary expressions
+## Task 3.2 — Drop the `column - 2*indentSize` chain shift inside binary expressions ✅ COMPLETED
 
 ### Read first
 
