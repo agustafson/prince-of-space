@@ -519,7 +519,7 @@ Expect minor golden diffs anywhere annotations were already on their own line "b
 
 ---
 
-## Task 6.2 — `BlankLineNormalizer` carve-out removal
+## Task 6.2 — `BlankLineNormalizer` carve-out removal ✅ COMPLETED
 
 ### Read first
 

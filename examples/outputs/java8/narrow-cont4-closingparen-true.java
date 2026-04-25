@@ -23,7 +23,6 @@ public class FormatterShowcase
         Cloneable,
         AutoCloseable
 {
-
     // Scenario 2: Field declarations with annotations
     private static final long serialVersionUID = 1L;
     @Deprecated
@@ -264,7 +263,6 @@ public class FormatterShowcase
     // Scenario 17: Nested interface
     @FunctionalInterface
     interface Transformer<T, R> {
-
         R transform(T input);
     }
 
@@ -294,7 +292,6 @@ public class FormatterShowcase
 
     // Scenario 20: Default and static interface methods
     interface Validator<T> {
-
         boolean validate(T item);
 
         default Validator<T> and(Validator<T> other) {
@@ -586,7 +583,6 @@ public class FormatterShowcase
     }
 
     static final class VeryLongArgumentCarrierForAlignmentRegression {
-
         VeryLongArgumentCarrierForAlignmentRegression(String a, String b, String c, String d) {
         }
     }
@@ -646,7 +642,6 @@ public class FormatterShowcase
     }
 
     interface AuditLogger {
-
         void warn(String message, Throwable throwable);
     }
 }

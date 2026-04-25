@@ -51,17 +51,28 @@ class BlankLineNormalizerTest {
     }
 
     @Test
-    void blankAfterTypeDeclarationOpenBrace_preserved() {
+    void class_noBlankLineAfterOpeningBrace() {
         String input = "class T {\n\n    void a() {}\n}";
-        assertThat(BlankLineNormalizer.normalize(input))
-                .isEqualTo("class T {\n\n    void a() {}\n}");
+        assertThat(BlankLineNormalizer.normalize(input)).isEqualTo("class T {\n    void a() {}\n}");
     }
 
     @Test
-    void blankAfterNestedTypeDeclarationOpenBrace_preserved() {
+    void interface_noBlankLineAfterOpeningBrace() {
+        String input = "interface I {\n\n    void run();\n}";
+        assertThat(BlankLineNormalizer.normalize(input)).isEqualTo("interface I {\n    void run();\n}");
+    }
+
+    @Test
+    void enum_noBlankLineAfterOpeningBrace() {
+        String input = "enum E {\n\n    A\n}";
+        assertThat(BlankLineNormalizer.normalize(input)).isEqualTo("enum E {\n    A\n}");
+    }
+
+    @Test
+    void nestedInterface_noBlankLineAfterOpeningBrace() {
         String input = "class Outer {\n    interface Inner {\n\n        void run();\n    }\n}";
         assertThat(BlankLineNormalizer.normalize(input))
-                .isEqualTo("class Outer {\n    interface Inner {\n\n        void run();\n    }\n}");
+                .isEqualTo("class Outer {\n    interface Inner {\n        void run();\n    }\n}");
     }
 
     @Test
