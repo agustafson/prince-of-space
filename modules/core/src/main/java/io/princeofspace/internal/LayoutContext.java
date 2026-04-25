@@ -83,11 +83,6 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
 
     // ── width estimation ──────────────────────────────────────────────────────
 
-    /** Estimates expression width using JavaParser's textual form. */
-    int est(Expression e) {
-        return e.toString().length();
-    }
-
     /** Returns whether adding width would exceed configured line length. */
     boolean wouldExceedLineLength(int additionalWidth) {
         return column() + additionalWidth > fmt.lineLength();

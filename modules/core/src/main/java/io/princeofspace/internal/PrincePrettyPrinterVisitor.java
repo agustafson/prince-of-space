@@ -476,11 +476,11 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printComment(n.getComment(), arg);
         int flat =
                 column()
-                        + ctx.est(n.getCondition())
+                        + WidthMeasurer.flatWidth(n.getCondition(), fmt)
                         + TERNARY_OPERATOR_WIDTH
-                        + ctx.est(n.getThenExpr())
+                        + WidthMeasurer.flatWidth(n.getThenExpr(), fmt)
                         + TERNARY_OPERATOR_WIDTH
-                        + ctx.est(n.getElseExpr());
+                        + WidthMeasurer.flatWidth(n.getElseExpr(), fmt);
         if (flat <= fmt.lineLength()) {
             n.getCondition().accept(this, arg);
             printer.print(" ? ");
@@ -557,7 +557,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     private void printAssertMessageRespectingMaxLine(Expression msg, Void arg) {
-        if (column() + ctx.est(msg) > fmt.lineLength()) {
+        if (column() + WidthMeasurer.flatWidth(msg, fmt) > fmt.lineLength()) {
             printer.println();
             printCont();
         }
@@ -869,10 +869,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 printer.println();
                 printCont();
             } else {
-                boolean inlineWouldOverflow = ctx.column() + 1 + ctx.est(init) > fmt.lineLength();
+                boolean inlineWouldOverflow = ctx.column() + 1 + WidthMeasurer.flatWidth(init, fmt) > fmt.lineLength();
                 int continuationRhsBudget =
                         Math.max(1, fmt.lineLength() - (fmt.continuationIndentSize() + fmt.indentSize()));
-                boolean rhsFitsSingleContinuationLine = ctx.est(init) <= continuationRhsBudget;
+                boolean rhsFitsSingleContinuationLine = WidthMeasurer.flatWidth(init, fmt) <= continuationRhsBudget;
                 // Break before long string-like initializers when the combined line would exceed limits.
                 // Restrict to string literals, text blocks, and literal-only "+" chains so array/object
                 // initializers are not mis-measured via toString().
@@ -1036,7 +1036,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
         entry.getGuard().ifPresent(
                 guard -> {
-                    int flat = column() + SWITCH_GUARD_KEYWORD_WIDTH + ctx.est(guard); // " when " + guard
+                    int flat = column() + SWITCH_GUARD_KEYWORD_WIDTH + WidthMeasurer.flatWidth(guard, fmt); // " when " + guard
                     if (flat <= fmt.lineLength()) {
                         printer.print(" when ");
                         guard.accept(this, arg);

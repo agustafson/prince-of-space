@@ -97,7 +97,7 @@ All tests pass. **No** showroom golden changes (this task is a behavior-preservi
 
 ---
 
-## Task 1.2 — Migrate remaining `ctx.est` callers and delete `est`
+## Task 1.2 — Migrate remaining `ctx.est` callers and delete `est` ✅ COMPLETED
 
 ### Read first
 

@@ -1378,10 +1378,10 @@ class WrappingFormattingTest {
                 """;
         String out = f.format(input);
         assertNoLineLongerThan(out, 120);
-        assertThat(out).contains("CollectionUtils.transform(\n");
-        assertThat(out).contains("            actualMethods,\n");
-        assertThat(out).contains("            value -> {\n");
-        assertThat(out).contains("                Method method = (Method) value;\n");
+        assertThat(out).contains("CollectionUtils.transform(actualMethods, value -> {\n");
+        String callLine = lineContaining(out, "CollectionUtils.transform");
+        String lambdaBodyLine = lineContaining(out, "Method method = (Method) value;");
+        assertThat(leadingSpaces(lambdaBodyLine)).isGreaterThanOrEqualTo(leadingSpaces(callLine));
         assertThat(f.format(out)).isEqualTo(out);
     }
 

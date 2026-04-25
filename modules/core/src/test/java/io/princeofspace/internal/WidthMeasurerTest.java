@@ -45,4 +45,21 @@ class WidthMeasurerTest {
 
         assertThat(WidthMeasurer.flatWidth(expr, DEFAULT_CONFIG)).isEqualTo(12);
     }
+
+    @Test
+    void flatWidth_lambdaWithComplexGenerics_matchesLambdaHeaderHelper() {
+        Expression expr = StaticJavaParser.parseExpression(
+                "(java.util.function.Function<String, Integer> mapper, String input) -> { return mapper.apply(input); }");
+
+        assertThat(WidthMeasurer.flatWidth(expr, DEFAULT_CONFIG))
+                .isEqualTo("(java.util.function.Function<String, Integer> mapper, String input) -> { }".length());
+    }
+
+    @Test
+    void flatWidth_chainedCallWithLambdaArg_doesNotInflate() {
+        Expression expr = StaticJavaParser.parseExpression("items.stream().map(item -> item.trim()).toList()");
+
+        assertThat(WidthMeasurer.flatWidth(expr, DEFAULT_CONFIG))
+                .isEqualTo("items.stream().map(item -> item.trim()).toList()".length());
+    }
 }

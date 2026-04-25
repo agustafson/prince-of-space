@@ -42,7 +42,7 @@ final class BinaryExprFormatter {
             collectSameOp(n.getOperator(), (Expression) n, parts);
             int flat = ctx.column();
             for (Expression p : parts) {
-                flat += ctx.est(p) + LOGICAL_OPERATOR_WITH_SPACES_WIDTH;
+                flat += WidthMeasurer.flatWidth(p, ctx.config()) + LOGICAL_OPERATOR_WITH_SPACES_WIDTH;
             }
             if (!comments.anyOperandHasLeadingLineOrBlockComment(parts)
                     && !comments.anyOperandHasTrailingLineOrBlockComment(parts)
@@ -88,7 +88,7 @@ final class BinaryExprFormatter {
             collectSameOp(n.getOperator(), (Expression) n, parts);
             int flat = ctx.column();
             for (Expression p : parts) {
-                flat += ctx.est(p) + LOGICAL_OPERATOR_WITH_SPACES_WIDTH;
+                flat += WidthMeasurer.flatWidth(p, ctx.config()) + LOGICAL_OPERATOR_WITH_SPACES_WIDTH;
             }
             if (!comments.anyOperandHasLeadingLineOrBlockComment(parts)
                     && !comments.anyOperandHasTrailingLineOrBlockComment(parts)
@@ -153,7 +153,7 @@ final class BinaryExprFormatter {
             collectSameOp(BinaryExpr.Operator.PLUS, (Expression) n, parts);
             int flat = ctx.column();
             for (Expression p : parts) {
-                flat += ctx.est(p) + STRING_CONCAT_OPERATOR_WITH_SPACES_WIDTH;
+                flat += WidthMeasurer.flatWidth(p, ctx.config()) + STRING_CONCAT_OPERATOR_WITH_SPACES_WIDTH;
             }
             if (!comments.anyOperandHasLeadingLineOrBlockComment(parts)
                     && !comments.anyOperandHasTrailingLineOrBlockComment(parts)
@@ -264,7 +264,7 @@ final class BinaryExprFormatter {
         int used = ctx.column();
         for (int i = 1; i < parts.size(); i++) {
             int opLen = op.length() + 2; // " op "
-            int partLen = ctx.est(parts.get(i));
+            int partLen = WidthMeasurer.flatWidth(parts.get(i), ctx.config());
             boolean leadingComment = comments.hasLeadingLineOrBlockComment(parts.get(i));
             boolean interOperandComment = comments.hasCommentBetweenNodes(parts.get(i - 1), parts.get(i));
             boolean overBudget = used + opLen + partLen > budget;

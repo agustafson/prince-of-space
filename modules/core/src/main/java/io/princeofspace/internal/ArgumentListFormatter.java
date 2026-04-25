@@ -143,7 +143,10 @@ final class ArgumentListFormatter {
         Expression previous = null;
         while (iter.hasNext()) {
             Expression e = iter.next();
-            int need = ctx.est(e) + (first ? 0 : 2);
+            int expressionWidth = (e instanceof LambdaExpr lambda && lambda.getBody() instanceof BlockStmt)
+                    ? e.toString().length()
+                    : WidthMeasurer.flatWidth(e, fmt);
+            int need = expressionWidth + (first ? 0 : 2);
             boolean shouldWrapForLoneLastItem = avoidLoneLastItem && !first && remaining == 2;
             boolean hasInterveningComment = previous != null && commentUtils.hasCommentBetweenNodes(previous, e);
             boolean currentHasLeadingComment = e.getComment().isPresent();

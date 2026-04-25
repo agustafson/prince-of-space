@@ -123,7 +123,7 @@ final class MethodChainFormatter {
 
     /** Estimates one-line width of a full method chain from base through final call. */
     int chainOneLineWidth(Expression base, List<MethodCallExpr> calls) {
-        int w = ctx.est(base);
+        int w = WidthMeasurer.flatWidth(base, ctx.config());
         for (MethodCallExpr mc : calls) {
             w += 1 + mc.getName().asString().length() + 2 + argsFlatWidth(mc.getArguments()) + 1;
         }
