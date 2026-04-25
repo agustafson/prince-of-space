@@ -489,7 +489,7 @@ class WrappingFormattingTest {
     }
 
     @Test
-    void nestedWrappedCall_gluesStackedClosingParens() {
+    void nestedWrappedCall_placesEachClosingParenOnOwnLineWhenEnabled() {
         Formatter f =
                 new Formatter(
                         FormatterConfig.builder()
@@ -518,7 +518,7 @@ class WrappingFormattingTest {
         assertThat(out).contains(".collect(Collectors.groupingBy(item -> key(item),\n");
         assertThat(out)
                 .contains("                Collectors.mapping(String::toLowerCase, Collectors.toList())\n");
-        assertThat(out).contains("            ));\n");
+        assertThat(out).containsPattern("\\n\\s*\\)\\n\\s*\\);");
         assertThat(f.format(out)).isEqualTo(out);
     }
 
@@ -553,7 +553,7 @@ class WrappingFormattingTest {
     }
 
     @Test
-    void nestedBlockLambdaWarnCall_doesNotStackBareClosingParens() {
+    void nestedBlockLambdaWarnCall_placesClosingParensOnOwnLinesWhenEnabled() {
         Formatter f =
                 new Formatter(
                         FormatterConfig.builder()
@@ -580,7 +580,7 @@ class WrappingFormattingTest {
                 }
                 """;
         String out = f.format(input);
-        assertThat(out).doesNotContainPattern("\\n\\s*\\)\\n\\s*\\);");
+        assertThat(out).containsPattern("\\n\\s*\\)\\n\\s*\\);");
         assertThat(f.format(out)).isEqualTo(out);
     }
 
@@ -1485,6 +1485,66 @@ class WrappingFormattingTest {
         String out = f.format(input);
         String callLine = lineContaining(out, "saveWithVeryLongMethodNameForAlignmentRegression(");
         String closingLine = lineContaining(out, ");");
+        assertThat(leadingSpaces(closingLine)).isEqualTo(leadingSpaces(callLine));
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void closingParen_singleBlockLambdaArg_onItsOwnLineWhenEnabled() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(45)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .closingParenOnNewLine(true)
+                                .build());
+        String input =
+                """
+                class T {
+                    void m() {
+                        runLaterWithVeryLongNameToForceWrapping(() -> { doWork(); });
+                    }
+
+                    void runLaterWithVeryLongNameToForceWrapping(Runnable action) {}
+                }
+                """;
+        String out = f.format(input);
+        assertThat(out)
+                .containsPattern(
+                        "runLaterWithVeryLongNameToForceWrapping\\(\\(\\) -> \\{\\n\\s*doWork\\(\\);\\n\\s*}\\n\\s*\\);");
+        assertThat(out).contains("\n        );\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void closingParen_singleNestedCall_onItsOwnLineWhenEnabled() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(40)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .closingParenOnNewLine(true)
+                                .build());
+        String input =
+                """
+                class T {
+                    void m() {
+                        consume(buildVeryLongName("alpha", "beta"));
+                    }
+
+                    void consume(String value) {}
+
+                    String buildVeryLongName(String a, String b) {
+                        return a + b;
+                    }
+                }
+                """;
+        String out = f.format(input);
+        String callLine = lineContaining(out, "consume(");
+        String closingLine = lineContaining(out, ");");
+        assertThat(closingLine.stripLeading()).isEqualTo(");");
         assertThat(leadingSpaces(closingLine)).isEqualTo(leadingSpaces(callLine));
         assertThat(f.format(out)).isEqualTo(out);
     }

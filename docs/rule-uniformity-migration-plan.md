@@ -340,7 +340,7 @@ None.
 
 ---
 
-## Task 4.1 — Single rule for `closingParenOnNewLine`
+## Task 4.1 — Single rule for `closingParenOnNewLine` ✅ COMPLETED
 
 ### Read first
 

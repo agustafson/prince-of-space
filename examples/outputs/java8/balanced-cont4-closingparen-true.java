@@ -178,7 +178,8 @@ public class FormatterShowcase
             .collect(Collectors.groupingBy(
                 item -> String.valueOf(item.charAt(0)).toUpperCase(),
                 Collectors.mapping(String::toLowerCase, Collectors.toList())
-            ));
+            )
+            );
     }
 
     // Scenario 12: Try-with-resources
@@ -407,7 +408,8 @@ public class FormatterShowcase
     public void textBlockFormattedMessage(String a, String b, String c) {
         throw new IllegalStateException(("Package-private method [%s] declared in class [%s] cannot be advised by "
             + "CGLIB-proxied handler class [%s], because it is effectively private.")
-            .formatted(a, b, c));
+            .formatted(a, b, c)
+        );
     }
 
     // Scenario 40: Synchronized block
@@ -526,7 +528,8 @@ public class FormatterShowcase
                 .chars()
                 .mapToObj(ch -> String.valueOf((char) ch))
                 .collect(Collectors.joining())
-                .trim())
+                .trim()
+            )
             .filter(s -> s.length() > 3)
             .map(s -> Arrays
                 .stream(s.split("-"))
@@ -536,18 +539,22 @@ public class FormatterShowcase
                     .toLowerCase()
                     .replace("_", "")
                     .replace(".", "")
-                    .substring(0, Math.min(part.length(), 12)))
-                .collect(Collectors.joining("-")))
+                    .substring(0, Math.min(part.length(), 12))
+                )
+                .collect(Collectors.joining("-"))
+            )
             .map(s -> Arrays
                 .stream(s.split(":"))
                 .map(segment -> segment.trim().toLowerCase())
-                .collect(Collectors.joining(":")))
+                .collect(Collectors.joining(":"))
+            )
             .anyMatch(s -> s.contains(query.toLowerCase().trim())
                 && s
                     .chars()
                     .mapToObj(c -> String.valueOf((char) c))
                     .collect(Collectors.joining())
-                    .startsWith(query.substring(0, Math.min(query.length(), 3)).toLowerCase()));
+                    .startsWith(query.substring(0, Math.min(query.length(), 3)).toLowerCase())
+            );
     }
 
     // Scenario 50: Nested lambda call should avoid dangling ')' before ';'
@@ -557,7 +564,9 @@ public class FormatterShowcase
             new IllegalStateException("Bad thing happened and this diagnostic stack summary is also intentionally "
             + "very long to force "
             + "wrapping"
-        )));
+        )
+        )
+        );
     }
 
     // Scenario 53: Interface extends clause with many super-interfaces

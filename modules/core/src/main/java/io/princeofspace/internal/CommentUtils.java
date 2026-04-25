@@ -405,38 +405,6 @@ record CommentUtils() {
         return false;
     }
 
-    /**
-     * Returns true when wrapped argument formatting should avoid a lone closing-paren line (for
-     * example a single nested call or a block lambda argument).
-     */
-    boolean shouldGlueWrappedClosingParen(NodeList<? extends Expression> args) {
-        if (args.isEmpty()) {
-            return false;
-        }
-        if (hasBlockLambdaArgument(args)) {
-            return true;
-        }
-        if (isCallWithinLambda(args)) {
-            return true;
-        }
-        Expression last = args.get(args.size() - 1);
-        return args.size() == 1 && (last instanceof MethodCallExpr || last instanceof LambdaExpr);
-    }
-
-    private static boolean isCallWithinLambda(NodeList<? extends Expression> args) {
-        Optional<Node> node =
-                args.getParentNode().filter(MethodCallExpr.class::isInstance).map(MethodCallExpr.class::cast)
-                        .map(Node.class::cast);
-        while (node.isPresent()) {
-            Node current = node.get();
-            if (current instanceof LambdaExpr) {
-                return true;
-            }
-            node = current.getParentNode();
-        }
-        return false;
-    }
-
     /** Returns true when comment is either line or block style. */
     private boolean isLineOrBlock(Comment comment) {
         return comment instanceof LineComment || comment instanceof BlockComment;
