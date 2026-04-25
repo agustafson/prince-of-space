@@ -311,6 +311,16 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
         new VeryLongArgumentCarrierForAlignmentRegression("first-first-first", "second-second-second", "third-third-third", "fourth-fourth-fourth");
     }
 
+    // Scenario 49: Deeply nested chained calls (2-3 levels)
+    public boolean deeplyNestedChainOperations(String query) {
+        return items.stream().map(String::trim).filter(s -> !s.isEmpty()).map(s -> s.toLowerCase().chars().mapToObj(ch -> String.valueOf((char) ch)).collect(Collectors.joining()).trim()).filter(s -> s.length() > 3).map(s -> Arrays.stream(s.split("-")).map(String::trim).filter(part -> !part.isEmpty()).map(part -> part.toLowerCase().replace("_", "").replace(".", "").substring(0, Math.min(part.length(), 12))).collect(Collectors.joining("-"))).map(s -> Arrays.stream(s.split(":")).map(segment -> segment.trim().toLowerCase()).collect(Collectors.joining(":"))).anyMatch(s -> s.contains(query.toLowerCase().trim()) && s.chars().mapToObj(c -> String.valueOf((char) c)).collect(Collectors.joining()).startsWith(query.substring(0, Math.min(query.length(), 3)).toLowerCase()));
+    }
+
+    // Scenario 50: Nested lambda call should avoid dangling ')' before ';'
+    public void nestedLambdaWarnCallWrapping() {
+        cappedLogNoCustomerData(l -> l.warn("Bad thing happened and we have lots of information to tell you in this warning payload", new IllegalStateException("Bad thing happened and this diagnostic stack summary is also intentionally very long to force wrapping")));
+    }
+
     static final class VeryLongArgumentCarrierForAlignmentRegression {
         VeryLongArgumentCarrierForAlignmentRegression(String a, String b, String c, String d) {}
     }
@@ -330,4 +340,9 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
     private void notifyListeners(Object r) {}
     private void logError(String msg, Throwable t) {}
     private void saveWithVeryLongMethodNameForAlignmentRegression(String a, String b, String c, String d) {}
+    private void cappedLogNoCustomerData(java.util.function.Consumer<AuditLogger> consumer) {}
+
+    interface AuditLogger {
+        void warn(String message, Throwable throwable);
+    }
 }

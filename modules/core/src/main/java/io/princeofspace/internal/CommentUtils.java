@@ -10,6 +10,7 @@ import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.LambdaExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
+import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 
@@ -416,8 +417,25 @@ record CommentUtils() {
         if (hasBlockLambdaArgument(args)) {
             return true;
         }
+        if (isCallWithinLambda(args)) {
+            return true;
+        }
         Expression last = args.get(args.size() - 1);
-        return args.size() == 1 && last instanceof MethodCallExpr;
+        return args.size() == 1 && (last instanceof MethodCallExpr || last instanceof LambdaExpr);
+    }
+
+    private static boolean isCallWithinLambda(NodeList<? extends Expression> args) {
+        Optional<Node> node =
+                args.getParentNode().filter(MethodCallExpr.class::isInstance).map(MethodCallExpr.class::cast)
+                        .map(Node.class::cast);
+        while (node.isPresent()) {
+            Node current = node.get();
+            if (current instanceof LambdaExpr) {
+                return true;
+            }
+            node = current.getParentNode();
+        }
+        return false;
     }
 
     /** Returns true when comment is either line or block style. */

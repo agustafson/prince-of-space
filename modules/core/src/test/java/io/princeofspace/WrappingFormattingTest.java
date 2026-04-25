@@ -502,6 +502,68 @@ class WrappingFormattingTest {
     }
 
     @Test
+    void nestedLambdaCall_doesNotEmitDanglingClosingParenBeforeSemicolon() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(56)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .closingParenOnNewLine(true)
+                                .build());
+        String input =
+                """
+                class T {
+                    void cappedLogNoCustomerData(java.util.function.Consumer<Logger> consumer) {}
+
+                    void m(Logger logger) {
+                        cappedLogNoCustomerData(l -> l.warn("Bad thing happened and we have lots of information to tell you", new IllegalStateException("Bad thing happened and this stack is also very long")));
+                    }
+
+                    interface Logger {
+                        void warn(String message, Throwable throwable);
+                    }
+                }
+                """;
+        String out = f.format(input);
+        assertThat(out).doesNotContain("\n            )\n            ;");
+        assertThat(out).doesNotContain("\n            )\n        );");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void nestedBlockLambdaWarnCall_doesNotStackBareClosingParens() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(50)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .closingParenOnNewLine(true)
+                                .build());
+        String input =
+                """
+                class T {
+                    void cappedLogNoCustomerData(java.util.function.Consumer<Logger> consumer) {}
+
+                    void m() {
+                        cappedLogNoCustomerData(
+                                l -> {
+                                    l.warn("Bad thing happened and we have lots of information to tell you", new IllegalArgumentException("Bad thing happened and this is very long"));
+                                });
+                    }
+
+                    interface Logger {
+                        void warn(String message, Throwable throwable);
+                    }
+                }
+                """;
+        String out = f.format(input);
+        assertThat(out).doesNotContainPattern("\\n\\s*\\)\\n\\s*\\);");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
     void methodParameters_wide_packByPhysicalWidthAfterFirstForcedWrap() {
         Formatter f =
                 new Formatter(
