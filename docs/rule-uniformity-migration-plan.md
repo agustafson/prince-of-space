@@ -469,7 +469,7 @@ Same. Scenario 45 (Java 17+ trees only) reflows.
 
 ---
 
-## Task 5.5 — `try-with-resources` uses continuation indent
+## Task 5.5 — `try-with-resources` uses continuation indent ✅ COMPLETED
 
 ### Read first
 

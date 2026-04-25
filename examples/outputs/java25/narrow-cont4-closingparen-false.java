@@ -183,8 +183,8 @@ public class FormatterShowcase
     // Scenario 12: Try-with-resources
     public void copyFile(Path source, Path destination) throws IOException {
         try (var input = new FileInputStream(source.toFile());
-             var output = new FileOutputStream(destination.toFile());
-             var buffered = new BufferedInputStream(input)) {
+            var output = new FileOutputStream(destination.toFile());
+            var buffered = new BufferedInputStream(input)) {
             buffered.transferTo(output);
         }
     }

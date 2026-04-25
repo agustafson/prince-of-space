@@ -319,22 +319,14 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printer.print("try ");
         if (!n.getResources().isEmpty()) {
             printer.print("(");
-            int alignCol = column();
             Iterator<Expression> resources = n.getResources().iterator();
-            boolean first = true;
             while (resources.hasNext()) {
                 resources.next().accept(this, arg);
                 if (resources.hasNext()) {
                     printer.print(";");
                     printer.println();
-                    if (first) {
-                        printer.indentWithAlignTo(alignCol);
-                    }
+                    printCont();
                 }
-                first = false;
-            }
-            if (n.getResources().size() > 1) {
-                printer.unindent();
             }
             if (fmt.closingParenOnNewLine() && n.getResources().size() > 1) {
                 printer.println();

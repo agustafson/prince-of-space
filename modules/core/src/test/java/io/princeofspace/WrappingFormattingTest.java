@@ -1833,6 +1833,34 @@ class WrappingFormattingTest {
     }
 
     @Test
+    void tryWithResources_balanced_indentsByContinuationIndentNotKeyword() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(52)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .closingParenOnNewLine(false)
+                                .build());
+        String input =
+                """
+                class T {
+                    void m() {
+                        try (java.io.InputStream a = null;
+                            java.io.InputStream b = null;
+                            java.io.InputStream c = null) {
+                        }
+                    }
+                }
+                """;
+        String out = f.format(input);
+        String tryLine = lineContaining(out, "try (");
+        String secondRes = lineContaining(out, "java.io.InputStream b");
+        assertThat(leadingSpaces(secondRes)).isEqualTo(leadingSpaces(tryLine) + 4);
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
     void switchCaseLabel_balanced_wrapsEachLabelWhenOverflow() {
         Formatter f =
                 new Formatter(

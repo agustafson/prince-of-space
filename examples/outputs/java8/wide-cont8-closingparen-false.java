@@ -164,8 +164,8 @@ public class FormatterShowcase
     // Scenario 12: Try-with-resources
     public void copyFile(Path source, Path destination) throws IOException {
         try (FileInputStream input = new FileInputStream(source.toFile());
-             FileOutputStream output = new FileOutputStream(destination.toFile());
-             BufferedInputStream buffered = new BufferedInputStream(input)) {
+                FileOutputStream output = new FileOutputStream(destination.toFile());
+                BufferedInputStream buffered = new BufferedInputStream(input)) {
             byte[] buffer = new byte[8192];
             int bytesRead;
             while ((bytesRead = buffered.read(buffer)) != -1) {
