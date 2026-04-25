@@ -63,6 +63,23 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
         }
     }
 
+    /**
+     * Pads the current line with spaces until the cursor column reaches at least {@code targetColumn}
+     * (0-based, per {@link com.github.javaparser.Position#getColumn}). Prefer this over
+     * {@code indentWithAlignTo} when the printer is already inside a nested {@code indent()} scope
+     * and alignment would otherwise throw or fall back to a one-level {@code indent()}.
+     */
+    void padToColumn0(int targetColumn) {
+        if (fmt.indentStyle() == IndentStyle.TABS) {
+            indentWithAlignToSafe(targetColumn);
+            return;
+        }
+        int c = column();
+        if (targetColumn > c) {
+            print(" ".repeat(targetColumn - c));
+        }
+    }
+
     /** Prints one continuation-indentation unit. */
     void printCont() {
         if (fmt.indentStyle() == IndentStyle.TABS) {

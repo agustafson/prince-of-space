@@ -540,7 +540,7 @@ public class FormatterShowcase
         java.util.function.BiFunction<java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>>,
             java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>>, Integer> cmp =
             (java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> left,
-            java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> right) -> left
+                        java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> right) -> left
             .getKey()
             .compareTo(right.getKey());
         cmp.apply(null, null);

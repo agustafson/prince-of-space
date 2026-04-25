@@ -253,6 +253,68 @@ final class ArgumentListFormatter {
         }
     }
 
+    /**
+     * Like {@link #printParametersList} but for lambda formal parameters: wrapped lines indent at
+     * {@code openParenStartColumn + continuationIndentSize}, and the closing {@code )} is aligned
+     * to {@code openParenStartColumn} by the caller.
+     */
+    void printParametersListForLambda(NodeList<Parameter> ps, Void arg, int openParenStartColumn) {
+        if (isNullOrEmpty(ps)) {
+            return;
+        }
+        if (!paramsNeedWrap(ps)) {
+            for (Iterator<Parameter> i = ps.iterator(); i.hasNext(); ) {
+                ctx.accept(i.next(), arg);
+                if (i.hasNext()) {
+                    ctx.print(", ");
+                }
+            }
+            return;
+        }
+        if (fmt.wrapStyle() == WrapStyle.WIDE) {
+            int n = ps.size();
+            boolean first = true;
+            for (int idx = 0; idx < n; idx++) {
+                Parameter p = ps.get(idx);
+                int need = p.toString().length() + (first ? 0 : 2);
+                boolean isLast = idx == n - 1;
+                int lineBudget = fmt.lineLength();
+                if (isLast) {
+                    lineBudget +=
+                            fmt.closingParenOnNewLine()
+                                    ? CLOSING_PAREN_INLINE_RESERVED_WIDTH
+                                    : -CLOSING_PAREN_INLINE_RESERVED_WIDTH;
+                }
+                if (first && (ctx.column() + need > lineBudget || wouldExceedLineLength(need))) {
+                    ctx.println();
+                    lambdaParamContinuationToColumn(openParenStartColumn);
+                } else if (!first && (ctx.column() + need > lineBudget || wouldExceedLineLength(need))) {
+                    ctx.print(",");
+                    ctx.println();
+                    lambdaParamContinuationToColumn(openParenStartColumn);
+                } else if (!first) {
+                    ctx.print(", ");
+                }
+                ctx.accept(p, arg);
+                first = false;
+            }
+        } else {
+            for (Iterator<Parameter> i = ps.iterator(); i.hasNext(); ) {
+                ctx.println();
+                lambdaParamContinuationToColumn(openParenStartColumn);
+                ctx.accept(i.next(), arg);
+                if (i.hasNext()) {
+                    ctx.print(",");
+                }
+            }
+        }
+    }
+
+    private void lambdaParamContinuationToColumn(int openParenStartColumn) {
+        int target = openParenStartColumn + fmt.continuationIndentSize();
+        ctx.padToColumn0(target);
+    }
+
     /** Estimated width of type parameters if printed on one line with {@code ", "} separators. */
     int typeParametersFlatWidth(NodeList<TypeParameter> ps) {
         int w = 0;

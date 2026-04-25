@@ -4,6 +4,7 @@ package io.princeofspace;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.JavaLanguageLevel;
 import io.princeofspace.model.WrapStyle;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -409,6 +410,44 @@ class WrappingFormattingTest {
         assertThat(out)
                 .contains(
                         "            String defaultLocale, ExecutorService executorService) {\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void lambdaParameterList_insideWrappedChainCall_alignsParametersAndCloseParen() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(38)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .closingParenOnNewLine(true)
+                                .build());
+        // Force a wrapped chain and a two-parameter lambda whose formal parameter list also wraps.
+        String input =
+                """
+                class T {
+                    T f() { return this; }
+                    T g(java.util.function.BiFunction<Object, Object, Object> o) { return this; }
+
+                    void m() {
+                        f()
+                                .g((
+                        com.example.VeryLongParameterTypeNameOne a,
+                        com.example.VeryLongParameterTypeNameTwo b) -> a);
+                    }
+                }
+                """;
+        String out = f.format(input);
+        String closeLine = lineContaining(out, ") -> a");
+        int openParen = leadingSpaces(closeLine);
+        String p1 = lineContaining(out, "com.example.VeryLongParameterTypeNameOne a,");
+        String p2 = lineContaining(out, "com.example.VeryLongParameterTypeNameTwo b");
+        Assertions.assertEquals(
+                openParen + 4,
+                leadingSpaces(p1),
+                () -> "openParen column from `) ->`, full out:\n" + out);
+        Assertions.assertEquals(leadingSpaces(p1), leadingSpaces(p2), out);
         assertThat(f.format(out)).isEqualTo(out);
     }
 

@@ -381,7 +381,7 @@ In both, the close `)` should now sit at the call's indent column with no except
 
 ---
 
-## Task 5.1 — Lambda parameter list mis-indent (showcase scenario 44)
+## Task 5.1 — Lambda parameter list mis-indent (showcase scenario 44) ✅ COMPLETED
 
 ### Read first
 

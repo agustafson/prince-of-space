@@ -951,14 +951,24 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     private void printLambdaParameters(LambdaExpr n, Void arg) {
+        int openParenStartColumn = 0;
         if (n.isEnclosingParameters()) {
+            openParenStartColumn = column();
             printer.print("(");
         }
         NodeList<Parameter> ps = n.getParameters();
         if (!isNullOrEmpty(ps) && argumentListFormatter.paramsNeedWrap(ps)) {
-            argumentListFormatter.printParametersList(ps, arg);
-            if (fmt.closingParenOnNewLine()) {
-                printer.println();
+            if (n.isEnclosingParameters()) {
+                argumentListFormatter.printParametersListForLambda(ps, arg, openParenStartColumn);
+                if (fmt.closingParenOnNewLine()) {
+                    printer.println();
+                    ctx.padToColumn0(openParenStartColumn);
+                }
+            } else {
+                argumentListFormatter.printParametersList(ps, arg);
+                if (fmt.closingParenOnNewLine()) {
+                    printer.println();
+                }
             }
         } else {
             for (int i = 0; i < ps.size(); i++) {
