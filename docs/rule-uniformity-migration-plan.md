@@ -179,7 +179,7 @@ REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens
 
 ---
 
-## Task 2.2 — Make enum constant lists obey `WrapStyle`
+## Task 2.2 — Make enum constant lists obey `WrapStyle` ✅ COMPLETED
 
 ### Read first
 
