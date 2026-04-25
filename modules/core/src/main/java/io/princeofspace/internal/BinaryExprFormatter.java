@@ -19,6 +19,8 @@ import java.util.List;
  */
 final class BinaryExprFormatter {
     private static final int MIN_LEAVES_FOR_FORCED_STRING_RECHUNK = 128;
+    private static final int LOGICAL_OPERATOR_WITH_SPACES_WIDTH = 4; // e.g. " && " / " || "
+    private static final int STRING_CONCAT_OPERATOR_WITH_SPACES_WIDTH = 3; // " + "
 
     private final LayoutContext ctx;
     private final CommentUtils comments;
@@ -38,7 +40,7 @@ final class BinaryExprFormatter {
             collectSameOp(n.getOperator(), (Expression) n, parts);
             int flat = ctx.column();
             for (Expression p : parts) {
-                flat += ctx.est(p) + 4;
+                flat += ctx.est(p) + LOGICAL_OPERATOR_WITH_SPACES_WIDTH;
             }
             if (!comments.anyOperandHasLeadingLineOrBlockComment(parts)
                     && !comments.anyOperandHasTrailingLineOrBlockComment(parts)
@@ -84,7 +86,7 @@ final class BinaryExprFormatter {
             collectSameOp(n.getOperator(), (Expression) n, parts);
             int flat = ctx.column();
             for (Expression p : parts) {
-                flat += ctx.est(p) + 4;
+                flat += ctx.est(p) + LOGICAL_OPERATOR_WITH_SPACES_WIDTH;
             }
             if (!comments.anyOperandHasLeadingLineOrBlockComment(parts)
                     && !comments.anyOperandHasTrailingLineOrBlockComment(parts)
@@ -149,7 +151,7 @@ final class BinaryExprFormatter {
             collectSameOp(BinaryExpr.Operator.PLUS, (Expression) n, parts);
             int flat = ctx.column();
             for (Expression p : parts) {
-                flat += ctx.est(p) + 3;
+                flat += ctx.est(p) + STRING_CONCAT_OPERATOR_WITH_SPACES_WIDTH;
             }
             if (!comments.anyOperandHasLeadingLineOrBlockComment(parts)
                     && !comments.anyOperandHasTrailingLineOrBlockComment(parts)

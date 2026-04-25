@@ -20,6 +20,8 @@ import static com.github.javaparser.utils.Utils.isNullOrEmpty;
  * {@link LayoutContext} for output and recursive dispatch.
  */
 final class ArgumentListFormatter {
+    private static final int CLOSING_PAREN_INLINE_RESERVED_WIDTH = 3; // ") {" / ");"
+
 
     private final LayoutContext ctx;
     private final FormatterConfig fmt;
@@ -218,7 +220,10 @@ final class ArgumentListFormatter {
                 if (isLast) {
                     // When ")" stays on the last param line, reserve ") {" / ");"; when ")" is alone on
                     // the next line, that width is not needed on the param line.
-                    lineBudget += fmt.closingParenOnNewLine() ? 3 : -3;
+                    lineBudget +=
+                            fmt.closingParenOnNewLine()
+                                    ? CLOSING_PAREN_INLINE_RESERVED_WIDTH
+                                    : -CLOSING_PAREN_INLINE_RESERVED_WIDTH;
                 }
                 if (first && (ctx.column() + need > lineBudget || wouldExceedLineLength(need))) {
                     ctx.println();

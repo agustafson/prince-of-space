@@ -24,6 +24,7 @@ import java.util.Optional;
  * output primitives, comment handling, and recursive visitor dispatch.
  */
 final class MethodChainFormatter {
+    private static final int LAMBDA_HEAVY_CHAIN_WRAP_TRIGGER_WIDTH = 60;
 
     private final LayoutContext ctx;
     private final CommentUtils comments;
@@ -275,7 +276,7 @@ final class MethodChainFormatter {
                 break;
             }
         }
-        return hasLambdaArgument && chainOneLineWidth(base, calls) > 60;
+        return hasLambdaArgument && chainOneLineWidth(base, calls) > LAMBDA_HEAVY_CHAIN_WRAP_TRIGGER_WIDTH;
     }
 
     /** Prints an expression clone without its owned comment. */

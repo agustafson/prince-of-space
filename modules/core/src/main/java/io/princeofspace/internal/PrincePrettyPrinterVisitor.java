@@ -63,6 +63,12 @@ import static com.github.javaparser.utils.Utils.isNullOrEmpty;
  * through a shared {@link LayoutContext}.
  */
 final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
+    private static final int TERNARY_OPERATOR_WIDTH = 3; // " ? " / " : "
+    private static final int BALANCED_PAREN_HEADROOM_MIN = 16;
+    private static final int BALANCED_PAREN_HEADROOM_MAX = 64;
+    private static final int BALANCED_PAREN_HEADROOM_DIVISOR = 3;
+    private static final int LARGE_STRING_FORCE_BREAK_THRESHOLD = 500;
+    private static final int SWITCH_GUARD_KEYWORD_WIDTH = 6; // " when "
 
     private final FormatterConfig fmt;
     final LayoutContext ctx;
@@ -468,7 +474,13 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     public void visit(ConditionalExpr n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
-        int flat = column() + ctx.est(n.getCondition()) + 3 + ctx.est(n.getThenExpr()) + 3 + ctx.est(n.getElseExpr());
+        int flat =
+                column()
+                        + ctx.est(n.getCondition())
+                        + TERNARY_OPERATOR_WIDTH
+                        + ctx.est(n.getThenExpr())
+                        + TERNARY_OPERATOR_WIDTH
+                        + ctx.est(n.getElseExpr());
         if (flat <= fmt.lineLength()) {
             n.getCondition().accept(this, arg);
             printer.print(" ? ");
@@ -597,8 +609,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
      *
      * <p>Budget matches a continuation line {@code + "} layout: up to {@value
      * #WORST_CASE_BLOCK_INDENTS_FOR_STRING_CHUNKING} logical block indents, continuation indent, the
-     * two-character {@code + } infix, {@link #BALANCED_STRING_CONCAT_PAREN_HEADROOM} for a balanced
-     * concat left spine, plus the historical {@code - 2} adjustment.
+     * two-character {@code + } infix, balanced concat left-spine headroom, plus the historical
+     * {@code - 2} adjustment.
      */
     private static final int WORST_CASE_BLOCK_INDENTS_FOR_STRING_CHUNKING = 4;
 
@@ -617,11 +629,16 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
      *
      * <p>When the fragment count exceeds {@link #MAX_SHALLOW_LINEAR_STRING_CONCAT_PARTS}, emit uses a
      * balanced parenthesized tree. The left spine prints a run of {@code '('} on the same physical
-     * line as the opening quote of the first fragment; reserve a fixed worst-case width so the first
-     * fragment never exceeds {@link FormatterConfig#lineLength()} and a re-format pass does not
-     * pick a different split.
+     * line as the opening quote of the first fragment; reserve bounded headroom derived from
+     * {@link FormatterConfig#lineLength()} so the first fragment stays within budget without
+     * over-penalizing narrow or wide configurations.
      */
-    private static final int BALANCED_STRING_CONCAT_PAREN_HEADROOM = 48;
+    private int balancedStringConcatParenHeadroom() {
+        // Reserve roughly one-third of line length, but keep a practical floor/ceiling.
+        return Math.max(
+                BALANCED_PAREN_HEADROOM_MIN,
+                Math.min(BALANCED_PAREN_HEADROOM_MAX, fmt.lineLength() / BALANCED_PAREN_HEADROOM_DIVISOR));
+    }
 
     private List<String> collectRawStringPiecesForChunking(String raw) {
         int baseMax = stableMaxRoomAfterPlusPrefix();
@@ -629,8 +646,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (pieces.size() <= MAX_SHALLOW_LINEAR_STRING_CONCAT_PARTS) {
             return pieces;
         }
+        int headroom = balancedStringConcatParenHeadroom();
         return splitRawIntoStringPieces(
-                raw, Math.max(1, baseMax - BALANCED_STRING_CONCAT_PAREN_HEADROOM));
+                raw, Math.max(1, baseMax - headroom));
     }
 
     private static List<String> splitRawIntoStringPieces(String raw, int maxRoom) {
@@ -736,7 +754,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
         if (isTopLevelStringConcatChain(n.getInner())
-                && mergedStringLiteralChainCharCount(n.getInner()) >= 500) {
+                && mergedStringLiteralChainCharCount(n.getInner()) >= LARGE_STRING_FORCE_BREAK_THRESHOLD) {
             Expression inner = n.getInner();
             while (inner instanceof EnclosedExpr enc) {
                 inner = enc.getInner();
@@ -1018,7 +1036,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
         entry.getGuard().ifPresent(
                 guard -> {
-                    int flat = column() + 6 + ctx.est(guard); // " when " + guard
+                    int flat = column() + SWITCH_GUARD_KEYWORD_WIDTH + ctx.est(guard); // " when " + guard
                     if (flat <= fmt.lineLength()) {
                         printer.print(" when ");
                         guard.accept(this, arg);
@@ -1153,9 +1171,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     private static boolean initializerNeedsForcedBreakBeforeChunking(Expression init) {
         if (init instanceof StringLiteralExpr sl) {
-            return sl.getValue().length() >= 500;
+            return sl.getValue().length() >= LARGE_STRING_FORCE_BREAK_THRESHOLD;
         }
-        return isTopLevelStringConcatChain(init) && mergedStringLiteralChainCharCount(init) >= 500;
+        return isTopLevelStringConcatChain(init)
+                && mergedStringLiteralChainCharCount(init) >= LARGE_STRING_FORCE_BREAK_THRESHOLD;
     }
 
     private static int mergedStringLiteralChainCharCount(Expression init) {

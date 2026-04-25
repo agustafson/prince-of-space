@@ -16,6 +16,12 @@ import static com.github.javaparser.utils.Utils.isNullOrEmpty;
  * and union types ({@code |}) with the same width and wrap-style rules as the main visitor.
  */
 final class TypeClauseFormatter {
+    private static final int CLAUSE_SEPARATOR_WIDTH = 2; // ", "
+    private static final int INLINE_IMPLEMENTS_KEYWORD_WIDTH = 12; // " implements"
+    private static final int INLINE_PERMITS_KEYWORD_WIDTH = 9; // " permits "
+    private static final int INLINE_THROWS_KEYWORD_WIDTH = 7; // " throws "
+    private static final int UNION_OPERATOR_WITH_SPACES_WIDTH = 3; // " | "
+    private static final int GREEDY_LIST_TRAILING_HEADROOM = 2;
 
     private final LayoutContext ctx;
     private final FormatterConfig fmt;
@@ -33,7 +39,7 @@ final class TypeClauseFormatter {
         boolean first = true;
         for (ClassOrInterfaceType t : types) {
             if (!first) {
-                w += 2;
+                w += CLAUSE_SEPARATOR_WIDTH;
             }
             first = false;
             w += t.toString().length();
@@ -49,7 +55,11 @@ final class TypeClauseFormatter {
     boolean printImplementsClause(NodeList<ClassOrInterfaceType> types, Void arg) {
         int header = ctx.column();
         // Check if everything fits on the current line (include " {" trailing)
-        int inlineWidth = header + 12 + implementsTypesWidth(types) + 2;
+        int inlineWidth =
+                header
+                        + INLINE_IMPLEMENTS_KEYWORD_WIDTH
+                        + implementsTypesWidth(types)
+                        + GREEDY_LIST_TRAILING_HEADROOM;
         if (inlineWidth <= fmt.lineLength()) {
             ctx.print(" implements");
             printInlineTypeClauseList(types, arg);
@@ -101,7 +111,7 @@ final class TypeClauseFormatter {
             return false;
         }
         int header = ctx.column();
-        int permitsInline = header + 9 + implementsTypesWidth(types);
+        int permitsInline = header + INLINE_PERMITS_KEYWORD_WIDTH + implementsTypesWidth(types);
         if (fmt.wrapStyle() != WrapStyle.NARROW
                 && permitsInline <= fmt.lineLength()) {
             ctx.print(" permits");
@@ -134,7 +144,7 @@ final class TypeClauseFormatter {
 
     /** Greedy comma-wrapped printing of class/interface types (WIDE throws/implements-style). */
     void printTypeListGreedy(NodeList<ClassOrInterfaceType> types, Void arg) {
-        int budget = fmt.lineLength() - 2;
+        int budget = fmt.lineLength() - GREEDY_LIST_TRAILING_HEADROOM;
         boolean first = true;
         for (ClassOrInterfaceType t : types) {
             int need = t.toString().length() + (first ? 0 : 2);
@@ -180,7 +190,7 @@ final class TypeClauseFormatter {
         boolean first = true;
         for (ReferenceType t : types) {
             if (!first) {
-                w += 2;
+                w += CLAUSE_SEPARATOR_WIDTH;
             }
             first = false;
             w += t.toString().length();
@@ -193,7 +203,7 @@ final class TypeClauseFormatter {
         if (isNullOrEmpty(types)) {
             return;
         }
-        int inline = ctx.column() + 7 + referenceTypesFlatWidth(types);
+        int inline = ctx.column() + INLINE_THROWS_KEYWORD_WIDTH + referenceTypesFlatWidth(types);
         if (inline <= fmt.lineLength()) {
             ctx.print(" throws ");
             for (Iterator<ReferenceType> i = types.iterator(); i.hasNext(); ) {
@@ -235,7 +245,7 @@ final class TypeClauseFormatter {
     }
 
     void printReferenceTypeListGreedy(NodeList<ReferenceType> types, Void arg) {
-        int budget = fmt.lineLength() - 2;
+        int budget = fmt.lineLength() - GREEDY_LIST_TRAILING_HEADROOM;
         boolean first = true;
         for (ReferenceType t : types) {
             int need = t.toString().length() + (first ? 0 : 2);
@@ -257,7 +267,7 @@ final class TypeClauseFormatter {
         boolean first = true;
         for (ReferenceType t : types) {
             if (!first) {
-                w += 3;
+                w += UNION_OPERATOR_WITH_SPACES_WIDTH;
             }
             first = false;
             w += t.toString().length();
@@ -266,10 +276,10 @@ final class TypeClauseFormatter {
     }
 
     void printUnionTypeListGreedy(NodeList<ReferenceType> types, Void arg) {
-        int budget = fmt.lineLength() - 2;
+        int budget = fmt.lineLength() - GREEDY_LIST_TRAILING_HEADROOM;
         boolean first = true;
         for (ReferenceType t : types) {
-            int need = t.toString().length() + (first ? 0 : 3);
+            int need = t.toString().length() + (first ? 0 : UNION_OPERATOR_WITH_SPACES_WIDTH);
             if (!first && (ctx.column() + need > budget || ctx.wouldExceedLineLength(need))) {
                 ctx.println();
                 ctx.printCont();

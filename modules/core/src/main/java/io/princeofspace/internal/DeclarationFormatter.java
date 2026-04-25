@@ -31,6 +31,8 @@ import static com.github.javaparser.utils.Utils.isNullOrEmpty;
  * clause/argument helpers.
  */
 final class DeclarationFormatter {
+    private static final int JAVA8_RELEASE = 8;
+    private static final int ENUM_HEADER_AND_BRACE_WIDTH = 3 + 2; // " { " + " }"/line-end allowance
 
     private final LayoutContext ctx;
     private final FormatterConfig fmt;
@@ -230,7 +232,7 @@ final class DeclarationFormatter {
         } else {
             BlockStmt body = n.getBody().get();
             boolean modernCompactEmptyMethod =
-                    fmt.javaLanguageLevel().level() != 8
+                    fmt.javaLanguageLevel().level() != JAVA8_RELEASE
                             && body.getStatements().isEmpty()
                             && body.getComment().isEmpty()
                             && body.getOrphanComments().isEmpty();
@@ -371,7 +373,7 @@ final class DeclarationFormatter {
         boolean hasMembers = !n.getMembers().isEmpty();
         boolean hasBodies = n.getEntries().stream().anyMatch(e -> !e.getClassBody().isEmpty());
         int flatWidth = enumConstantsFlatWidth(n.getEntries());
-        int oneLineEnum = ctx.column() + 3 + flatWidth + 2;
+        int oneLineEnum = ctx.column() + ENUM_HEADER_AND_BRACE_WIDTH + flatWidth;
         boolean fitsOneLine =
                 oneLineEnum <= fmt.lineLength()
                         && !hasBodies
