@@ -3,17 +3,13 @@ package io.princeofspace.internal;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 
 /**
- * Normalizes annotation placement at the AST level.
+ * Optional AST pass for annotation placement, run after {@link BraceEnforcer} in {@link
+ * io.princeofspace.internal.FormattingEngine}.
  *
- * <p>In Phase 2, {@code DefaultPrettyPrinterVisitor.printMemberAnnotations} already prints each
- * declaration annotation on its own line, so no AST transformation is required for the common
- * cases.
- *
- * <p>This visitor is a placeholder for future phases that will handle:
- *
- * <ul>
- *   <li>Separating mis-categorised declaration annotations from type-use annotations
- *   <li>Ordering annotations canonically
- * </ul>
+ * <p>Declaration layout (one declaration annotation per line, type-use annotations adjacent to
+ * types) is primarily enforced by the custom pretty printer. This visitor remains a
+ * {@link ModifierVisitor} hook for future AST-level fixes (e.g. moving a mis-attached
+ * type-use marker). End-to-end expectations are covered by {@code AnnotationArrangerTest} using
+ * {@link io.princeofspace.Formatter}.
  */
 final class AnnotationArranger extends ModifierVisitor<Void> {}

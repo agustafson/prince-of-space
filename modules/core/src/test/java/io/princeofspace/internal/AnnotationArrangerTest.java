@@ -1,73 +1,55 @@
 package io.princeofspace.internal;
 
-import com.github.javaparser.JavaParser;
-import com.github.javaparser.ParserConfiguration;
-import com.github.javaparser.ParserConfiguration.LanguageLevel;
-import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.printer.DefaultPrettyPrinter;
+import io.princeofspace.Formatter;
+import io.princeofspace.model.FormatterConfig;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Verifies that {@link AnnotationArranger} does not corrupt the AST.
- * The arranger is currently a no-op placeholder; these tests guard against
- * regressions when real transformation logic is added.
+ * {@link AnnotationArranger} is part of the transform pipeline; end-to-end layout for annotations is
+ * primarily determined by the pretty printer. These tests document the required shapes from
+ * {@code docs/formatting-rules.md} and guard regressions.
  */
 class AnnotationArrangerTest {
 
-    private static String applyAndPrint(String source) {
-        JavaParser parser = new JavaParser(
-                new ParserConfiguration().setLanguageLevel(LanguageLevel.JAVA_17));
-        CompilationUnit cu = parser.parse(source).getResult().orElseThrow();
-        new AnnotationArranger().visit(cu, null);
-        return new DefaultPrettyPrinter().print(cu);
+    @Test
+    void declarationAnnotations_eachOnOwnLine() {
+        Formatter f = new Formatter(FormatterConfig.builder().lineLength(120).build());
+        String out =
+                f.format(
+                        "@Deprecated @SuppressWarnings(\"all\") public class T { public T() {} }");
+        assertThat(out).contains("@Deprecated");
+        assertThat(out).contains("@SuppressWarnings(\"all\")");
+        assertThat(out.indexOf("@Deprecated"))
+                .isLessThan(out.indexOf("@SuppressWarnings"));
+        assertThat(out).containsPattern("@Deprecated\\R");
+        assertThat(f.format(out)).isEqualTo(out);
     }
 
     @Test
-    void declarationAnnotation_preserved() {
-        String src = "class T { @Override public String toString() { return \"\"; } }";
-        String out = applyAndPrint(src);
-        assertThat(out).contains("@Override");
+    void typeUseAnnotations_stayInline() {
+        Formatter f = new Formatter(FormatterConfig.builder().lineLength(120).build());
+        String out =
+                f.format("import java.util.List; class T { void m(List<@org.eclipse.jdt.annotation.NonNull String> p) {} }");
+        assertThat(out).contains("List<@org.eclipse.jdt.annotation.NonNull String>");
+        assertThat(f.format(out)).isEqualTo(out);
     }
 
     @Test
-    void multipleAnnotations_allPreserved() {
-        String src = """
+    void mixed_declAndTypeUse_keepRespectiveStyles() {
+        Formatter f = new Formatter(FormatterConfig.builder().lineLength(120).build());
+        String in =
+                """
                 class T {
                     @Deprecated
                     @SuppressWarnings("all")
-                    void m() {}
+                    java.lang.@org.eclipse.jdt.annotation.NonNull String name = "x";
                 }
                 """;
-        String out = applyAndPrint(src);
-        assertThat(out).contains("@Deprecated").contains("@SuppressWarnings");
-    }
-
-    @Test
-    void parameterAnnotation_preserved() {
-        String src = "class T { void m(@SuppressWarnings(\"all\") String s) {} }";
-        String out = applyAndPrint(src);
-        assertThat(out).contains("@SuppressWarnings");
-    }
-
-    @Test
-    void classWithNoAnnotations_unchanged() {
-        String src = "class T { int x; void m() {} }";
-        String out = applyAndPrint(src);
-        assertThat(out).doesNotContain("@");
-    }
-
-    @Test
-    void arranger_isIdempotent() {
-        String src = """
-                class T {
-                    @Override
-                    public String toString() { return ""; }
-                }
-                """;
-        String once = applyAndPrint(src);
-        String twice = applyAndPrint(once);
-        assertThat(twice).isEqualTo(once);
+        String out = f.format(in);
+        assertThat(out).contains("java.lang.@org.eclipse.jdt.annotation.NonNull String");
+        assertThat(out).contains("@Deprecated");
+        assertThat(f.format(out)).isEqualTo(out);
     }
 }
