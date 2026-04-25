@@ -50,6 +50,7 @@ import com.github.javaparser.utils.StringEscapeUtils;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.WrapStyle;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -199,7 +200,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (node instanceof Comment) {
             return;
         }
-        Node parent = node.getParentNode().orElse(null);
+        @Nullable Node parent = node.getParentNode().orElse(null);
         if (parent == null) {
             return;
         }
@@ -237,7 +238,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     @Override
     protected void printMembers(NodeList<BodyDeclaration<?>> members, Void arg) {
-        BodyDeclaration<?> prev = null;
+        @Nullable BodyDeclaration<?> prev = null;
         for (BodyDeclaration<?> member : members) {
             // Add blank line between members, EXCEPT between consecutive fields
             if (prev != null && !(prev instanceof FieldDeclaration && member instanceof FieldDeclaration)) {
@@ -257,7 +258,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printer.println("{");
         if (n.getStatements() != null) {
             printer.indent();
-            Statement prev = null;
+            @Nullable Statement prev = null;
             for (Statement s : n.getStatements()) {
                 // Preserve blank lines between statements from original source
                 if (prev != null && prev.getRange().isPresent() && s.getRange().isPresent()) {
@@ -996,7 +997,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                                         .ifPresent(
                                                 commonType -> {
                                                     final Type type = n.getType();
-                                                    ArrayType arrayType = null;
+                                                    @Nullable ArrayType arrayType = null;
                                                     for (int i = commonType.getArrayLevel();
                                                             i < type.getArrayLevel();
                                                             i++) {
@@ -1073,7 +1074,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.print("{");
             printer.println();
             printer.indent();
-            Statement prev = null;
+            @Nullable Statement prev = null;
             for (Statement s : block.getStatements()) {
                 if (prev != null && prev.getRange().isPresent() && s.getRange().isPresent()) {
                     int prevEnd = prev.getRange().get().end.line;

@@ -8,6 +8,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import io.princeofspace.FormatResult;
 import io.princeofspace.model.FormatterConfig;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -73,7 +74,7 @@ public final class FormattingEngine {
     }
 
     private static int resolveMaxConvergencePasses() {
-        String raw = System.getProperty("prince.maxConvergencePasses");
+        @Nullable String raw = System.getProperty("prince.maxConvergencePasses");
         if (raw == null || raw.isBlank()) {
             return DEFAULT_MAX_CONVERGENCE_PASSES;
         }

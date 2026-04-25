@@ -9,6 +9,7 @@ import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.ast.type.TypeParameter;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.WrapStyle;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Iterator;
 
@@ -140,7 +141,7 @@ final class ArgumentListFormatter {
         int budget = fmt.lineLength() - trailingWidth;
         Iterator<? extends Expression> iter = args.iterator();
         int remaining = args.size();
-        Expression previous = null;
+        @Nullable Expression previous = null;
         while (iter.hasNext()) {
             Expression e = iter.next();
             int expressionWidth = (e instanceof LambdaExpr lambda && lambda.getBody() instanceof BlockStmt)
