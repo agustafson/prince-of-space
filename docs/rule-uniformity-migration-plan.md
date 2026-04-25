@@ -264,7 +264,7 @@ Same as Task 2.2. Existing goldens for very long generic method declarations wil
 
 ---
 
-## Task 3.1 — Wrap path for `extends` clause
+## Task 3.1 — Wrap path for `extends` clause ✅ COMPLETED
 
 ### Read first
 

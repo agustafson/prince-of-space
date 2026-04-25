@@ -660,6 +660,18 @@ public class FormatterShowcase
         )));
     }
 
+    // Scenario 53: Interface extends clause with many super-interfaces
+    interface VeryLongExtendsClauseScenario53
+            extends java.io.Serializable,
+            java.lang.Cloneable,
+            java.util.function.Supplier<String>,
+            java.util.function.Consumer<String>,
+            java.util.concurrent.Callable<String>,
+            java.util.Comparator<String>,
+            java.util.function.Predicate<String>
+    {
+    }
+
     static final class VeryLongArgumentCarrierForAlignmentRegression {
 
         VeryLongArgumentCarrierForAlignmentRegression(String a, String b, String c, String d) {

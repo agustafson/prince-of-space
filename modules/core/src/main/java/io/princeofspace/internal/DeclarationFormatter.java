@@ -311,11 +311,10 @@ final class DeclarationFormatter {
             argumentListFormatter.printTypeParameters(n.getTypeParameters(), arg);
             boolean typeClauseWrapped = false;
             if (!n.getExtendedTypes().isEmpty()) {
-                ctx.print(" extends");
-                typeClauseFormatter.printInlineTypeClauseList(n.getExtendedTypes(), arg);
+                typeClauseWrapped = typeClauseFormatter.printExtendsClause(n.getExtendedTypes(), arg);
             }
             if (!n.getImplementedTypes().isEmpty()) {
-                typeClauseWrapped = typeClauseFormatter.printImplementsClause(n.getImplementedTypes(), arg);
+                typeClauseWrapped = typeClauseFormatter.printImplementsClause(n.getImplementedTypes(), arg) || typeClauseWrapped;
             }
             if (!n.getPermittedTypes().isEmpty()) {
                 typeClauseWrapped =

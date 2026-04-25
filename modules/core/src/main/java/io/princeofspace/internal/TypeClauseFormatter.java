@@ -17,6 +17,7 @@ import static com.github.javaparser.utils.Utils.isNullOrEmpty;
  */
 final class TypeClauseFormatter {
     private static final int CLAUSE_SEPARATOR_WIDTH = 2; // ", "
+    private static final int INLINE_EXTENDS_KEYWORD_WIDTH = 8; // " extends"
     private static final int INLINE_IMPLEMENTS_KEYWORD_WIDTH = 12; // " implements"
     private static final int INLINE_PERMITS_KEYWORD_WIDTH = 9; // " permits "
     private static final int INLINE_THROWS_KEYWORD_WIDTH = 7; // " throws "
@@ -45,6 +46,60 @@ final class TypeClauseFormatter {
             w += t.toString().length();
         }
         return w;
+    }
+
+    /**
+     * Prints an {@code extends} clause, possibly wrapping.
+     *
+     * @return true if the clause wrapped to a new line
+     */
+    boolean printExtendsClause(NodeList<ClassOrInterfaceType> types, Void arg) {
+        if (types.isEmpty()) {
+            return false;
+        }
+        int header = ctx.column();
+        int inlineWidth =
+                header
+                        + INLINE_EXTENDS_KEYWORD_WIDTH
+                        + implementsTypesWidth(types)
+                        + GREEDY_LIST_TRAILING_HEADROOM;
+        if (inlineWidth <= fmt.lineLength()) {
+            ctx.print(" extends");
+            printInlineTypeClauseList(types, arg);
+            return false;
+        }
+        if (fmt.wrapStyle() == WrapStyle.WIDE) {
+            ctx.println();
+            ctx.printCont();
+            ctx.print("extends ");
+            printTypeListGreedy(types, arg);
+            return true;
+        }
+        if (fmt.wrapStyle() == WrapStyle.BALANCED) {
+            ctx.println();
+            ctx.printCont();
+            ctx.print("extends ");
+            ctx.accept(types.get(0), arg);
+            for (int i = 1; i < types.size(); i++) {
+                ctx.print(",");
+                ctx.println();
+                ctx.printCont();
+                ctx.accept(types.get(i), arg);
+            }
+            return true;
+        }
+        ctx.println();
+        ctx.printCont();
+        ctx.print("extends");
+        for (int i = 0; i < types.size(); i++) {
+            ctx.println();
+            ctx.printNarrowListIndent();
+            ctx.accept(types.get(i), arg);
+            if (i < types.size() - 1) {
+                ctx.print(",");
+            }
+        }
+        return true;
     }
 
     /**

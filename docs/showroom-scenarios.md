@@ -18,3 +18,5 @@ Scenarios **31–44** are shared control-flow and wrapping cases; they appear in
 **Scenario 45** (switch entry with a long guard) is only in **Java 17+** trees (`java17`, `java21`, `java25`).
 
 **Scenario 46** (flexible constructor bodies, JEP 513) is only in **`java25`**.
+
+**Scenario 53** (interface with a long `extends` clause) appears in **all** four trees.

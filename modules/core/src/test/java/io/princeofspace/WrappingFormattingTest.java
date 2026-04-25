@@ -225,6 +225,27 @@ class WrappingFormattingTest {
     }
 
     @Test
+    void extendsClause_balanced_wrapsEachInterface() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(70)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .build());
+        String input =
+                "interface T extends java.io.Serializable, java.lang.Cloneable, java.util.function.Supplier<String>, java.util.function.Consumer<String> {}";
+
+        String out = f.format(input);
+
+        assertThat(out).contains("interface T\n");
+        assertThat(out).contains("extends java.io.Serializable,\n");
+        assertThat(out).contains("java.lang.Cloneable,\n");
+        assertThat(out).contains("java.util.function.Supplier<String>,\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
     void implementsClause_narrow_cont8_doubleIndentsWrappedTypes() {
         Formatter f =
                 new Formatter(

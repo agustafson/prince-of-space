@@ -437,6 +437,9 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
         cappedLogNoCustomerData(l -> l.warn("Bad thing happened and we have lots of information to tell you in this warning payload", new IllegalStateException("Bad thing happened and this diagnostic stack summary is also intentionally very long to force wrapping")));
     }
 
+    // Scenario 53: Interface extends clause with many super-interfaces
+    interface VeryLongExtendsClauseScenario53 extends java.io.Serializable, java.lang.Cloneable, java.util.function.Supplier<String>, java.util.function.Consumer<String>, java.util.concurrent.Callable<String>, java.util.Comparator<String>, java.util.function.Predicate<String> {}
+
     static final class VeryLongArgumentCarrierForAlignmentRegression {
         VeryLongArgumentCarrierForAlignmentRegression(String a, String b, String c, String d) {}
     }
