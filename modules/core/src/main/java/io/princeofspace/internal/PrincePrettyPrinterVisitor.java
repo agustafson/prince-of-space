@@ -852,7 +852,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 printCont();
             } else {
                 boolean inlineWouldOverflow = ctx.column() + 1 + ctx.est(init) > fmt.lineLength();
-                int continuationRhsBudget = Math.max(1, fmt.lineLength() - (fmt.continuationIndentSize() + 4));
+                int continuationRhsBudget =
+                        Math.max(1, fmt.lineLength() - (fmt.continuationIndentSize() + fmt.indentSize()));
                 boolean rhsFitsSingleContinuationLine = ctx.est(init) <= continuationRhsBudget;
                 // Break before long string-like initializers when the combined line would exceed limits.
                 // Restrict to string literals, text blocks, and literal-only "+" chains so array/object
