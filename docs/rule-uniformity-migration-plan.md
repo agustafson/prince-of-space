@@ -426,7 +426,7 @@ Same. Goldens for scenarios 31 and 32 reflow.
 
 ---
 
-## Task 5.3 — `switch` case-label wrap (showcase scenario 45)
+## Task 5.3 — `switch` case-label wrap (showcase scenario 45) ✅ COMPLETED
 
 ### Read first
 

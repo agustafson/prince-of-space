@@ -35,6 +35,7 @@ import com.github.javaparser.ast.stmt.ForEachStmt;
 import com.github.javaparser.ast.stmt.ForStmt;
 import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.stmt.SwitchEntry;
+import com.github.javaparser.ast.stmt.SwitchStmt;
 import com.github.javaparser.ast.stmt.TryStmt;
 import com.github.javaparser.ast.type.ArrayType;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
@@ -1175,6 +1176,64 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printOrphanCommentsEnding(n);
     }
 
+    @Override
+    public void visit(SwitchStmt n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        printer.print("switch (");
+        n.getSelector().accept(this, arg);
+        printer.println(") {");
+        if (n.getEntries() != null) {
+            printer.indent();
+            for (SwitchEntry e : n.getEntries()) {
+                e.accept(this, arg);
+            }
+            printer.unindent();
+        }
+        printer.print("}");
+        printOrphanCommentsEnding(n);
+    }
+
+    @Override
+    public void visit(SwitchEntry n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        String separator = n.getType() == SwitchEntry.Type.STATEMENT_GROUP ? ":" : " ->";
+        if (isNullOrEmpty(n.getLabels())) {
+            printer.print("default" + separator);
+        } else {
+            printer.print("case ");
+            argumentListFormatter.printCommaSeparatedExprs(n.getLabels(), arg);
+            if (n.getLabels().isNonEmpty() && n.isDefault()) {
+                printer.print(", default");
+            }
+            n.getGuard().ifPresent(guard -> printSwitchWhenGuard(guard, arg));
+            printer.print(separator);
+        }
+        printer.println();
+        printer.indent();
+        if (n.getStatements() != null) {
+            for (Statement s : n.getStatements()) {
+                s.accept(this, arg);
+                printer.println();
+            }
+        }
+        printer.unindent();
+    }
+
+    private void printSwitchWhenGuard(Expression guard, Void arg) {
+        int flat = column() + SWITCH_GUARD_KEYWORD_WIDTH + WidthMeasurer.flatWidth(guard, fmt);
+        if (flat <= fmt.lineLength()) {
+            printer.print(" when ");
+            guard.accept(this, arg);
+        } else {
+            printer.println();
+            printCont();
+            printer.print("when ");
+            guard.accept(this, arg);
+        }
+    }
+
     private void printSwitchEntry(SwitchEntry entry, Void arg) {
         printOrphanCommentsBeforeThisChildNode(entry);
         printComment(entry.getComment(), arg);
@@ -1186,19 +1245,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             // Wrap labels using the same comma-list logic as arguments (respects preferred/max and wrapStyle).
             argumentListFormatter.printCommaSeparatedExprs(labels, arg);
         }
-        entry.getGuard().ifPresent(
-                guard -> {
-                    int flat = column() + SWITCH_GUARD_KEYWORD_WIDTH + WidthMeasurer.flatWidth(guard, fmt); // " when " + guard
-                    if (flat <= fmt.lineLength()) {
-                        printer.print(" when ");
-                        guard.accept(this, arg);
-                        return;
-                    }
-                    printer.println();
-                    printCont();
-                    printer.print("when ");
-                    guard.accept(this, arg);
-                });
+        entry.getGuard().ifPresent(guard -> printSwitchWhenGuard(guard, arg));
         if (entry.getType() == SwitchEntry.Type.STATEMENT_GROUP) {
             printer.print(":");
             return;

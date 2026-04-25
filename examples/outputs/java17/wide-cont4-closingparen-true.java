@@ -502,7 +502,7 @@ public class FormatterShowcase
     // Scenario 45: Switch entry with many labels (line length)
     public int switchManyLabels(String s) {
         return switch (s) {
-            case "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa" -> 1;
+            case "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa", "lambda", "mu" -> 1;
             default -> 0;
         };
     }

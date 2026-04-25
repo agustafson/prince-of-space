@@ -1831,4 +1831,37 @@ class WrappingFormattingTest {
         assertThat(out).contains("asIterable()");
         assertThat(f.format(out)).isEqualTo(out);
     }
+
+    @Test
+    void switchCaseLabel_balanced_wrapsEachLabelWhenOverflow() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(38)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .javaLanguageLevel(JavaLanguageLevel.of(17))
+                                .build());
+        String input =
+                """
+                class T {
+                    int m(int x) {
+                        switch (x) {
+                            case 1, 2, 3, 4, 5, 6, 7, 8, 9, 10:
+                                return 0;
+                            default:
+                                return 1;
+                        }
+                    }
+                }
+                """;
+        String out = f.format(input);
+        assertThat(out).contains("case ");
+        assertThat(out).contains("1,");
+        assertThat(out).contains("10:");
+        assertThat(out)
+                .as("BALANCED breaks the case label list across lines when the header overflows")
+                .containsPattern("case\\s+\\R\\s+1,");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
 }
