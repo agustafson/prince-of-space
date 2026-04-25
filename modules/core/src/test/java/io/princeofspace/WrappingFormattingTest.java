@@ -47,6 +47,39 @@ class WrappingFormattingTest {
         }
     }
 
+    private static String lineContaining(String text, String needle) {
+        for (String line : text.split("\\R")) {
+            if (line.contains(needle)) {
+                return line;
+            }
+        }
+        throw new AssertionError("Missing line containing: " + needle);
+    }
+
+    private static int leadingSpaces(String line) {
+        int n = 0;
+        while (n < line.length() && line.charAt(n) == ' ') {
+            n++;
+        }
+        return n;
+    }
+
+    private static String nextNonEmptyLineAfter(String text, String needle) {
+        String[] lines = text.split("\\R");
+        for (int i = 0; i < lines.length; i++) {
+            if (!lines[i].contains(needle)) {
+                continue;
+            }
+            for (int j = i + 1; j < lines.length; j++) {
+                if (!lines[j].isBlank()) {
+                    return lines[j];
+                }
+            }
+            break;
+        }
+        throw new AssertionError("Missing non-empty line after: " + needle);
+    }
+
     @Test
     void methodChain_wrapsEachSegmentWhenPreferredExceeded() {
         Formatter f =
@@ -1140,6 +1173,61 @@ class WrappingFormattingTest {
         assertThat(out).contains("LOOKUP =\n");
         assertThat(out).contains("        map -> map.getOrDefault(\"ab\", 0);");
         assertThat(out).doesNotContain("map ->\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void wrappedArguments_useContinuationIndent_notMethodNameColumnAlignment() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(60)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .closingParenOnNewLine(false)
+                                .build());
+        String input =
+                """
+                class T {
+                    void m() {
+                        saveWithVeryLongMethodNameForAlignmentRegression("alphaAlphaAlpha", "betaBetaBeta", "gammaGammaGamma", "deltaDeltaDelta");
+                    }
+
+                    void saveWithVeryLongMethodNameForAlignmentRegression(String a, String b, String c, String d) {}
+                }
+                """;
+        String out = f.format(input);
+        assertThat(out).contains("saveWithVeryLongMethodNameForAlignmentRegression(\n");
+        String callLine = lineContaining(out, "saveWithVeryLongMethodNameForAlignmentRegression(");
+        String firstArgLine = nextNonEmptyLineAfter(out, "saveWithVeryLongMethodNameForAlignmentRegression(");
+        assertThat(leadingSpaces(firstArgLine)).isEqualTo(leadingSpaces(callLine) + 4);
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void wrappedArguments_closingParenStaysAtCallIndent_whenClosingParenOnNewLineEnabled() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(60)
+                                .continuationIndentSize(4)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .closingParenOnNewLine(true)
+                                .build());
+        String input =
+                """
+                class T {
+                    void m() {
+                        saveWithVeryLongMethodNameForAlignmentRegression("alphaAlphaAlpha", "betaBetaBeta", "gammaGammaGamma", "deltaDeltaDelta");
+                    }
+
+                    void saveWithVeryLongMethodNameForAlignmentRegression(String a, String b, String c, String d) {}
+                }
+                """;
+        String out = f.format(input);
+        String callLine = lineContaining(out, "saveWithVeryLongMethodNameForAlignmentRegression(");
+        String closingLine = lineContaining(out, ");");
+        assertThat(leadingSpaces(closingLine)).isEqualTo(leadingSpaces(callLine));
         assertThat(f.format(out)).isEqualTo(out);
     }
 

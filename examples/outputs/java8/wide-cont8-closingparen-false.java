@@ -405,6 +405,34 @@ public class FormatterShowcase
         });
     }
 
+    // Scenario 46: Assert string chunking should split at word boundaries
+    public void assertChunkBoundaryWordSplit(boolean enabled) {
+        assert enabled : 
+                "legacyField and items must be populated before calling assertChunkBoundaryWordSplit in "
+                + "production systems with strict validation rules enabled and mandatory audit " + "logging";
+    }
+
+    // Scenario 47: Break after '=' while keeping RHS on one continuation line
+    public void initializerBreakAfterEqualsSingleLineRhs() {
+        java.util.function.Function<java.util.Map<String, Integer>, Integer> longNamedMapper =
+                map -> map.getOrDefault("ab", 0);
+        System.out.println(longNamedMapper.apply(java.util.Collections.<String, Integer>emptyMap()));
+    }
+
+    // Scenario 48: Wrapped argument alignment (continuation indent, not method-name alignment)
+    public void wrappedArgumentAlignmentRegression() {
+        saveWithVeryLongMethodNameForAlignmentRegression("alpha-alpha-alpha-alpha", "beta-beta-beta-beta",
+                "gamma-gamma-gamma-gamma", "delta-delta-delta-delta");
+        new VeryLongArgumentCarrierForAlignmentRegression("first-first-first", "second-second-second",
+                "third-third-third", "fourth-fourth-fourth");
+    }
+
+    static final class VeryLongArgumentCarrierForAlignmentRegression {
+
+        VeryLongArgumentCarrierForAlignmentRegression(String a, String b, String c, String d) {
+        }
+    }
+
     // Placeholder methods
     private void validate(String locale) {
     }
@@ -451,5 +479,8 @@ public class FormatterShowcase
     }
 
     private void logError(String msg, Throwable t) {
+    }
+
+    private void saveWithVeryLongMethodNameForAlignmentRegression(String a, String b, String c, String d) {
     }
 }
