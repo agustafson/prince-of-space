@@ -7,7 +7,7 @@ import com.intellij.openapi.ui.ComboBox;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.util.ui.FormBuilder;
-import io.princeofspace.internal.JavaParserLanguageLevels;
+import io.princeofspace.internal.FormattingEngine;
 import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.WrapStyle;
 import org.jetbrains.annotations.Nls;
@@ -268,7 +268,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         }
         if (!s.useProjectLanguageLevel) {
             try {
-                JavaParserLanguageLevels.fromRelease(s.javaRelease);
+                FormattingEngine.validateJavaReleaseForParser(s.javaRelease);
             } catch (IllegalArgumentException e) {
                 throw new ConfigurationException(e.getMessage());
             }
@@ -279,7 +279,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         try {
             IndentStyle.valueOf(s.indentStyle);
             WrapStyle.valueOf(s.wrapStyle);
-            JavaParserLanguageLevels.fromRelease(s.javaRelease);
+            FormattingEngine.validateJavaReleaseForParser(s.javaRelease);
         } catch (IllegalArgumentException | NullPointerException e) {
             throw new ConfigurationException("Invalid global formatter setting: " + e.getMessage());
         }

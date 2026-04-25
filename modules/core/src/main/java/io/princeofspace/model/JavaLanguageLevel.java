@@ -1,7 +1,5 @@
 package io.princeofspace.model;
 
-import io.princeofspace.internal.JavaParserLanguageLevels;
-
 import java.io.Serial;
 import java.io.Serializable;
 
@@ -12,8 +10,9 @@ import java.io.Serializable;
  * <p>Use {@link #of(int)} for standard releases (e.g. {@code JavaLanguageLevel.of(21)}) or
  * {@link #of(int, boolean)} for preview releases (e.g. {@code JavaLanguageLevel.of(21, true)}).
  *
- * <p>Translated to a JavaParser {@code LanguageLevel} internally via
- * {@link JavaParserLanguageLevels#toLanguageLevel(JavaLanguageLevel)}.
+ * <p>Translation to JavaParser's {@code LanguageLevel} happens when formatting inside
+ * {@link io.princeofspace.internal.FormattingEngine}; unsupported combinations fail with
+ * {@link IllegalArgumentException}.
  *
  * @param level   Java feature-release number (e.g. {@code 17} for Java 17, {@code 1}–{@code 7} for legacy)
  * @param preview whether to enable JavaParser's preview-language-feature parsing

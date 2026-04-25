@@ -11,7 +11,7 @@ import io.princeofspace.model.JavaLanguageLevel;
  * {@link LanguageLevel#valueOf}{@code ("JAVA_N")} (or {@code "JAVA_N_PREVIEW"} for preview),
  * so new JDK levels work whenever the bundled JavaParser defines the corresponding constant.
  */
-public final class JavaParserLanguageLevels {
+final class JavaParserLanguageLevels {
     private static final int MODERN_RELEASE_MIN = 8;
     private static final int LEGACY_RELEASE_1 = 1;
     private static final int LEGACY_RELEASE_2 = 2;
@@ -34,7 +34,7 @@ public final class JavaParserLanguageLevels {
      * @return matching JavaParser language level
      * @throws IllegalArgumentException if JavaParser has no matching constant
      */
-    public static LanguageLevel toLanguageLevel(JavaLanguageLevel jll) {
+    static LanguageLevel toLanguageLevel(JavaLanguageLevel jll) {
         int v = jll.level();
         if (v < MODERN_RELEASE_MIN) {
             return fromRelease(v);
@@ -60,7 +60,7 @@ public final class JavaParserLanguageLevels {
      * @param v Java feature release number (for example, {@code 17})
      * @return matching JavaParser language level
      */
-    public static LanguageLevel fromRelease(int v) {
+    static LanguageLevel fromRelease(int v) {
         return switch (v) {
             case LEGACY_RELEASE_1 -> LanguageLevel.JAVA_1_0;
             case LEGACY_RELEASE_2 -> LanguageLevel.JAVA_1_1;
