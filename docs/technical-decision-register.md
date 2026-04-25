@@ -98,3 +98,11 @@ Use it as the primary source of *why* design choices exist.
 - **Rationale:** `BALANCED` should mean fit-or-tall consistently; allowing greedy packing only for string concatenation made behavior surprising and undermined predictability.
 - **Consequences:** `BALANCED` and `NARROW` now put each `+` operand on its own continuation line when wrapping; `WIDE` retains greedy packing.
 - **Related docs:** `docs/rule-uniformity-migration-plan.md`, `docs/formatting-rules.md`, `modules/core/src/test/java/io/princeofspace/WrappingFormattingTest.java`
+
+### TDR-012: continuationIndentSize is additive
+- **Date:** 2026-04
+- **Status:** Accepted
+- **Decision:** Interpret `continuationIndentSize` as an indent delta added on top of the active enclosing indent, not as an absolute column from statement start.
+- **Rationale:** Additive continuation indent yields consistent visual depth across nested contexts and avoids surprising left shifts for wrapped chains inside expressions.
+- **Consequences:** Wrapped segments in nested expressions use the same continuation math as top-level wrapped segments; docs and tests should assert additive behavior.
+- **Related docs:** `docs/formatting-rules.md`, `modules/core/src/test/java/io/princeofspace/WrappingFormattingTest.java`

@@ -319,7 +319,7 @@ Same. Showroom scenario 13b (or your equivalent nested-chain inside `&&`) will r
 
 ---
 
-## Task 3.3 — Document continuation indent as additive
+## Task 3.3 — Document continuation indent as additive ✅ COMPLETED
 
 Pure docs.
 

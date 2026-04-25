@@ -56,6 +56,23 @@ When a statement wraps to the next line, how far should the continuation be inde
 
 Units match **`indentSize`**: with **`spaces`**, this is the number of space characters inserted before a wrapped continuation line. With **`tabs`**, it is the number of **tab characters** inserted for that continuation (not derived by dividing by `indentSize`—both settings are direct character counts in their respective styles).
 
+`continuationIndentSize` is **additive** over the enclosing block indent (not an absolute left margin from the statement start).
+
+```java
+// indentSize = 4, continuationIndentSize = 4
+// Before (incorrect mental model: "absolute from statement start"):
+if (ready) {
+    return veryLongCondition &&
+        nextPart;   // only 8 spaces
+}
+
+// After (actual formatter rule: enclosing indent + continuation indent):
+if (ready) {
+    return veryLongCondition &&
+            nextPart; // 12 spaces (4 block + 4 statement + 4 continuation)
+}
+```
+
 ---
 
 ### 4. Line Wrapping Strategy
@@ -173,7 +190,7 @@ enum Status {
 
 ### Method Chaining (Fluent APIs / Builders / Streams)
 
-When a chain **wraps** (line length exceeded, or a lambda-heavy chain forces wrapping), each **chained** call is placed on its **own** line with a **leading dot** (same idea as Kotlin’s fluent style and Prettier’s typical JS/TS chains). The **receiver** is alone on the first line; every `.method(...)` after it starts a continuation line. Continuation lines are indented with `continuationIndentSize` from the **statement** start (not dot-aligned into the horizon).
+When a chain **wraps** (line length exceeded, or a lambda-heavy chain forces wrapping), each **chained** call is placed on its **own** line with a **leading dot** (same idea as Kotlin’s fluent style and Prettier’s typical JS/TS chains). The **receiver** is alone on the first line; every `.method(...)` after it starts a continuation line. Continuation lines are indented by adding `continuationIndentSize` on top of the active enclosing indent (not dot-aligned into the horizon).
 
 ```java
 // Multi-segment chain (two or more .method() links after the receiver)
