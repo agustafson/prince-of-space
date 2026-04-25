@@ -1,10 +1,8 @@
 package io.princeofspace;
 
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 /** Thrown when source code cannot be parsed or formatted. */
-@NullMarked
 public final class FormatterException extends RuntimeException {
 
     /**
