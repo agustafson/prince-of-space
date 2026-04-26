@@ -157,8 +157,13 @@ when you need to ship without conventional commits or to correct a mistake.
 2. Check **"Dry run"**
 3. Click **Run workflow**
 
-The workflow will infer the version and build+sign all artifacts but will not publish
-or tag anything. Check the logs to confirm the inferred version is correct.
+The workflow will infer the version, run the same **tests and builds** as a full release
+(including the CLI shadow JAR, IntelliJ plugin distribution, and VS Code `.vsix`), extract
+the **release notes** from `CHANGELOG.md` for the inferred version, and print them in the
+job log (collapsible **“Release notes …”** group). It will **not** upload to Sonatype, publish
+to Maven Central, push a git tag, create a GitHub Release, or push the post-release snapshot
+commit. Check the logs for the version, notes, and any packaging failures before running a
+full release.
 
 ### Full release
 

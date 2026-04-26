@@ -7,6 +7,8 @@ name: Release
 # Sonatype Central Portal (Maven), then creates a git tag and a
 # GitHub Release. IDE packaging runs before Central upload so a
 # failed VS Code or IntelliJ build never leaves Maven partially published.
+# Dry run still builds CLI / IntelliJ / VS Code and prints extracted release
+# notes; only Sonatype upload, Maven publish, tag, and GitHub Release are skipped.
 #
 # Required secrets (configure in Settings → Secrets → Actions):
 #   SONATYPE_CENTRAL_TOKEN  — Bearer token from central.sonatype.com → User Token
@@ -19,7 +21,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Dry run — infer version and build without publishing or tagging"
+        description: "Dry run — full build + IDE packaging + release notes in log; no Sonatype/Maven/tag/GitHub Release"
         required: false
         type: boolean
         default: false
@@ -156,9 +158,9 @@ jobs:
           configurationFile: .nyx.yml
 
       - name: Extract release notes from changelog
-        if: ${{ !inputs.dry_run }}
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -euo pipefail
           NOTES_FILE="$GITHUB_WORKSPACE/build/release-notes.md"
@@ -191,6 +193,13 @@ jobs:
             cp CHANGELOG.md "$NOTES_FILE"
           fi
 
+          echo "::group::Release notes for ${RELEASE_VERSION} (GitHub Release body)"
+          cat "$NOTES_FILE"
+          echo "::endgroup::"
+          if [[ "${DRY_RUN}" == "true" ]]; then
+            echo "Dry run: Sonatype upload, tag, and GitHub Release are skipped; notes above are what a full release would publish."
+          fi
+
       - name: Run full test suite
         run: ./gradlew :core:test :spotless:test :core-bundled:test
 
@@ -207,11 +216,9 @@ jobs:
       # Fail before any Sonatype/Maven step if IDE packaging breaks (avoids a published Maven
       # coordinate with no matching GitHub Release assets).
       - name: Build CLI shadow JAR and IntelliJ plugin distribution
-        if: ${{ !inputs.dry_run }}
         run: ./gradlew :cli:shadowJar :intellij-plugin:buildPlugin --no-daemon
 
       - name: Set up Node (VS Code extension)
-        if: ${{ !inputs.dry_run }}
         uses: actions/setup-node@v6
         with:
           node-version: "22"
@@ -219,7 +226,6 @@ jobs:
           cache-dependency-path: modules/vscode-extension/package-lock.json
 
       - name: Package VS Code extension (.vsix)
-        if: ${{ !inputs.dry_run }}
         working-directory: modules/vscode-extension
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
