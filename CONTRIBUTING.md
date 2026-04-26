@@ -37,3 +37,18 @@ CI runs tests, Spotless, Checkstyle, SpotBugs, Error Prone, and dependency healt
 - Any formatting behavior change should add/update a representative case in `examples/inputs/*/FormatterShowcase.java`
   and regenerate `examples/outputs/*` (goldens). This keeps human-readable showcase coverage aligned with
   regression tests.
+
+## Rules and documentation alignment
+
+When you change what the formatter **outputs** (not just refactors or performance), keep **tests, normative docs, and user-facing docs** aligned so the project has a single source of truth.
+
+| What you change | What to update |
+|------------------|----------------|
+| **Normative output contract** (what “correct” formatting is) | `docs/canonical-formatting-rules.md` — this file wins if other prose disagrees. Update **Rule 1–10** (or their sub-bullets) in the same PR as the code when behavior is intentional. |
+| **User-facing explanation or examples** (config knobs, “why it looks this way”) | `docs/formatting-rules.md` so users and the showroom story stay in sync with the engine. |
+| **Policy or a new/removed public knob, or a significant “why we did this”** | Append a record in `docs/technical-decision-register.md` (TDR). New public `FormatterConfig` options require a TDR per the canonical doc’s change control. |
+| **Regression and showcase** | Unit/integration tests; refresh showroom goldens when `examples/inputs/.../FormatterShowcase.java` or normative rules warrant it. |
+
+**Agents and maintainers:** implementation code in `io.princeofspace.internal` may reference canonical rules in comments (for example `R3: …` for Rule 3 in `docs/canonical-formatting-rules.md`) to tie behavior to the contract. If you add such references, they must stay accurate when the rules change.
+
+**Precedence:** `docs/canonical-formatting-rules.md` is the normative contract. `docs/formatting-rules.md` is the friendly guide; it must not contradict the canonical file.
