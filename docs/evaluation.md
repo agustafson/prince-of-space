@@ -43,13 +43,20 @@ export PRINCE_EVAL_REPORT_DIR=$(pwd)/docs/eval-results
 
 The test is skipped when `PRINCE_EVAL_ROOTS` is unset. It scans `.java` files while skipping common build and generated paths (`build/`, `.gradle/`, `.git/`, `generated/`, `generated-sources/`).
 
+Optional **`PRINCE_EVAL_REPORT_SLUG`** (ASCII alphanumerics, `-`, `_`, max 64 chars) writes
+`docs/eval-results/<date>-<slug>.md` instead of `<date>.md`, so parallel corpus runs keep
+separate files (this is what CI uses).
+
 ### 3. Review
 
 ```bash
 cat docs/eval-results/$(date +%F).md
+# or, when using PRINCE_EVAL_REPORT_SLUG=guava:
+# cat docs/eval-results/$(date +%F)-guava.md
 ```
 
-Reports are overwritten on re-run for the same day.
+Without a slug, reports are overwritten on re-run for the same day; with a slug, only
+same-day re-runs for that slug overwrite.
 
 ## Checked-in corpus (always on)
 
@@ -65,13 +72,13 @@ Reports are overwritten on re-run for the same day.
 
 ## Release gating
 
-The eval is mandatory for releases. The `release` workflow has a dedicated
-`external-eval` job that runs the full 9-config matrix against Spring Framework
-and Guava and is declared as a prerequisite (`needs: external-eval`) of the
-publish job. A failed eval blocks publishing even on dry runs. See
+The eval is mandatory for releases. The `release` workflow runs **`external-eval`**
+as a **matrix** (Spring Framework and Guava in parallel, one corpus per runner) with
+the full 9-config matrix each; the publish job declares `needs: external-eval`, so a
+failed leg blocks publishing even on dry runs. See
 [`RELEASING.md`](../RELEASING.md#external-eval-gate-mandatory) for recovery steps.
 
-A lighter `external-eval-smoke` job (`default-balanced` only) also runs on every
+A lighter **`external-eval-smoke`** matrix (`default-balanced` only) also runs on every
 push and pull request for fast feedback; the full matrix runs weekly and
 on-demand via `workflow_dispatch`. See `.github/workflows/external-eval.yml`.
 

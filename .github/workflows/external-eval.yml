@@ -1,4 +1,4 @@
-# External corpus checks: format Spring Framework with the eval harness (single large, diverse tree).
+# External corpus checks: Spring Framework and Guava in parallel (matrix = one corpus per runner).
 # Requires network to clone upstream; does not commit reports to the branch (artifacts only).
 
 name: External eval
@@ -23,17 +23,26 @@ jobs:
   # Fast gate: one config, same assertions as local eval (parse + idempotency).
   external-eval-smoke:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
+    name: External eval smoke (${{ matrix.corpus }})
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - corpus: spring-framework
+            repository: spring-projects/spring-framework
+          - corpus: guava
+            repository: google/guava
     steps:
       - name: Checkout Prince of Space
         uses: actions/checkout@v6
 
-      - name: Checkout Spring Framework
+      - name: Checkout ${{ matrix.corpus }}
         uses: actions/checkout@v6
         with:
-          repository: spring-projects/spring-framework
-          path: external/spring-framework
+          repository: ${{ matrix.repository }}
+          path: external/${{ matrix.corpus }}
           fetch-depth: 1
 
       - name: Set up JDK 21
@@ -47,7 +56,8 @@ jobs:
 
       - name: Run eval (smoke — default-balanced only)
         env:
-          PRINCE_EVAL_ROOTS: ${{ github.workspace }}/external/spring-framework
+          PRINCE_EVAL_ROOTS: ${{ github.workspace }}/external/${{ matrix.corpus }}
+          PRINCE_EVAL_REPORT_SLUG: ${{ matrix.corpus }}
           PRINCE_EVAL_CONFIG_NAMES: default-balanced
           PRINCE_EVAL_MAX_HEAP: 5g
           PRINCE_EVAL_MAX_OVER_LONG_SAMPLES: "0"
@@ -57,24 +67,33 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: eval-report-smoke-${{ github.sha }}
+          name: eval-report-smoke-${{ matrix.corpus }}-${{ github.sha }}
           path: docs/eval-results/*.md
           if-no-files-found: ignore
 
   # Full matrix (all nine configs). Heavy: scheduled / manual only.
   external-eval-full:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    name: External eval full (${{ matrix.corpus }})
     runs-on: ubuntu-latest
     timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - corpus: spring-framework
+            repository: spring-projects/spring-framework
+          - corpus: guava
+            repository: google/guava
     steps:
       - name: Checkout Prince of Space
         uses: actions/checkout@v6
 
-      - name: Checkout Spring Framework
+      - name: Checkout ${{ matrix.corpus }}
         uses: actions/checkout@v6
         with:
-          repository: spring-projects/spring-framework
-          path: external/spring-framework
+          repository: ${{ matrix.repository }}
+          path: external/${{ matrix.corpus }}
           fetch-depth: 1
 
       - name: Set up JDK 21
@@ -88,7 +107,8 @@ jobs:
 
       - name: Run eval (full matrix — all configs)
         env:
-          PRINCE_EVAL_ROOTS: ${{ github.workspace }}/external/spring-framework
+          PRINCE_EVAL_ROOTS: ${{ github.workspace }}/external/${{ matrix.corpus }}
+          PRINCE_EVAL_REPORT_SLUG: ${{ matrix.corpus }}
           PRINCE_EVAL_MAX_HEAP: 6g
           PRINCE_EVAL_MAX_OVER_LONG_SAMPLES: "0"
         run: ./gradlew :core:evalTest --no-configuration-cache --no-daemon
@@ -97,6 +117,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: eval-report-full-${{ github.sha }}
+          name: eval-report-full-${{ matrix.corpus }}-${{ github.sha }}
           path: docs/eval-results/*.md
           if-no-files-found: ignore

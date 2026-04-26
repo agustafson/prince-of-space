@@ -89,6 +89,7 @@ val evalTest by tasks.registering(Test::class) {
     classpath = sourceSets["test"].runtimeClasspath
     environment("PRINCE_EVAL_ROOTS", System.getenv("PRINCE_EVAL_ROOTS") ?: "")
     environment("PRINCE_EVAL_REPORT_DIR", System.getenv("PRINCE_EVAL_REPORT_DIR") ?: "")
+    environment("PRINCE_EVAL_REPORT_SLUG", System.getenv("PRINCE_EVAL_REPORT_SLUG") ?: "")
     environment("PRINCE_EVAL_CONFIG_NAMES", System.getenv("PRINCE_EVAL_CONFIG_NAMES") ?: "")
     environment("PRINCE_EVAL_MAX_OVER_LONG_SAMPLES", System.getenv("PRINCE_EVAL_MAX_OVER_LONG_SAMPLES") ?: "")
     environment("MAX_OVER_LONG_LINE_SAMPLES", System.getenv("MAX_OVER_LONG_LINE_SAMPLES") ?: "")

@@ -31,6 +31,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * harness formats every {@code .java} file under each root with 9 config permutations (3 width
  * bands × 3 wrap styles), hard-asserts zero parse errors and zero idempotency failures, and writes
  * a Markdown report to {@code PRINCE_EVAL_REPORT_DIR} (default: {@code docs/eval-results/}).
+ * Optional {@code PRINCE_EVAL_REPORT_SLUG} (alphanumerics, {@code -}, {@code _}; max 64 chars)
+ * writes {@code <date>-<slug>.md} instead of {@code <date>.md} so parallel corpus runs do not
+ * overwrite each other.
  *
  * <p>Run with: {@code ./gradlew :core:evalTest}
  *
@@ -232,7 +235,7 @@ class RealWorldEvalTest {
         // Write report before asserting so failures are visible even when the build fails.
         LocalDate reportDate = LocalDate.now(ZoneId.systemDefault());
         String report = new EvalReport(reportDate, resolveFormatterVersion(), results).toMarkdown();
-        Path reportFile = reportDir.resolve(reportDate + ".md");
+        Path reportFile = reportDir.resolve(reportMarkdownFilename(reportDate));
         Files.writeString(reportFile, report);
         System.out.println("\nReport written to: " + reportFile);
 
@@ -592,6 +595,36 @@ class RealWorldEvalTest {
             return "unknown";
         } catch (IOException e) {
             return "unknown";
+        }
+    }
+
+    /** Report file basename: {@code <date>.md} or {@code <date>-<slug>.md} when slug env is set. */
+    private static String reportMarkdownFilename(LocalDate reportDate) {
+        @Nullable String raw = System.getenv("PRINCE_EVAL_REPORT_SLUG");
+        if (raw == null || raw.isBlank()) {
+            return reportDate + ".md";
+        }
+        String slug = raw.strip();
+        validateReportSlug(slug);
+        return reportDate + "-" + slug + ".md";
+    }
+
+    private static void validateReportSlug(String slug) {
+        if (slug.length() > 64) {
+            throw new IllegalStateException("PRINCE_EVAL_REPORT_SLUG too long (max 64): " + slug);
+        }
+        for (int i = 0; i < slug.length(); i++) {
+            char c = slug.charAt(i);
+            boolean ok = (c >= 'a' && c <= 'z')
+                    || (c >= 'A' && c <= 'Z')
+                    || (c >= '0' && c <= '9')
+                    || c == '-'
+                    || c == '_';
+            if (!ok) {
+                throw new IllegalStateException(
+                        "PRINCE_EVAL_REPORT_SLUG must be ASCII alphanumerics, hyphen, or underscore: "
+                                + slug);
+            }
         }
     }
 
