@@ -56,8 +56,8 @@
     ]
   },
   "scripts": {
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "compile": "node scripts/require-node-version.cjs && tsc -p ./",
+    "watch": "node scripts/require-node-version.cjs && tsc -watch -p ./",
     "test": "npm run compile && node --test out/cliArgs.test.js",
     "vscode:prepublish": "npm run compile"
   },
