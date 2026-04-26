@@ -371,11 +371,11 @@ final class ArgumentListFormatter {
                 }
                 if (first && ctx.column() + need > lineBudget) {
                     ctx.println();
-                    ctx.printCont();
+                    ctx.printRawContinuation();
                 } else if (!first && (ctx.column() + need > lineBudget || wouldExceedLineLength(need))) {
                     ctx.print(",");
                     ctx.println();
-                    ctx.printCont();
+                    ctx.printRawContinuation();
                 } else if (!first) {
                     ctx.print(", ");
                 }
@@ -385,7 +385,7 @@ final class ArgumentListFormatter {
         } else {
             for (Iterator<TypeParameter> i = typeParameters.iterator(); i.hasNext(); ) {
                 ctx.println();
-                ctx.printCont();
+                ctx.printRawContinuation();
                 ctx.accept(i.next(), arg);
                 if (i.hasNext()) {
                     ctx.print(",");

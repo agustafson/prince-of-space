@@ -94,6 +94,22 @@ class CommentPreservationTest {
     }
 
     @Test
+    void consecutiveLineCommentsBeforeField_remainAdjacent_noBlankLineBetween() {
+        String input =
+                """
+                class T {
+                    // header 1
+                    // header 2
+                    int x;
+                }
+                """;
+        String out = DEFAULT.format(input);
+        assertThat(out).contains("// header 1\n    // header 2");
+        assertThat(out).doesNotContain("// header 1\n\n    // header 2");
+        assertThat(DEFAULT.format(out)).isEqualTo(out);
+    }
+
+    @Test
     void typeUseNullable_nextToType_preserved() {
         String input =
                 """

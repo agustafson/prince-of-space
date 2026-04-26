@@ -111,6 +111,13 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     private final TypeClauseFormatter typeClauseFormatter;
     private final DeclarationFormatter declarationFormatter;
 
+    /**
+     * When {@code > 0}, {@link ArgumentListFormatter} continuation lines rely on printer indent from
+     * {@link #enterWrappedDelimitedListScope()} instead of explicit {@link LayoutContext#printCont()}
+     * so nested wrapped {@code (...)} lists stack R3 continuation correctly.
+     */
+    private int wrappedDelimitedListScopeDepth;
+
     PrincePrettyPrinterVisitor(PrinterConfiguration configuration, FormatterConfig fmt) {
         super(configuration);
         this.fmt = fmt;
@@ -127,6 +134,24 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     // ── bridge methods for LayoutContext ───────────────────────────────────────
     // DefaultPrettyPrinterVisitor keeps useful helpers (modifiers, type args, arguments) as protected;
     // delegates in other packages cannot call them, so we re-expose a minimal surface here.
+
+    /** Pushes two logical indent levels for a wrapped {@code (...)} list body (R3). */
+    void enterWrappedDelimitedListScope() {
+        printer.indent();
+        printer.indent();
+        wrappedDelimitedListScopeDepth++;
+    }
+
+    /** Pops {@link #enterWrappedDelimitedListScope()}. */
+    void exitWrappedDelimitedListScope() {
+        wrappedDelimitedListScopeDepth--;
+        printer.unindent();
+        printer.unindent();
+    }
+
+    boolean isWrappedDelimitedListScopeActive() {
+        return wrappedDelimitedListScopeDepth > 0;
+    }
 
     void doPrintComment(Optional<Comment> comment, Void arg) {
         printComment(comment, arg);
@@ -270,11 +295,13 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     protected void printMembers(NodeList<BodyDeclaration<?>> members, Void arg) {
         @Nullable BodyDeclaration<?> prev = null;
         for (BodyDeclaration<?> member : members) {
-            // R9: keep one visual separator between member declarations, but keep field groups compact.
-            if (prev != null && !(prev instanceof FieldDeclaration && member instanceof FieldDeclaration)) {
+            if (prev != null) {
                 printer.println();
+                // R9: keep one visual separator between member declarations, but keep field groups compact.
+                if (!(prev instanceof FieldDeclaration && member instanceof FieldDeclaration)) {
+                    printer.println();
+                }
             }
-            printer.println();
             member.accept(this, arg);
             prev = member;
         }
@@ -503,6 +530,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
      * is tabs per indent level in tab mode, not a pixel width).
      */
     private void printCont() {
+        if (wrappedDelimitedListScopeDepth > 0) {
+            return;
+        }
         // R3: continuation lines always use FormatterConfig#continuationIndentSize() (2 * indentSize).
         if (fmt.indentStyle() == IndentStyle.TABS) {
             printer.print("\t".repeat(fmt.continuationIndentSize()));
@@ -694,7 +724,27 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         boolean wrapped = false;
         if (!isNullOrEmpty(args)) {
             wrapped = argumentListFormatter.argsNeedWrap(args);
-            argumentListFormatter.printCommaSeparatedExprs(args, arg);
+            // Only push extra printer indents when this list itself uses explicit continuation lines.
+            // A single wrapped expression argument (e.g. new X("""...""".formatted(...))) must not
+            // activate the scope: inner chains/binary continuations still use printCont relative to the
+            // outer call indent.
+            boolean applyWrappedListIndent =
+                    wrapped
+                            && (args.size() > SINGLE_ITEM_COUNT
+                                    || (args.size() == SINGLE_ITEM_COUNT
+                                            && (commentUtils.hasLeadingLineOrBlockComment(args.get(0))
+                                                    || commentUtils.hasAnyLineOrBlockCommentOnLambda(
+                                                            args.get(0)))));
+            if (applyWrappedListIndent) {
+                enterWrappedDelimitedListScope();
+            }
+            try {
+                argumentListFormatter.printCommaSeparatedExprs(args, arg);
+            } finally {
+                if (applyWrappedListIndent) {
+                    exitWrappedDelimitedListScope();
+                }
+            }
         }
         // R8: when configured, closing ')' moves to its own line for wrapped argument lists.
         if (fmt.closingParenOnNewLine() && wrapped) {

@@ -178,7 +178,16 @@ final class DeclarationFormatter {
                             }
                         });
         boolean paramsWrapped = !isNullOrEmpty(n.getParameters()) && argumentListFormatter.paramsNeedWrap(n.getParameters());
-        argumentListFormatter.printParametersList(n.getParameters(), arg);
+        if (paramsWrapped) {
+            ctx.enterWrappedDelimitedListScope();
+        }
+        try {
+            argumentListFormatter.printParametersList(n.getParameters(), arg);
+        } finally {
+            if (paramsWrapped) {
+                ctx.exitWrappedDelimitedListScope();
+            }
+        }
         if (fmt.closingParenOnNewLine() && paramsWrapped) {
             ctx.println();
         }
@@ -222,7 +231,16 @@ final class DeclarationFormatter {
                             }
                         });
         boolean paramsWrapped = !isNullOrEmpty(n.getParameters()) && argumentListFormatter.paramsNeedWrap(n.getParameters());
-        argumentListFormatter.printParametersList(n.getParameters(), arg);
+        if (paramsWrapped) {
+            ctx.enterWrappedDelimitedListScope();
+        }
+        try {
+            argumentListFormatter.printParametersList(n.getParameters(), arg);
+        } finally {
+            if (paramsWrapped) {
+                ctx.exitWrappedDelimitedListScope();
+            }
+        }
         if (fmt.closingParenOnNewLine() && paramsWrapped) {
             ctx.println();
         }
@@ -257,7 +275,16 @@ final class DeclarationFormatter {
         argumentListFormatter.printTypeParameters(n.getTypeParameters(), arg);
         ctx.print("(");
         boolean paramsWrapped = !isNullOrEmpty(n.getParameters()) && argumentListFormatter.paramsNeedWrap(n.getParameters());
-        argumentListFormatter.printParametersList(n.getParameters(), arg);
+        if (paramsWrapped) {
+            ctx.enterWrappedDelimitedListScope();
+        }
+        try {
+            argumentListFormatter.printParametersList(n.getParameters(), arg);
+        } finally {
+            if (paramsWrapped) {
+                ctx.exitWrappedDelimitedListScope();
+            }
+        }
         if (fmt.closingParenOnNewLine() && paramsWrapped) {
             ctx.println();
         }

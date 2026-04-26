@@ -20,3 +20,7 @@ Scenarios **31–44** are shared control-flow and wrapping cases; they appear in
 **Scenario 46** (flexible constructor bodies, JEP 513) is only in **`java25`**.
 
 **Scenario 53** (interface with a long `extends` clause) appears in **all** four trees.
+
+**Scenario 54** (nested wrapped method call: outer call with two arguments where the first argument is another multi-argument call with long names) appears in **all** four trees. It is a regression guard for continuation indent across nested `(...)` so inner closing delimiters are not flushed to the outer call’s indent column.
+
+**Scenario 55** (nested `static` class with two consecutive `//` line comments immediately before the first field) appears in **all** four trees. It is a regression guard against inserting a blank line between those comments when formatting type members.

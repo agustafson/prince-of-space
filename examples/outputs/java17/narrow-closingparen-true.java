@@ -234,7 +234,6 @@ public class FormatterShowcase
         FORBIDDEN(403, "Forbidden"),
         NOT_FOUND(404, "Not Found"),
         INTERNAL_SERVER_ERROR(500, "Internal Server Error");
-
         private final int code;
         private final String message;
 
@@ -659,7 +658,7 @@ public class FormatterShowcase
                 "Bad thing happened and we have lots of information to tell you in this warning payload",
                 new IllegalStateException("Bad thing happened and this diagnostic stack summary is also "
                 + "intentionally very long to force wrapping"
-        )
+                )
         )
         );
     }
@@ -680,6 +679,42 @@ public class FormatterShowcase
     static final class VeryLongArgumentCarrierForAlignmentRegression {
         VeryLongArgumentCarrierForAlignmentRegression(String a, String b, String c, String d) {
         }
+    }
+
+    // Scenario 54: Nested wrapped calls — inner ')' must stack continuation indent (not flush with outer call)
+    public void nestedWrappedCallInnerListContinuationScenario54(String issueKey) {
+        auditLogSuccessWithMessageScenario54(
+                i18nGetTextScenario54(
+                        UpdateALItemsConversationExecutionStatusScenario54.SUCCESS.getI18nKeyScenario54(),
+                        resultGetNameScenario54(),
+                        issueKey
+                ),
+                ""
+        );
+    }
+
+    // Scenario 55: Consecutive line comments before first field in a type body (no blank line between comments)
+    static final class ConsecutiveLineCommentsBeforeFieldScenario55 {
+        // showroom scenario 55 comment a
+        // showroom scenario 55 comment b
+        private static final int FLAGS_SCENARIO55 = 1;
+    }
+
+    enum UpdateALItemsConversationExecutionStatusScenario54 {
+        SUCCESS;
+        String getI18nKeyScenario54() {
+            return "format.showcase.scenario54.key";
+        }
+    }
+
+    private void auditLogSuccessWithMessageScenario54(String message, String extra) {}
+
+    private String i18nGetTextScenario54(String i18nKey, String displayName, String issueKey) {
+        return i18nKey + displayName + issueKey;
+    }
+
+    private String resultGetNameScenario54() {
+        return "name";
     }
 
     // Placeholder methods

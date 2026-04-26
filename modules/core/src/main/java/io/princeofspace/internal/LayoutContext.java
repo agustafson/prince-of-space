@@ -85,13 +85,37 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
      * R3: one continuation-indent step (always {@code 2 * indentSize} — see
      * {@link FormatterConfig#continuationIndentSize()}), used for wrapped parameters, ternary arms,
      * for-header lines, and similar (not for method-chain segments; use {@link #printChainIndent}).
+     * No-op while a wrapped comma-separated {@code (...)} argument list has pushed extra printer
+     * indents (see {@link PrincePrettyPrinterVisitor#enterWrappedDelimitedListScope()}) so nested
+     * continuations do not double-count; use {@link #printRawContinuation()} for angle-bracket type
+     * lists that still need an explicit step inside that scope.
      */
     void printCont() {
+        if (visitor.isWrappedDelimitedListScopeActive()) {
+            return;
+        }
+        printRawContinuation();
+    }
+
+    /**
+     * R3 continuation spaces/tabs even when a wrapped {@code (...)} list has pushed extra printer
+     * indents (used for {@code <T, U>} type-parameter breaks inside an argument expression, where an
+     * extra step beyond the list indent is still required).
+     */
+    void printRawContinuation() {
         if (fmt.indentStyle() == IndentStyle.TABS) {
             printer.print("\t".repeat(fmt.continuationIndentSize()));
         } else {
             printer.print(" ".repeat(fmt.continuationIndentSize()));
         }
+    }
+
+    void enterWrappedDelimitedListScope() {
+        visitor.enterWrappedDelimitedListScope();
+    }
+
+    void exitWrappedDelimitedListScope() {
+        visitor.exitWrappedDelimitedListScope();
     }
 
     /**

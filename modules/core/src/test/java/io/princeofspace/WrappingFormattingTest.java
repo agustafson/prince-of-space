@@ -567,6 +567,23 @@ class WrappingFormattingTest {
     }
 
     @Test
+    void nestedWrappedCall_innerClosingParenUsesContinuationIndentNotCallIndent() {
+        Formatter f = new Formatter(FormatterConfig.defaults());
+        String input =
+                """
+                class T {
+                    void m() {
+                        audit.addSuccess(i18n.getText(UpdateALItemsConversationExecutionStatus.SUCCESS.getI18nkey(), result.get().getData().get().getName(), issue.getKey()), "");
+                    }
+                }
+                """;
+        String out = f.format(input);
+        assertThat(out).contains("i18n.getText(\n");
+        assertThat(out).contains("issue.getKey()\n                ),\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
     void nestedLambdaCall_doesNotEmitDanglingClosingParenBeforeSemicolon() {
         Formatter f =
                 new Formatter(
