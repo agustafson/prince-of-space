@@ -81,7 +81,11 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
         }
     }
 
-    /** Prints one continuation-indentation unit. */
+    /**
+     * R3: one continuation-indent step (always {@code 2 * indentSize} — see
+     * {@link FormatterConfig#continuationIndentSize()}), used for wrapped parameters, ternary arms,
+     * for-header lines, and similar (not for method-chain segments; use {@link #printChainIndent}).
+     */
     void printCont() {
         if (fmt.indentStyle() == IndentStyle.TABS) {
             printer.print("\t".repeat(fmt.continuationIndentSize()));

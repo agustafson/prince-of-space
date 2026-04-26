@@ -66,6 +66,21 @@ import static com.github.javaparser.utils.Utils.isNullOrEmpty;
  *
  * <p>Acts as a thin coordinator: each {@code visit} method delegates to a focused formatter class
  * through a shared {@link LayoutContext}.
+ *
+ * <p>Canonical rules cross-reference (see {@code docs/canonical-formatting-rules.md}):
+ * <ul>
+ *   <li>R1: idempotency is mandatory</li>
+ *   <li>R2: braces and brace placement (K&amp;R, forced bodies)</li>
+ *   <li>R3: block indent and {@code 2 * indentSize} continuation indent (see {@link
+ *       io.princeofspace.model.FormatterConfig#continuationIndentSize()})</li>
+ *   <li>R4: line length as wrap trigger; overflow when no safe break</li>
+ *   <li>R5: construct-uniform {@code wrapStyle} semantics</li>
+ *   <li>R6: binary/operator chains (operators at continuation line start)</li>
+ *   <li>R7: method chains (one {@code .segment()} per line; chain indent is one {@code indentSize})</li>
+ *   <li>R8: closing delimiter placement for wrapped lists</li>
+ *   <li>R9: blank-line normalization</li>
+ *   <li>R10: comment and type-use annotation safety</li>
+ * </ul>
  */
 @SuppressWarnings("VoidUsed")
 final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
@@ -110,7 +125,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     // ── bridge methods for LayoutContext ───────────────────────────────────────
-    // These expose inherited protected methods to package-private delegate classes.
+    // DefaultPrettyPrinterVisitor keeps useful helpers (modifiers, type args, arguments) as protected;
+    // delegates in other packages cannot call them, so we re-expose a minimal surface here.
 
     void doPrintComment(Optional<Comment> comment, Void arg) {
         printComment(comment, arg);
@@ -153,6 +169,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
      * Like the superclass, but removes orphan comments after printing so they are not still attached
      * to the parent when the AST is re-parsed and printed again (otherwise trailing line comments in
      * constructs like {@code @SuppressWarnings({ ... })} multiply on each format pass).
+     *
+     * <p>R1 + R10: duplicate orphan emission breaks idempotency; removal keeps comment placement stable
+     * across {@code format(format(x))}.
      */
     @Override
     protected void printOrphanCommentsEnding(final Node node) {
@@ -182,7 +201,11 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
     }
 
-    /** Dispatch to the default (superclass) visitor for a node. */
+    /**
+     * Dispatch to JavaParser's stock printer for nodes we sometimes need without re-entering custom
+     * overrides (e.g. {@link MethodChainFormatter} falling back for odd scopes). Only {@link BinaryExpr}
+     * and {@link MethodCallExpr} are routed — other node kinds should use {@code accept(this, arg)}.
+     */
     void defaultVisit(Node node, Void arg) {
         if (node instanceof BinaryExpr n) {
             super.visit(n, arg);
@@ -198,6 +221,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
      * {@link DeclarationFormatter#drainOrphanCommentsBeforeFirstBodyElement} or
      * {@link #printOrphanCommentsEnding}),
      * causing comment duplication that prevents idempotent formatting.
+     *
+     * <p>R1 + R10: JavaParser keeps orphan {@link Comment} nodes as children of the parent statement;
+     * we print them in source order then strip orphans so a later pass cannot print them twice.
      */
     @Override
     protected void printOrphanCommentsBeforeThisChildNode(final Node node) {
@@ -244,7 +270,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     protected void printMembers(NodeList<BodyDeclaration<?>> members, Void arg) {
         @Nullable BodyDeclaration<?> prev = null;
         for (BodyDeclaration<?> member : members) {
-            // Add blank line between members, EXCEPT between consecutive fields
+            // R9: keep one visual separator between member declarations, but keep field groups compact.
             if (prev != null && !(prev instanceof FieldDeclaration && member instanceof FieldDeclaration)) {
                 printer.println();
             }
@@ -264,7 +290,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.indent();
             @Nullable Statement prev = null;
             for (Statement s : n.getStatements()) {
-                // Preserve blank lines between statements from original source
+                // R9 + R10: preserve intentional blank lines, but do not manufacture spacing around
+                // comments that are already emitted before the next statement.
                 if (prev != null && prev.getRange().isPresent() && s.getRange().isPresent()) {
                     int prevEnd = prev.getRange().get().end.line;
                     int curStart = s.getRange().get().begin.line;
@@ -291,6 +318,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     public void visit(ForStmt n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
+        // R4: switch between flat vs wrapped header based on a one-line width estimate.
         boolean headerWrap = forStmtHeaderNeedsWrap(n);
         printer.print("for (");
         if (headerWrap) {
@@ -310,6 +338,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     public void visit(ForEachStmt n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
+        // R4: wrap long for-each headers; wrapped iterable starts on a continuation line.
         boolean headerWrap = forEachHeaderNeedsWrap(n);
         printer.print("for (");
         n.getVariable().accept(this, arg);
@@ -330,6 +359,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     public void visit(TryStmt n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
+        // try-with-resources: each resource is a full statement; R3 continuation lines after ';'.
+        // R4: wrap when the header exceeds line length (multi-resource is common to wrap).
+        // R8: optional ')' on its own line for multi-resource headers (mirrors wrapped arg lists).
         printer.print("try ");
         if (!n.getResources().isEmpty()) {
             printer.print("(");
@@ -416,6 +448,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
     }
 
+    // R3: each wrapped header part starts at continuation column (2 * indentSize from block start).
     private void printForStmtHeaderWrappedBalanced(ForStmt n, Void arg) {
         printer.println();
         printCont();
@@ -446,6 +479,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
     }
 
+    // R5: WIDE and BALANCED use the same for-loop header shape here (one clause per line when wrapped).
     private void printForStmtHeaderWrappedWide(ForStmt n, Void arg) {
         printForStmtHeaderWrappedBalanced(n, arg);
     }
@@ -469,6 +503,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
      * is tabs per indent level in tab mode, not a pixel width).
      */
     private void printCont() {
+        // R3: continuation lines always use FormatterConfig#continuationIndentSize() (2 * indentSize).
         if (fmt.indentStyle() == IndentStyle.TABS) {
             printer.print("\t".repeat(fmt.continuationIndentSize()));
         } else {
@@ -481,6 +516,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         argumentListFormatter.printTypeParameters(typeParameters, arg);
     }
 
+    // Type arguments: comma-separated list in angle brackets. R4 width check; R5 WIDE vs BALANCED/NARROW
+    // shape; R3 printCont for continuation lines.
     @Override
     public void visit(ClassOrInterfaceType n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -544,6 +581,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printer.print(">");
     }
 
+    // R10: if the member value has a leading line/block comment, break before it so the comment stays
+    // next to the value (not glued to '@Name(').
     @Override
     public void visit(SingleMemberAnnotationExpr n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -563,6 +602,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printer.print(")");
     }
 
+    // R10: any MemberValuePair with a line/block comment forces one pair per line at continuation depth.
     @Override
     public void visit(NormalAnnotationExpr n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -606,14 +646,18 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     @Override
     public void visit(MethodCallExpr n, Void arg) {
+        // R7: all chain-specific wrapping/indent policy is centralized in MethodChainFormatter.
         methodChainFormatter.format(n, arg);
     }
 
     @Override
     public void visit(BinaryExpr n, Void arg) {
+        // R6 (+ R5): binary/operator-chain wrapping delegates to the shared operator formatter.
         binaryExprFormatter.format(n, arg);
     }
 
+    // Ternary: R4 flat-width test; if wrapped, R6-style continuation with '? ' and ': ' at line start
+    // (same left-edge visibility as binary chains). R3 uses printCont for then/else continuations.
     @Override
     public void visit(ConditionalExpr n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -652,12 +696,15 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             wrapped = argumentListFormatter.argsNeedWrap(args);
             argumentListFormatter.printCommaSeparatedExprs(args, arg);
         }
+        // R8: when configured, closing ')' moves to its own line for wrapped argument lists.
         if (fmt.closingParenOnNewLine() && wrapped) {
             printer.println();
         }
         printer.print(")");
     }
 
+    // Bodies, parameters, and type headers for declarations live in DeclarationFormatter (same rules;
+    // keeps this visitor smaller).
     @Override
     public void visit(ConstructorDeclaration n, Void arg) {
         declarationFormatter.formatConstructor(n, arg);
@@ -678,6 +725,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         declarationFormatter.formatClassOrInterface(n, arg);
     }
 
+    // Multi-catch: UnionType; R4/R5 list layout delegated to TypeClauseFormatter.
     @Override
     public void visit(UnionType n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -686,6 +734,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         typeClauseFormatter.formatUnionType(n, arg);
     }
 
+    // Assert must stay one statement; R4: break the message to continuation lines, chunk long string
+    // messages into literal fragments joined by '+' (still one expression for the parser).
     @Override
     public void visit(AssertStmt n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -700,6 +750,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printer.print(";");
     }
 
+    // R3 + R4: break before a long message; R1: string chunking must be stable for idempotent re-parses.
     private void printAssertMessageRespectingMaxLine(Expression msg, Void arg) {
         if (column() + WidthMeasurer.flatWidth(msg, fmt) > fmt.lineLength()) {
             printer.println();
@@ -718,6 +769,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     /**
      * Emits a chain of string literals joined by {@code +} so each physical line stays within
      * {@link FormatterConfig#lineLength()} (assert message must remain a single expression).
+     *
+     * <p>R4: physical line width; R1: splitting is deterministic (same config + raw text → same chunks).
      */
     void emitChunkedStringLiteral(String raw) {
         printWrappedStringLiteralChunks(raw);
@@ -893,6 +946,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printer.print("\"");
     }
 
+    // R4 + R1: very large literal-only '+' trees are re-printed without redundant grouping when safe;
+    // R10: must keep parens when JavaParser/grammar requires (e.g. scope of call or array access).
     @Override
     public void visit(EnclosedExpr n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -916,6 +971,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         super.visit(n, arg);
     }
 
+    // Parent is MethodCall with this expr as scope, or array access: removing parens can change
+    // precedence or the receiver boundary — keep explicit grouping.
     private static boolean mustKeepParensAroundConcatForParent(EnclosedExpr n) {
         return n.getParentNode()
                 .map(
@@ -930,6 +987,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         declarationFormatter.formatEnum(n, arg);
     }
 
+    // R4: inline vs multi-line from flat width; R5: WIDE packs, BALANCED/NARROW one element per line;
+    // R3: continuation before elements; optional trailing comma when multiline (FormatterConfig#trailingCommas).
     @Override
     public void visit(com.github.javaparser.ast.expr.ArrayInitializerExpr n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -941,11 +1000,11 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                     arrayFlat > fmt.lineLength();
             if (multi) {
                 if (fmt.wrapStyle() == WrapStyle.WIDE) {
-                    // Greedy inline packing
+                    // R5 wide: greedily pack until line full (same list policy as other wide lists).
                     argumentListFormatter.printGreedyCommaLines(n.getValues(), arg, 2, true, 0);
                     printer.print("}");
                 } else {
-                    // One per line
+                    // R5 balanced/narrow: one initializer per line at continuation column.
                     printer.println();
                     printCont();
                     for (Iterator<Expression> i = n.getValues().iterator(); i.hasNext(); ) {
@@ -979,6 +1038,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printOrphanCommentsEnding(n);
     }
 
+    // JavaParser splits int[] a, b; into per-declarator printing; re-emit extra [] and type-use
+    // annotations for additional declarators. R4/R3: '=' + initializer may break; R10: type-use
+    // annotations on array dimensions stay next to '[]'. R1: huge literal + chains get forced line
+    // break so chunking sees stable column (same as visit(StringLiteralExpr)).
     @Override
     public void visit(VariableDeclarator n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -1040,6 +1103,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
     }
 
+    // R2: block lambda uses K&R '{'. R1: empty block with comments must print braces+comments so
+    // re-parse does not re-attach comment nodes outside the block. R9: optional blank line between
+    // statements in block body mirrors method body rules.
     @Override
     public void visit(LambdaExpr n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -1048,7 +1114,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printer.print(" -> ");
         if (n.getBody() instanceof BlockStmt block) {
             if (block.getStatements() == null || block.getStatements().isEmpty()) {
-                // Empty statement list but comments inside the block must stay between { and }, not
+                // R1: Empty statement list but comments inside the block must stay between { and }, not
                 // after "{}", or the second parse re-attaches them and idempotency breaks.
                 if (block.getComment().isPresent() || !block.getOrphanComments().isEmpty()) {
                     printOrphanCommentsBeforeThisChildNode(block);
@@ -1094,6 +1160,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printOrphanCommentsEnding(n);
     }
 
+    // R8: when params wrap, optional closing ')' on its own line (pad back to paren column for stable layout).
     private void printLambdaParameters(LambdaExpr n, Void arg) {
         int openParenStartColumn = 0;
         if (n.isEnclosingParameters()) {
@@ -1127,6 +1194,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
     }
 
+    // Text blocks: R4 is soft — content is preserved verbatim; we do not reflow string interior.
     @Override
     public void visit(TextBlockLiteralExpr n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -1137,6 +1205,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printOrphanCommentsEnding(n);
     }
 
+    // R4: if a standalone literal is too long, emit '+'-joined chunks; skip when already inside a
+    // concat chain (parent BinaryExpr+ handles the tree). R1: do not use super — it reprints comments.
     @Override
     public void visit(StringLiteralExpr n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -1159,6 +1229,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 .isPresent();
     }
 
+    // Switch expressions: one path uses printSwitchEntry (arrow-style); R4/R5 in ArgumentListFormatter for labels.
     @Override
     public void visit(SwitchExpr n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -1195,6 +1266,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printOrphanCommentsEnding(n);
     }
 
+    // Classic switch entry (colon) vs arrow — JavaParser encodes both; R5 for case label lists.
     @Override
     public void visit(SwitchEntry n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -1222,6 +1294,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printer.unindent();
     }
 
+    // R4: ' when ' on same line if it fits; else R3 continuation with 'when' at margin.
     private void printSwitchWhenGuard(Expression guard, Void arg) {
         int flat = column() + SWITCH_GUARD_KEYWORD_WIDTH + WidthMeasurer.flatWidth(guard, fmt);
         if (flat <= fmt.lineLength()) {
@@ -1243,7 +1316,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         } else {
             printer.print("case ");
             NodeList<Expression> labels = entry.getLabels();
-            // Wrap labels using the same comma-list logic as arguments (respects preferred/max and wrapStyle).
+            // R4 + R5: same ArgumentListFormatter path as call arguments and type args.
             argumentListFormatter.printCommaSeparatedExprs(labels, arg);
         }
         entry.getGuard().ifPresent(guard -> printSwitchWhenGuard(guard, arg));

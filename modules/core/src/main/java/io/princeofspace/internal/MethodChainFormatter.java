@@ -20,8 +20,16 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Formats method-call chains (fluent API calls). Delegates back to {@link LayoutContext} for
- * output primitives, comment handling, and recursive visitor dispatch.
+ * Formats method-call chains (fluent API calls) per Rule 7 in {@code docs/canonical-formatting-rules.md}.
+ *
+ * <p>JavaParser represents chains as nested {@link MethodCallExpr} nodes: {@code a.b().c()} has {@code
+ * c}'s scope pointing at {@code b()}, and so on. We walk the scope links to build an ordered list of
+ * calls, decide inline vs wrapped from width (R4) and {@code wrapStyle} (R5), and use {@link
+ * LayoutContext#printChainIndent} for wrapped segments (R7: one {@code indentSize} per segment, not
+ * {@code 2 * indentSize} continuation — see TDR-015).
+ *
+ * <p>Delegated {@link FieldAccessExpr} / unscoped calls are not "chains" in this class; the visitor routes
+ * those normally.
  */
 @SuppressWarnings("VoidUsed")
 final class MethodChainFormatter {
@@ -37,7 +45,11 @@ final class MethodChainFormatter {
         this.comments = comments;
     }
 
-    /** Formats a method call, delegating to chain-aware rendering when scoped calls are detected. */
+    /**
+     * Formats a method call. Unscoped {@code name(args)} is not a chain (R7). If this node is not the
+     * outermost call of a scope-linked sequence, the outer visitor pass already printed the chain — return
+     * without emitting again (R1: duplicate output would break idempotency).
+     */
     void format(MethodCallExpr n, Void arg) {
         if (n.getScope().isEmpty()) {
             ctx.printOrphanCommentsBeforeThisChildNode(n);
@@ -69,7 +81,10 @@ final class MethodChainFormatter {
         printChainBalancedOrNarrow(base, calls, arg);
     }
 
-    /** Finds the outermost call in a scope-linked chain. */
+    /**
+     * Walks parent {@link MethodCallExpr} nodes while the child is still the direct scope, so
+     * {@code a().b().c()} yields the {@code c()} node as the unique entry point for printing the full chain.
+     */
     private static MethodCallExpr outermostCall(MethodCallExpr n) {
         MethodCallExpr cur = n;
         while (true) {
@@ -178,10 +193,10 @@ final class MethodChainFormatter {
     }
 
     /**
-     * Wrapped chains: one {@code .method()} per continuation line (leading-dot style), matching common
-     * Kotlin / Prettier habits and keeping diffs one segment per line. Exception: a <strong>single</strong>
-     * chained call with a {@link #isSimpleBase simple} receiver stays {@code Receiver.method(...)} on one
-     * line so trivial {@code items.stream()} does not become two lines.
+     * R7 + R5: wrapped chains — one {@code .method()} per continuation line (leading-dot), indent via
+     * {@link LayoutContext#printChainIndent} (one block indent step, TDR-015). R10: base/method
+     * comments can be hoisted so they stay near the right segment. Exception: a single call after a
+     * {@link #isSimpleBase simple} receiver stays {@code receiver.method(...)} on one line.
      */
     void printChainBalancedOrNarrow(Expression base, List<MethodCallExpr> calls, Void arg) {
         int lineStartColumn = ctx.column();
@@ -237,6 +252,7 @@ final class MethodChainFormatter {
                     ctx.unindent();
                 }
             } else if (hoistedComment.isPresent()) {
+                // R10: comment was printed above; re-print args without duplicating per-arg comments.
                 printArgumentsWithoutComments(mc.getArguments(), arg);
             } else {
                 ctx.printArguments(mc.getArguments(), arg);
@@ -245,6 +261,7 @@ final class MethodChainFormatter {
         ctx.unindent();
     }
 
+    // R7 exception: "items.stream()"-style — simple receiver + one call stays on one line when unwrapped.
     private static boolean isSimpleBase(Expression base) {
         return base instanceof NameExpr
                 || base instanceof FieldAccessExpr
@@ -252,12 +269,17 @@ final class MethodChainFormatter {
                 || base instanceof SuperExpr;
     }
 
-    /** Returns true when the chain exceeds the configured line length. */
+    // R4: current column + one-line width estimate vs lineLength; includes flatWidth of base and each call.
     boolean mustWrapChain(Expression base, List<MethodCallExpr> calls) {
         return ctx.column() + chainOneLineWidth(base, calls) > ctx.config().lineLength();
     }
 
-    /** Heuristic wrap trigger for chains that contain lambda arguments. */
+    /**
+     * R4 heuristics: multi-segment chain with a lambda in some argument and rough width &gt; threshold —
+     * forces wrap even if a greedy one-line width estimate might still fit, so vertical structure matches
+     * real edited code. Skips when the chain is an operand of {@link BinaryExpr} or {@link ConditionalExpr}
+     * (R6 / ternary layout owns those positions).
+     */
     boolean shouldWrapLambdaHeavyChain(Expression base, List<MethodCallExpr> calls) {
         if (calls.size() <= SINGLE_ITEM_COUNT) {
             return false;
