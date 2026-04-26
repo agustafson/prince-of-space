@@ -48,9 +48,17 @@ class WrappingFormattingTest {
     }
 
     private static String lineContaining(String text, String needle) {
-        for (String line : text.split("\\R")) {
-            if (line.contains(needle)) {
-                return line;
+        int lineStart = 0;
+        for (int i = 0; i <= text.length(); i++) {
+            if (i == text.length() || text.charAt(i) == '\n') {
+                String line = text.substring(lineStart, i);
+                if (line.endsWith("\r")) {
+                    line = line.substring(0, line.length() - 1);
+                }
+                if (line.contains(needle)) {
+                    return line;
+                }
+                lineStart = i + 1;
             }
         }
         throw new AssertionError("Missing line containing: " + needle);
@@ -65,17 +73,22 @@ class WrappingFormattingTest {
     }
 
     private static String nextNonEmptyLineAfter(String text, String needle) {
-        String[] lines = text.split("\\R");
-        for (int i = 0; i < lines.length; i++) {
-            if (!lines[i].contains(needle)) {
-                continue;
-            }
-            for (int j = i + 1; j < lines.length; j++) {
-                if (!lines[j].isBlank()) {
-                    return lines[j];
+        boolean foundNeedle = false;
+        int lineStart = 0;
+        for (int i = 0; i <= text.length(); i++) {
+            if (i == text.length() || text.charAt(i) == '\n') {
+                String line = text.substring(lineStart, i);
+                if (line.endsWith("\r")) {
+                    line = line.substring(0, line.length() - 1);
                 }
+                if (foundNeedle && !line.isBlank()) {
+                    return line;
+                }
+                if (line.contains(needle)) {
+                    foundNeedle = true;
+                }
+                lineStart = i + 1;
             }
-            break;
         }
         throw new AssertionError("Missing non-empty line after: " + needle);
     }

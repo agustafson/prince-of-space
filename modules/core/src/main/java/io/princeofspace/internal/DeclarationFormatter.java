@@ -30,6 +30,7 @@ import static com.github.javaparser.utils.Utils.isNullOrEmpty;
  * with the same layout rules as {@link PrincePrettyPrinterVisitor}, using shared context and
  * clause/argument helpers.
  */
+@SuppressWarnings({"UnrecognisedJavadocTag", "VoidUsed"})
 final class DeclarationFormatter {
     private static final int JAVA8_RELEASE = 8;
     private static final int ENUM_HEADER_AND_BRACE_WIDTH = 3 + 2; // " { " + " }"/line-end allowance

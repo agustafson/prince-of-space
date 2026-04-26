@@ -18,6 +18,7 @@ import java.util.List;
  * Delegates back to {@link LayoutContext} for output primitives, comment handling, and
  * recursive visitor dispatch.
  */
+@SuppressWarnings("VoidUsed")
 final class BinaryExprFormatter {
     private static final int MIN_LEAVES_FOR_FORCED_STRING_RECHUNK = 128;
     private static final int LOGICAL_OPERATOR_WITH_SPACES_WIDTH = 4; // e.g. " && " / " || "

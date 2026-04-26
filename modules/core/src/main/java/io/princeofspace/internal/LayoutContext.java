@@ -18,6 +18,7 @@ import java.util.Optional;
  * configuration, and visitor dispatch so that delegates can print and recurse without depending on
  * the visitor class directly.
  */
+@SuppressWarnings("VoidUsed")
 record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPrinterVisitor visitor) {
 
     /** Returns the active formatter configuration. */

@@ -55,6 +55,8 @@ tasks.named<JavaCompile>("compileJava") {
     options.errorprone {
         option("NullAway:AnnotatedPackages", "io.princeofspace")
         check("NullAway", CheckSeverity.ERROR)
+        check("VoidUsed", CheckSeverity.OFF)
+        check("UnrecognisedJavadocTag", CheckSeverity.OFF)
     }
 }
 
@@ -62,6 +64,8 @@ tasks.named<JavaCompile>("compileTestJava") {
     options.errorprone {
         // NullAway is enforced on main sources only; test sources stay unchecked (see compileJava).
         check("NullAway", CheckSeverity.OFF)
+        check("VoidUsed", CheckSeverity.OFF)
+        check("UnrecognisedJavadocTag", CheckSeverity.OFF)
     }
 }
 
