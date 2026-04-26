@@ -52,7 +52,7 @@ tasks.jacocoTestCoverageVerification {
             limit {
                 counter = "LINE"
                 value = "COVEREDRATIO"
-                minimum = "1.00".toBigDecimal()
+                minimum = BigDecimal(1)
             }
         }
     }
