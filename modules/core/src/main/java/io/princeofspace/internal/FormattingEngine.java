@@ -58,6 +58,7 @@ public final class FormattingEngine {
      * rounds to stabilize.
      */
     private static final int DEFAULT_MAX_CONVERGENCE_PASSES = 3;
+    private static final int CONVERGENCE_LOG_THRESHOLD = 1;
     private static final int CONFIGURED_MAX_CONVERGENCE_PASSES = resolveMaxConvergencePasses();
 
     /**
@@ -80,7 +81,7 @@ public final class FormattingEngine {
             }
             String next = success.formattedSource();
             if (next.equals(current)) {
-                if (pass > 1) {
+                if (pass > CONVERGENCE_LOG_THRESHOLD) {
                     LOG.log(System.Logger.Level.DEBUG,
                             "Convergence required {0} passes (budget {1})",
                             pass + 1, maxConvergencePasses + 1);

@@ -325,31 +325,7 @@ class RealWorldEvalTest {
             }
 
             if (!skipSecondFormat) {
-                FormatResult secondResult;
-                try {
-                    secondResult = formatter.formatResult(once);
-                } catch (RuntimeException e) {
-                    idempotencyFailures.add(
-                            relative
-                                    + " (second pass unexpected formatter error: "
-                                    + e.getClass().getSimpleName()
-                                    + ": "
-                                    + e.getMessage()
-                                    + ")");
-                    secondResult = null;
-                }
-                if (secondResult instanceof FormatResult.Success success) {
-                    if (!success.formattedSource().equals(once)) {
-                        idempotencyFailures.add(relative);
-                    }
-                } else if (secondResult instanceof FormatResult.NonConvergent nc) {
-                    idempotencyFailures.add(
-                            relative + " (second pass did not converge in "
-                                    + nc.passesAttempted() + " passes)");
-                } else if (secondResult instanceof FormatResult.Failure failure) {
-                    idempotencyFailures.add(
-                            relative + " (second pass failed): " + failure.message());
-                }
+                checkSecondPassIdempotency(formatter, once, relative, idempotencyFailures);
             }
 
             // Over-long line warning: non-comment, non-directive lines only.
@@ -396,6 +372,35 @@ class RealWorldEvalTest {
                 reformatted,
                 alreadyClean,
                 elapsedMs);
+    }
+
+    private static void checkSecondPassIdempotency(
+            Formatter formatter, String once, String relative, List<String> idempotencyFailures) {
+        FormatResult secondResult;
+        try {
+            secondResult = formatter.formatResult(once);
+        } catch (RuntimeException e) {
+            idempotencyFailures.add(
+                    relative
+                            + " (second pass unexpected formatter error: "
+                            + e.getClass().getSimpleName()
+                            + ": "
+                            + e.getMessage()
+                            + ")");
+            return;
+        }
+        if (secondResult instanceof FormatResult.Success success) {
+            if (!success.formattedSource().equals(once)) {
+                idempotencyFailures.add(relative);
+            }
+        } else if (secondResult instanceof FormatResult.NonConvergent nc) {
+            idempotencyFailures.add(
+                    relative + " (second pass did not converge in "
+                            + nc.passesAttempted() + " passes)");
+        } else if (secondResult instanceof FormatResult.Failure failure) {
+            idempotencyFailures.add(
+                    relative + " (second pass failed): " + failure.message());
+        }
     }
 
     /** When true, skip {@code format(format(x))} per file (saves a full parse+print per file). */
