@@ -27,8 +27,9 @@ public final class FormattingEngine {
 
     private static final System.Logger LOG = System.getLogger(FormattingEngine.class.getName());
 
-    private final FormatterConfig config;
     private final int maxConvergencePasses;
+    private final ParserConfiguration parserConfig;
+    private final PrettyPrinter prettyPrinter;
 
     /**
      * Creates a formatting engine bound to a formatter configuration.
@@ -43,8 +44,10 @@ public final class FormattingEngine {
      * Visible for tests to exercise convergence-boundary behavior deterministically.
      */
     FormattingEngine(FormatterConfig config, int maxConvergencePasses) {
-        this.config = config;
         this.maxConvergencePasses = Math.max(0, maxConvergencePasses);
+        this.parserConfig = new ParserConfiguration()
+                .setLanguageLevel(JavaParserLanguageLevels.toLanguageLevel(config.javaLanguageLevel()));
+        this.prettyPrinter = new PrettyPrinter(config);
     }
 
     /**
@@ -116,8 +119,6 @@ public final class FormattingEngine {
     }
 
     private FormatResult singlePassFormat(String sourceCode) {
-        ParserConfiguration parserConfig = new ParserConfiguration()
-                .setLanguageLevel(JavaParserLanguageLevels.toLanguageLevel(config.javaLanguageLevel()));
         ParseResult<CompilationUnit> result = new JavaParser(parserConfig).parse(sourceCode);
         if (!result.isSuccessful()) {
             List<String> problems = result.getProblems().stream().map(Problem::toString).toList();
@@ -132,7 +133,7 @@ public final class FormattingEngine {
 
     private FormatResult printAfterTransform(CompilationUnit cu) {
         transform(cu);
-        return new FormatResult.Success(new PrettyPrinter(config).print(cu));
+        return new FormatResult.Success(prettyPrinter.print(cu));
     }
 
     private void transform(CompilationUnit cu) {

@@ -19,20 +19,21 @@ import io.princeofspace.model.IndentStyle;
 final class PrettyPrinter {
 
     private final FormatterConfig config;
+    private final DefaultPrinterConfiguration printerConfig;
 
     PrettyPrinter(FormatterConfig config) {
         this.config = config;
+        this.printerConfig = buildPrinterConfig(config);
     }
 
     String print(CompilationUnit cu) {
-        DefaultPrinterConfiguration printerConfig = buildPrinterConfig();
         String raw = new DefaultPrettyPrinter(
                         pc -> new PrincePrettyPrinterVisitor(pc, config), printerConfig)
                 .print(cu);
         return BlankLineNormalizer.normalize(raw);
     }
 
-    private DefaultPrinterConfiguration buildPrinterConfig() {
+    private static DefaultPrinterConfiguration buildPrinterConfig(FormatterConfig config) {
         IndentType indentType = config.indentStyle() == IndentStyle.SPACES
                 ? IndentType.SPACES
                 : IndentType.TABS;
