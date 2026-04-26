@@ -4,6 +4,8 @@ import org.jspecify.annotations.Nullable;
 
 /** Thrown when source code cannot be parsed or formatted. */
 public final class FormatterException extends RuntimeException {
+    @java.io.Serial
+    private static final long serialVersionUID = 1L;
 
     /**
      * Creates an exception with a formatter failure message.

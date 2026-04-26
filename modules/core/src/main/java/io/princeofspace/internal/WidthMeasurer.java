@@ -22,6 +22,7 @@ import io.princeofspace.model.FormatterConfig;
  * Computes single-line widths for expressions without invoking the pretty-printer.
  */
 final class WidthMeasurer {
+    private static final int SINGLE_PARAMETER_COUNT = 1;
     private static final int TERNARY_SEPARATOR_WIDTH = 3; // " ? " / " : "
 
     private WidthMeasurer() {}
@@ -138,7 +139,7 @@ final class WidthMeasurer {
         int parametersWidth;
         if (lambdaExpr.isEnclosingParameters()) {
             parametersWidth = 2 + commaSeparatedParameterWidth(lambdaExpr.getParameters());
-        } else if (lambdaExpr.getParameters().size() == 1) {
+        } else if (lambdaExpr.getParameters().size() == SINGLE_PARAMETER_COUNT) {
             parametersWidth = lambdaExpr.getParameter(0).toString().length();
         } else {
             parametersWidth = 2 + commaSeparatedParameterWidth(lambdaExpr.getParameters());

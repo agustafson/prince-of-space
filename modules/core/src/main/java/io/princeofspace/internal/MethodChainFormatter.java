@@ -23,7 +23,9 @@ import java.util.Optional;
  * Formats method-call chains (fluent API calls). Delegates back to {@link LayoutContext} for
  * output primitives, comment handling, and recursive visitor dispatch.
  */
+@SuppressWarnings("VoidUsed")
 final class MethodChainFormatter {
+    private static final int SINGLE_ITEM_COUNT = 1;
     private static final int LAMBDA_HEAVY_CHAIN_WRAP_TRIGGER_WIDTH = 60;
 
     private final LayoutContext ctx;
@@ -156,7 +158,7 @@ final class MethodChainFormatter {
         int paramsWidth;
         if (lambda.isEnclosingParameters()) {
             paramsWidth = 2 + lambda.getParameters().toString().length(); // "(a, b)"
-        } else if (lambda.getParameters().size() == 1) {
+        } else if (lambda.getParameters().size() == SINGLE_ITEM_COUNT) {
             paramsWidth = lambda.getParameter(0).toString().length();
         } else {
             paramsWidth = 2 + lambda.getParameters().toString().length();
@@ -190,7 +192,7 @@ final class MethodChainFormatter {
             ctx.accept(base, arg);
         }
 
-        if (calls.size() == 1
+        if (calls.size() == SINGLE_ITEM_COUNT
                 && isSimpleBase(base)
                 && !comments.hasLineOrBlockComment(calls.get(0))
                 && !comments.hasLineOrBlockComment(calls.get(0).getName())
@@ -257,7 +259,7 @@ final class MethodChainFormatter {
 
     /** Heuristic wrap trigger for chains that contain lambda arguments. */
     boolean shouldWrapLambdaHeavyChain(Expression base, List<MethodCallExpr> calls) {
-        if (calls.size() <= 1) {
+        if (calls.size() <= SINGLE_ITEM_COUNT) {
             return false;
         }
         Optional<Node> parent = calls.get(calls.size() - 1).getParentNode();

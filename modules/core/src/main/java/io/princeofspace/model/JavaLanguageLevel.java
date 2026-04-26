@@ -18,14 +18,15 @@ import java.io.Serializable;
  * @param preview whether to enable JavaParser's preview-language-feature parsing
  */
 public record JavaLanguageLevel(int level, boolean preview) implements Serializable {
+    private static final int MIN_SUPPORTED_LEVEL = 1;
 
     @Serial
     private static final long serialVersionUID = 1L;
 
     /** Validates that {@code level} is a positive integer. */
     public JavaLanguageLevel {
-        if (level < 1) {
-            throw new IllegalArgumentException("level must be >= 1, got: " + level);
+        if (level < MIN_SUPPORTED_LEVEL) {
+            throw new IllegalArgumentException("level must be >= " + MIN_SUPPORTED_LEVEL + ", got: " + level);
         }
     }
 

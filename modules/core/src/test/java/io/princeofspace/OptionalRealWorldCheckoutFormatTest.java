@@ -5,4 +5,5 @@ package io.princeofspace;
  *
  * <p>The real-world checkout harness moved to {@link RealWorldEvalTest}.
  */
+@SuppressWarnings("PMD.TestClassWithoutTestCases")
 class OptionalRealWorldCheckoutFormatTest {}

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 record EvalReport(
         LocalDate date,
         String formatterVersion,

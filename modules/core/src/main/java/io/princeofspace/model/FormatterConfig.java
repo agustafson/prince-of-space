@@ -81,6 +81,7 @@ public record FormatterConfig(
     }
 
     /** Builder for {@link FormatterConfig}. */
+    @SuppressWarnings("PMD.AvoidFieldNameMatchingMethodName")
     public static final class Builder {
 
         private IndentStyle indentStyle = IndentStyle.SPACES;

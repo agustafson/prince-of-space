@@ -23,6 +23,7 @@ import java.util.Optional;
 
 /** Comment-oriented AST helpers used by visitor delegates. */
 record CommentUtils() {
+    private static final int SINGLE_ARGUMENT_COUNT = 1;
 
     /** Returns whether comments exist between two statements in the same block. */
     boolean hasCommentBetweenStatements(BlockStmt block, Statement previous, Statement current) {
@@ -354,7 +355,7 @@ record CommentUtils() {
         if (mc.getArguments().isEmpty()) {
             return Optional.empty();
         }
-        if (mc.getArguments().size() > 1) {
+        if (mc.getArguments().size() > SINGLE_ARGUMENT_COUNT) {
             for (Expression argument : mc.getArguments()) {
                 Optional<Comment> comment = argument.getComment();
                 if (comment.isPresent() && isEmptyLineOrBlockComment(comment.get())) {

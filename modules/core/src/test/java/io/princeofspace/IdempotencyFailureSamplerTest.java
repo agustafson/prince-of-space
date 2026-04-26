@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *   <li>PRINCE_SAMPLE_LIMIT: optional positive integer (default 50)
  * </ul>
  */
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class IdempotencyFailureSamplerTest {
 
     @Test

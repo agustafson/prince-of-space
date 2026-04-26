@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * {@code examples/inputs} must also satisfy {@code format(format(x)) == format(x)} (same language
  * level inference as for outputs).
  */
+@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
 class ExamplesCorpusFormatTest {
 
     static Path examplesDirectory() {

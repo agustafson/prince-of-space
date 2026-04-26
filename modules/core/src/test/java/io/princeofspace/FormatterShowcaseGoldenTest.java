@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * suite: {@code ./gradlew :core:showroomGoldenTest}.
  */
 @Tag("showroom-golden")
+@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
 class FormatterShowcaseGoldenTest {
 
     static Stream<Arguments> cases() {

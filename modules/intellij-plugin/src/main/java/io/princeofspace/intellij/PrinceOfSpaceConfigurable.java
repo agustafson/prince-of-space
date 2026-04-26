@@ -41,8 +41,8 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
     private JBCheckBox closingParenOnNewLine;
     private JBCheckBox trailingCommas;
 
-    private PrinceOfSpaceProjectSettings.State baselineProject;
-    private PrinceOfSpaceGlobalSettings.State baselineGlobal;
+    private PrinceOfSpaceProjectSettings.State baselineProject = new PrinceOfSpaceProjectSettings.State();
+    private PrinceOfSpaceGlobalSettings.State baselineGlobal = new PrinceOfSpaceGlobalSettings.State();
 
     public PrinceOfSpaceConfigurable(@NotNull Project project) {
         this.settings = PrinceOfSpaceProjectSettings.getInstance(project);
@@ -290,9 +290,6 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
 
     @Override
     public boolean isModified() {
-        if (baselineProject == null || baselineGlobal == null) {
-            return false;
-        }
         PrinceOfSpaceProjectSettings.State uiProject = readUiProjectState();
         if (!uiProject.equals(baselineProject)) {
             return true;
@@ -328,7 +325,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
 
     @Override
     public void disposeUIResources() {
-        baselineProject = null;
-        baselineGlobal = null;
+        baselineProject = new PrinceOfSpaceProjectSettings.State();
+        baselineGlobal = new PrinceOfSpaceGlobalSettings.State();
     }
 }

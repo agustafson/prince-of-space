@@ -55,6 +55,7 @@ import org.jspecify.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import static com.github.javaparser.utils.Utils.isNullOrEmpty;
@@ -66,11 +67,14 @@ import static com.github.javaparser.utils.Utils.isNullOrEmpty;
  * <p>Acts as a thin coordinator: each {@code visit} method delegates to a focused formatter class
  * through a shared {@link LayoutContext}.
  */
+@SuppressWarnings("VoidUsed")
 final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     private static final int TERNARY_OPERATOR_WIDTH = 3; // " ? " / " : "
     private static final int BALANCED_PAREN_HEADROOM_MIN = 16;
     private static final int BALANCED_PAREN_HEADROOM_MAX = 64;
     private static final int BALANCED_PAREN_HEADROOM_DIVISOR = 3;
+    private static final int SINGLE_ITEM_COUNT = 1;
+    private static final int MIN_CONCAT_CHAIN_PARTS = 2;
     private static final int LARGE_STRING_FORCE_BREAK_THRESHOLD = 500;
     private static final int SWITCH_GUARD_KEYWORD_WIDTH = 6; // " when "
     /** Width of {@code for (} in header flat-width and wrap heuristics. */
@@ -208,7 +212,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         PositionUtils.sortByBeginPosition(everything);
         int positionOfTheChild = -1;
         for (int i = 0; i < everything.size(); i++) {
-            if (everything.get(i) == node) {
+            if (Objects.equals(everything.get(i), node)) {
                 positionOfTheChild = i;
                 break;
             }
@@ -469,15 +473,6 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.print("\t".repeat(fmt.continuationIndentSize()));
         } else {
             printer.print(" ".repeat(fmt.continuationIndentSize()));
-        }
-    }
-
-    /** Narrow style uses extra indentation for wrapped list items (implements, etc.). */
-    private void printNarrowListIndent() {
-        if (fmt.indentStyle() == IndentStyle.TABS) {
-            printer.print("\t".repeat(fmt.continuationIndentSize() * 2));
-        } else {
-            printer.print(" ".repeat(fmt.continuationIndentSize() * 2));
         }
     }
 
@@ -873,7 +868,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     private void emitBalancedParenStringPiecesImpl(List<String> pieces, int lo, int hi, boolean isGlobalFirstLeaf) {
-        if (hi - lo == 1) {
+        if (hi - lo == SINGLE_ITEM_COUNT) {
             printOneStringLiteralPiece(pieces.get(lo), isGlobalFirstLeaf);
             return;
         }
@@ -925,8 +920,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         return n.getParentNode()
                 .map(
                         p ->
-                                (p instanceof MethodCallExpr mc && mc.getScope().map(s -> s == n).orElse(false))
-                                        || (p instanceof ArrayAccessExpr aa && aa.getName() == n))
+                                (p instanceof MethodCallExpr mc && mc.getScope().map(s -> Objects.equals(s, n)).orElse(false))
+                                        || (p instanceof ArrayAccessExpr aa && Objects.equals(aa.getName(), n)))
                 .orElse(false);
     }
 
@@ -1311,7 +1306,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
         List<Expression> parts = new ArrayList<>();
         collectPlusOperands(b, parts);
-        if (parts.size() < 2) {
+        if (parts.size() < MIN_CONCAT_CHAIN_PARTS) {
             return false;
         }
         for (Expression p : parts) {

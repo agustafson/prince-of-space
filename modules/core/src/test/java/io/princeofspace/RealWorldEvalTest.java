@@ -48,6 +48,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @Tag("eval")
 @EnabledIfEnvironmentVariable(named = "PRINCE_EVAL_ROOTS", matches = ".+")
+@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
 class RealWorldEvalTest {
 
     /** Default cap for retained over-long line samples per config run (totals stay exact). */

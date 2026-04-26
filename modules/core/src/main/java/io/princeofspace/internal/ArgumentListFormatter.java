@@ -20,7 +20,9 @@ import static com.github.javaparser.utils.Utils.isNullOrEmpty;
  * / type argument angle-bracket lists. Used by {@link PrincePrettyPrinterVisitor} and shares
  * {@link LayoutContext} for output and recursive dispatch.
  */
+@SuppressWarnings("VoidUsed")
 final class ArgumentListFormatter {
+    private static final int SINGLE_ITEM_COUNT = 1;
     private static final int CLOSING_PAREN_INLINE_RESERVED_WIDTH = 3; // ") {" / ");"
 
 
@@ -54,7 +56,7 @@ final class ArgumentListFormatter {
      * call arguments (including comment-aware and greedy wide wrapping).
      */
     void printCommaSeparatedExprs(NodeList<? extends Expression> args, Void arg) {
-        if (args.size() == 1
+        if (args.size() == SINGLE_ITEM_COUNT
                 && (commentUtils.hasLeadingLineOrBlockComment(args.get(0))
                         || commentUtils.hasAnyLineOrBlockCommentOnLambda(args.get(0)))) {
             ctx.println();
@@ -62,7 +64,7 @@ final class ArgumentListFormatter {
             ctx.accept(args.get(0), arg);
             return;
         }
-        if (args.size() > 1 && commentUtils.hasLineOrBlockComment(args.get(0))) {
+        if (args.size() > SINGLE_ITEM_COUNT && commentUtils.hasLineOrBlockComment(args.get(0))) {
             ctx.println();
             ctx.printCont();
             if (fmt.wrapStyle() == WrapStyle.WIDE) {
@@ -89,7 +91,7 @@ final class ArgumentListFormatter {
             }
             return;
         }
-        if (args.size() == 1) {
+        if (args.size() == SINGLE_ITEM_COUNT) {
             ctx.accept(args.get(0), arg);
             return;
         }

@@ -39,6 +39,7 @@ import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
         version = "prince-of-space-cli",
         description = "Format Java source using the Prince of Space formatter.")
 public final class Main implements Callable<Integer> {
+    private static final String JAVA_FILE_SUFFIX = ".java";
 
     @CommandLine.Option(
             names = "--check",
@@ -174,7 +175,7 @@ public final class Main implements Callable<Integer> {
                 throw new IOException("No such path: " + p);
             }
             if (Files.isRegularFile(abs)) {
-                if (abs.toString().endsWith(".java")) {
+                if (abs.toString().endsWith(JAVA_FILE_SUFFIX)) {
                     out.add(abs);
                 }
                 continue;
@@ -191,7 +192,7 @@ public final class Main implements Callable<Integer> {
                 } else {
                     try (var stream = Files.list(abs)) {
                         stream.filter(Files::isRegularFile)
-                                .filter(x -> x.toString().endsWith(".java"))
+                                .filter(x -> x.toString().endsWith(JAVA_FILE_SUFFIX))
                                 .forEach(out::add);
                     }
                 }
@@ -253,7 +254,7 @@ public final class Main implements Callable<Integer> {
             if (bytes[i] == 0) {
                 String rel = new String(bytes, start, i - start, StandardCharsets.UTF_8);
                 start = i + 1;
-                if (rel.endsWith(".java")) {
+                if (rel.endsWith(JAVA_FILE_SUFFIX)) {
                     Path file = repoRoot.resolve(rel).normalize();
                     if (file.startsWith(scopeNorm)) {
                         list.add(file);
@@ -282,7 +283,7 @@ public final class Main implements Callable<Integer> {
 
                     @Override
                     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                        if (attrs.isRegularFile() && file.toString().endsWith(".java")) {
+                        if (attrs.isRegularFile() && file.toString().endsWith(JAVA_FILE_SUFFIX)) {
                             out.add(file);
                         }
                         return CONTINUE;

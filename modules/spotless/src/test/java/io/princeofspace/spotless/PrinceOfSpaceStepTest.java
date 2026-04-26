@@ -14,27 +14,31 @@ class PrinceOfSpaceStepTest {
 
     @Test
     void formatsJavaSource(@TempDir Path dir) throws Exception {
-        FormatterStep step = PrinceOfSpaceStep.create(FormatterConfig.defaults());
-        File file = dir.resolve("T.java").toFile();
-        String input = "class T { void m() { int x=1;} }";
-        String out = step.format(input, file);
-        assertThat(out).contains("int x = 1;");
-        assertThat(step.format(out, file)).isEqualTo(out);
+        try (FormatterStep step = PrinceOfSpaceStep.create(FormatterConfig.defaults())) {
+            File file = dir.resolve("T.java").toFile();
+            String input = "class T { void m() { int x=1;} }";
+            String out = step.format(input, file);
+            assertThat(out).contains("int x = 1;");
+            assertThat(step.format(out, file)).isEqualTo(out);
+        }
     }
 
     @Test
     void stepIsSerializableRoundtrip() throws Exception {
-        FormatterStep step = PrinceOfSpaceStep.create(FormatterConfig.defaults());
-        java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
-        try (java.io.ObjectOutputStream oos = new java.io.ObjectOutputStream(bos)) {
+        byte[] serialized;
+        try (FormatterStep step = PrinceOfSpaceStep.create(FormatterConfig.defaults());
+                java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+                java.io.ObjectOutputStream oos = new java.io.ObjectOutputStream(bos)) {
             oos.writeObject(step);
+            serialized = bos.toByteArray();
         }
         try (java.io.ObjectInputStream ois =
-                new java.io.ObjectInputStream(new java.io.ByteArrayInputStream(bos.toByteArray()))) {
-            FormatterStep read = (FormatterStep) ois.readObject();
-            File f = File.createTempFile("roundtrip", ".java");
+                new java.io.ObjectInputStream(new java.io.ByteArrayInputStream(serialized));
+                FormatterStep read = (FormatterStep) ois.readObject();
+                FormatterStep expected = PrinceOfSpaceStep.create(FormatterConfig.defaults())) {
+            File file = File.createTempFile("roundtrip", ".java");
             String input = "class A {}";
-            assertThat(read.format(input, f)).isEqualTo(step.format(input, f));
+            assertThat(read.format(input, file)).isEqualTo(expected.format(input, file));
         }
     }
 }
