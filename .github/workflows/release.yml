@@ -97,6 +97,48 @@ jobs:
           echo "ORG_GRADLE_PROJECT_version=$VERSION" >> "$GITHUB_ENV"
           echo "Releasing: $VERSION"
 
+      - name: Generate changelog with Nyx
+        uses: mooltiverse/nyx@3.1.7
+        with:
+          command: make
+          configurationFile: .nyx.yml
+
+      - name: Extract release notes from changelog
+        if: ${{ !inputs.dry_run }}
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          NOTES_FILE="$GITHUB_WORKSPACE/build/release-notes.md"
+          mkdir -p "$GITHUB_WORKSPACE/build"
+          awk -v version="$RELEASE_VERSION" '
+            BEGIN {
+              capture = 0
+              inUnreleased = 0
+            }
+            /^## \[Unreleased\]/ {
+              inUnreleased = 1
+            }
+            /^## \[(v)?[0-9]+\.[0-9]+\.[0-9]+\]/ {
+              inUnreleased = 0
+            }
+            {
+              if ($0 ~ ("^## \\[(v)?" version "\\]")) {
+                capture = 1
+              } else if (capture && $0 ~ /^## /) {
+                exit
+              }
+              if (capture) {
+                print
+              }
+            }
+          ' CHANGELOG.md > "$NOTES_FILE"
+
+          if [[ ! -s "$NOTES_FILE" ]]; then
+            echo "::warning::Could not extract section for ${RELEASE_VERSION}; using full changelog as release notes."
+            cp CHANGELOG.md "$NOTES_FILE"
+          fi
+
       - name: Run full test suite
         run: ./gradlew :core:test :spotless:test :core-bundled:test
 
@@ -234,6 +276,7 @@ jobs:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
+          NOTES_FILE="$GITHUB_WORKSPACE/build/release-notes.md"
           CLI_JAR="modules/cli/build/libs/prince-of-space-cli-${RELEASE_VERSION}.jar"
           IJ_ZIP="$(ls modules/intellij-plugin/build/distributions/*.zip | head -1)"
           VSIX="$GITHUB_WORKSPACE/prince-of-space-vscode-${RELEASE_VERSION}.vsix"
@@ -243,6 +286,7 @@ jobs:
           TAG="v${RELEASE_VERSION}"
           if gh release view "${TAG}" >/dev/null 2>&1; then
             echo "GitHub Release ${TAG} already exists; uploading assets with --clobber."
+            gh release edit "${TAG}" --notes-file "$NOTES_FILE"
             gh release upload "${TAG}" \
               "$CLI_JAR" \
               "$IJ_ZIP" \
@@ -250,16 +294,17 @@ jobs:
               --clobber
           else
             gh release create "${TAG}" \
-              --generate-notes \
+              --notes-file "$NOTES_FILE" \
               --title "${TAG}" \
               "$CLI_JAR" \
               "$IJ_ZIP" \
               "$VSIX"
           fi
 
-      # One chore commit per release: local ./gradlew uses the next patch line (e.g. 0.1.1-SNAPSHOT
-      # after shipping v0.1.0). Does not affect CI version inference (tags + conventional commits).
-      - name: Bump gradle.properties to next patch SNAPSHOT
+      # One chore commit per release: persist generated changelog updates and set the next
+      # local SNAPSHOT line (e.g. 0.1.1-SNAPSHOT after shipping v0.1.0). Does not affect
+      # CI version inference (tags + conventional commits).
+      - name: Persist changelog and bump gradle.properties to next patch SNAPSHOT
         if: ${{ !inputs.dry_run }}
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
@@ -268,17 +313,27 @@ jobs:
           set -euo pipefail
           IFS=. read -r major minor patch <<<"${RELEASE_VERSION}"
           NEXT_SNAPSHOT="${major}.${minor}.$((patch + 1))-SNAPSHOT"
+          SNAPSHOT_ALREADY_SET=false
           if grep -q "^version=${NEXT_SNAPSHOT}$" gradle.properties; then
-            echo "gradle.properties already at ${NEXT_SNAPSHOT}; skipping bump commit."
+            SNAPSHOT_ALREADY_SET=true
+          fi
+          CHANGELOG_CHANGED=false
+          if ! git diff --quiet -- CHANGELOG.md; then
+            CHANGELOG_CHANGED=true
+          fi
+          if [[ "${SNAPSHOT_ALREADY_SET}" == "true" && "${CHANGELOG_CHANGED}" == "false" ]]; then
+            echo "No changelog update and gradle.properties already at ${NEXT_SNAPSHOT}; skipping bump commit."
             exit 0
           fi
-          sed -i 's/^version=.*/version='"${NEXT_SNAPSHOT}"'/' gradle.properties
-          git add gradle.properties
+          if [[ "${SNAPSHOT_ALREADY_SET}" == "false" ]]; then
+            sed -i 's/^version=.*/version='"${NEXT_SNAPSHOT}"'/' gradle.properties
+          fi
+          git add gradle.properties CHANGELOG.md
           if git diff --cached --quiet; then
-            echo "No staged gradle.properties changes; skipping bump commit."
+            echo "No staged changelog/snapshot changes; skipping bump commit."
             exit 0
           fi
-          git commit -m "chore: set version to ${NEXT_SNAPSHOT} after v${RELEASE_VERSION}"
+          git commit -m "chore: update changelog and set version to ${NEXT_SNAPSHOT} after v${RELEASE_VERSION}"
           # Branch protection may forbid direct pushes to main. Do not fail the release if this
           # housekeeping commit cannot be pushed; the next run can still use Nyx + tags safely.
           if ! git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${GITHUB_REF_NAME}"; then

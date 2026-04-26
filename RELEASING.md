@@ -81,7 +81,7 @@ required reviewers so the workflow must be approved before it can publish.
 Before triggering the workflow, verify:
 
 - [ ] `main` branch CI is green (`./gradlew build` passes locally or via Actions)
-- [ ] `CHANGELOG.md` is up to date with all changes since the last release
+- [ ] Commits/PR titles since the last release follow Conventional Commits so Nyx can generate accurate changelog entries
 - [ ] All commits since the last tag follow [Conventional Commits](https://www.conventionalcommits.org/)
       so Nyx can derive the correct next version:
   - `feat:` → minor bump (`0.1.x` → `0.2.0`)
@@ -129,7 +129,8 @@ The workflow will:
 5. Poll until the bundle is **VALIDATED** (checksums, signatures, POM requirements)
 6. Publish the deployment (artifacts available on Maven Central within ~15 minutes)
 7. Build downloadable assets: CLI shadow JAR, IntelliJ plugin ZIP, VS Code `.vsix` (VS Code `package.json` version is set in CI to match the release)
-8. Push a `vX.Y.Z` git tag and create a GitHub Release with auto-generated notes **and those three files attached**
+8. Push a `vX.Y.Z` git tag, create a GitHub Release using Nyx-generated release notes, and attach those three files
+9. Commit Nyx-generated `CHANGELOG.md` updates and bump `gradle.properties` to the next patch `-SNAPSHOT` (best-effort push; warns on branch protection)
 
 Publishing the IntelliJ plugin to the **JetBrains Marketplace** and the VS Code extension to the **Visual Studio Marketplace** / Open VSX is still **manual** unless you add separate publishing steps and credentials.
 

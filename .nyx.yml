@@ -34,3 +34,11 @@ releaseTypes:
 scheme: SEMVER
 # Used only when there are no matching release tags in git (see RELEASING.md).
 initialVersion: "0.1.0"
+
+changelog:
+  # Persist changelog updates in-repo so release history is tracked in git.
+  path: "CHANGELOG.md"
+  sections:
+    "Added": "^feat$"
+    "Changed": "^(build|chore|ci|docs|perf|refactor|style|test)$"
+    "Fixed": "^fix$"
