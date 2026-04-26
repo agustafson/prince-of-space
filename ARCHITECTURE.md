@@ -39,7 +39,8 @@
 
 ### Tests
 - Test classes for package-private classes must be in the **same package** as the class under test (e.g., tests for `io.princeofspace.internal.*` live in `src/test/java/io/princeofspace/internal/`).
-- Every test must verify idempotency where applicable: `format(format(x)) == format(x)`.
+- Idempotency is a required suite-level invariant: representative tests (for example corpus/golden/fuzz coverage) must continuously enforce `format(format(x)) == format(x)`.
+- Focused behavior tests should add an explicit idempotency assertion when practical for the scenario under test.
 
 ## Modules
 
@@ -126,4 +127,4 @@ Parse → `LexicalPreservingPrinter.setup` (comment/token coherence for transfor
 - Examples corpus: `ExamplesCorpusFormatTest` (outputs idempotent; inputs single-pass)
 - 4 Java levels (java8, java17, java21, java25) × 6 config combinations = 24 golden files
 - 200+ total tests in `core` (unit/integration + showroom goldens + corpus checks; optional tests may be skipped)
-- Every test must verify idempotency: `format(format(x)) == format(x)`
+- Idempotency must be enforced by dedicated test coverage (for example fuzz/corpus/golden suites): `format(format(x)) == format(x)`
