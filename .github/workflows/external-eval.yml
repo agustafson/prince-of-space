@@ -55,7 +55,7 @@ jobs:
 
       - name: Upload eval report artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: eval-report-smoke-${{ github.sha }}
           path: docs/eval-results/*.md
@@ -95,7 +95,7 @@ jobs:
 
       - name: Upload eval report artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: eval-report-full-${{ github.sha }}
           path: docs/eval-results/*.md
