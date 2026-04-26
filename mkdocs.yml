@@ -36,6 +36,9 @@ plugins:
 
 markdown_extensions:
   - admonition
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
   - pymdownx.details
   - pymdownx.superfences
   - pymdownx.highlight:
@@ -52,6 +55,7 @@ nav:
   - Home: index.md
   - User Guide:
     - Formatting Rules: formatting-rules.md
+    - Canonical Formatting Rules: canonical-formatting-rules.md
     - Output Showcase: output-showcase.md
     - Interactive Comparator: comparator.md
   - Contributing:
@@ -59,6 +63,7 @@ nav:
     - Contributing Guide: contributing.md
     - Showroom Scenarios: showroom-scenarios.md
     - Evaluation: evaluation.md
+    - Eval report (2026-04-17): eval-results/2026-04-17.md
     - Benchmarks: benchmarks.md
   - Decision Register: technical-decision-register.md
   - Changelog: changelog.md

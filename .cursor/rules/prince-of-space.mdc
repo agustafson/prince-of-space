@@ -15,8 +15,8 @@ A configurable Java code formatter. See `README.md` for an overview and `docs/te
 
 | Document | What it covers |
 |----------|---------------|
-| `ARCHITECTURE.md` | Package layout, coding conventions, module structure, config options |
-| `CONTRIBUTING.md` | Commit conventions, build requirements, PR checks |
+| `docs/architecture.md` | Package layout, coding conventions, module structure, config options |
+| `docs/contributing.md` | Commit conventions, build requirements, PR checks |
 | `docs/technical-decision-register.md` | Canonical log of technical/product decisions and rationale |
 | `docs/canonical-formatting-rules.md` | Canonical, normative formatter behavior rules (MUST follow for formatter changes) |
 | `docs/formatting-rules.md` | User-facing explainer and examples for config knobs and formatting behavior |
@@ -35,7 +35,7 @@ Always run `:core:test` after any change to `modules/core/`. A clean `./gradlew 
 - Whenever you create **new tracked files** (sources, tests, `examples/` goldens, IDE plugin files, `package-lock.json`, and so on), **stage them explicitly** with `git add` and confirm `git status` is clean for intended changes before committing. Do not leave new files untracked.
 - Showroom inputs are **`examples/inputs/<level>/FormatterShowcase.java` only**. After editing any of those files, refresh goldens with: `REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens`. See `docs/showroom-scenarios.md`.
 
-## Key rules (detail in `ARCHITECTURE.md`)
+## Key rules (detail in `docs/architecture.md`)
 
 - Implementation goes in `io.princeofspace.internal`; classes there are **package-private** by default.
 - `Formatter` must not import JavaParser or any other third-party library directly.

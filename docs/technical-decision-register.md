@@ -17,7 +17,7 @@ Use it as the primary source of *why* design choices exist.
 - **Decision:** Keep a bounded set of public formatter knobs (now 7 options), not zero-config and not highly granular.
 - **Rationale:** Java teams need some style flexibility, but too many options cause bikeshedding and inconsistent output.
 - **Consequences:** `FormatterConfig` remains intentionally small; feature requests for new options require strong justification.
-- **Related docs:** `docs/formatting-rules.md`, `ARCHITECTURE.md`
+- **Related docs:** `docs/formatting-rules.md`, `docs/architecture.md`
 
 ### TDR-002: JavaParser-based formatting pipeline
 - **Date:** 2026-04
@@ -25,7 +25,7 @@ Use it as the primary source of *why* design choices exist.
 - **Decision:** Use JavaParser AST + custom pretty-printing for formatting.
 - **Rationale:** Good API ergonomics, practical language coverage, and comment-aware workflow for formatter development velocity.
 - **Consequences:** Language-level handling depends on JavaParser support; parser upgrades are part of maintenance.
-- **Related docs:** `ARCHITECTURE.md`, TDR-016
+- **Related docs:** `docs/architecture.md`, TDR-016
 
 ### TDR-003: Separation of public API and internal implementation
 - **Date:** 2026-04
@@ -33,7 +33,7 @@ Use it as the primary source of *why* design choices exist.
 - **Decision:** Keep public API minimal (`io.princeofspace`, `io.princeofspace.model`); implementation belongs in `io.princeofspace.internal`.
 - **Rationale:** Preserves API stability while allowing internal refactoring.
 - **Consequences:** New public classes are rare; `Formatter` delegates to internal engine classes.
-- **Related docs:** `ARCHITECTURE.md`
+- **Related docs:** `docs/architecture.md`
 
 ### TDR-004: Single line length threshold
 - **Date:** 2026-04
@@ -57,7 +57,7 @@ Use it as the primary source of *why* design choices exist.
 - **Decision:** Treat `format(format(x)) == format(x)` as mandatory behavior.
 - **Rationale:** Non-idempotent formatters are unstable in CI and editor workflows.
 - **Consequences:** Every new formatter behavior requires idempotency tests.
-- **Related docs:** `ARCHITECTURE.md`, `modules/core/src/test/java/io/princeofspace`
+- **Related docs:** `docs/architecture.md`, `modules/core/src/test/java/io/princeofspace`
 
 ### TDR-007: Module split includes both normal and bundled core artifacts
 - **Date:** 2026-04
@@ -65,7 +65,7 @@ Use it as the primary source of *why* design choices exist.
 - **Decision:** Publish both `core` (normal deps) and `core-bundled` (shaded) artifacts.
 - **Rationale:** Supports both regular build integrations and classloader-sensitive environments.
 - **Consequences:** Behavior parity between artifacts is tested and documented.
-- **Related docs:** `ARCHITECTURE.md`
+- **Related docs:** `docs/architecture.md`
 
 ### TDR-008: Integrations are first-class (CLI, Spotless, IntelliJ, VS Code)
 - **Date:** 2026-04
@@ -113,7 +113,7 @@ Use it as the primary source of *why* design choices exist.
 - **Decision:** Remove `continuationIndentSize` as a public configuration knob. Continuation indent is now always `2 * indentSize`, following the Oracle/IntelliJ convention.
 - **Rationale:** When `continuationIndentSize == indentSize` (the previous default), wrapped method parameters and the method body are indented to the same column, making them visually indistinguishable. The `2×` convention eliminates this ambiguity by construction. No well-known opinionated Java formatter (google-java-format, Prettier, Black, ktlint) exposes continuation indent as a config knob. Reducing from 8 to 7 options simplifies the configuration surface and halves the showroom golden matrix (48→24 files).
 - **Consequences:** The `FormatterConfig` record no longer has a `continuationIndentSize` record component; a derived method `continuationIndentSize()` returns `2 * indentSize`. Showroom goldens drop the `cont4`/`cont8` filename axis. IntelliJ plugin settings UI no longer shows a continuation indent spinner. TDR-012 (additive continuation indent) still applies — the indent is additive, just no longer user-configurable.
-- **Related docs:** `docs/formatting-rules.md`, `docs/canonical-formatting-rules.md`, `ARCHITECTURE.md`
+- **Related docs:** `docs/formatting-rules.md`, `docs/canonical-formatting-rules.md`, `docs/architecture.md`
 
 ### TDR-013: Showroom rule-uniformity migration is complete
 - **Date:** 2026-04

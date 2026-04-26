@@ -214,7 +214,7 @@ Requires JDK 21+. Published bytecode targets Java 17 via `--release 17`.
 ./gradlew :core:test           # fast feedback loop for core changes
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for commit conventions and PR requirements.
+See [docs/contributing.md](docs/contributing.md) for commit conventions and PR requirements.
 
 ## Documentation
 
@@ -222,8 +222,8 @@ See **[docs/index.md](docs/index.md)** for a full index. Key documents:
 
 | Document | Contents |
 |----------|----------|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Package layout, coding conventions, module structure |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Commit conventions, build requirements, PR checks |
+| [docs/architecture.md](docs/architecture.md) | Package layout, coding conventions, module structure |
+| [docs/contributing.md](docs/contributing.md) | Commit conventions, build requirements, PR checks |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
 | [SECURITY.md](SECURITY.md) | Vulnerability reporting |
 | [docs/formatting-rules.md](docs/formatting-rules.md) | All formatting rules and configuration options |

@@ -1,3 +1,5 @@
+# Architecture
+
 ## Build & Compatibility
 
 - **Decision log:** `docs/technical-decision-register.md` (canonical why/rationale)
@@ -16,7 +18,7 @@
 ## Package Structure (`:core` / `modules/core`)
 
 | Package | Visibility | Purpose |
-|---------|-----------|---------|
+|---------|-----------|----------|
 | `io.princeofspace` | public | Public API: `Formatter`, `FormatterException` |
 | `io.princeofspace.model` | public | Immutable value types: `FormatterConfig`, `IndentStyle`, `WrapStyle`, `JavaLanguageLevel` |
 | `io.princeofspace.internal` | internal | All implementation classes (see rules below) |
@@ -118,7 +120,7 @@ Parse → `LexicalPreservingPrinter.setup` (comment/token coherence for transfor
 
 ## Testing
 
-- Golden file tests: `examples/inputs/` → format → compare with `examples/outputs/` (all 48 showroom goldens asserted in CI via `./gradlew :core:test`); see `docs/showroom-scenarios.md` for how scenarios map to Java levels
+- Golden file tests: `examples/inputs/` → format → compare with `examples/outputs/` (all 24 showroom goldens asserted in CI via `./gradlew :core:test`); see `docs/showroom-scenarios.md` for how scenarios map to Java levels
 - Whenever formatting behavior changes, add/update a corresponding showroom scenario in `examples/inputs/`
   and regenerate `examples/outputs/` to keep examples as a developer-facing regression artifact.
 - Wrapping regressions: `WrappingFormattingTest` (method chains, logical AND, `implements` wrapping)

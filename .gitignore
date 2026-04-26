@@ -27,5 +27,8 @@ replay_pid*
 .tmp_*
 *.tmp
 
+# MkDocs (local `mkdocs build` output)
+_site/
+
 # Claude Code
 .claude/settings.local.json
