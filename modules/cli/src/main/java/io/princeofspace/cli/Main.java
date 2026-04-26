@@ -181,7 +181,7 @@ public final class Main implements Callable<Integer> {
             }
             if (Files.isDirectory(abs)) {
                 Path gitRoot = findGitRoot(abs);
-                if (gitRoot != null) {
+                if (gitRoot != null && recursive) {
                     Set<Path> merged = new LinkedHashSet<>();
                     merged.addAll(gitListedJavaFiles(gitRoot, abs, false));
                     merged.addAll(gitListedJavaFiles(gitRoot, abs, true));

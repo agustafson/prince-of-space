@@ -110,4 +110,22 @@ class MainTest {
         List<Path> files = Main.collectJavaFiles(List.of(repo), false);
         assertThat(files).containsExactlyInAnyOrder(tracked, untracked);
     }
+
+    @Test
+    void collectJavaFiles_nonRecursiveInGitRoot_excludesNestedJava(@TempDir Path dir) throws Exception {
+        Path repo = dir.resolve("repo");
+        Path nestedDir = repo.resolve("src/nested");
+        Files.createDirectories(nestedDir);
+        ProcessBuilder init = new ProcessBuilder("git", "init");
+        init.directory(repo.toFile());
+        assertThat(init.start().waitFor()).isZero();
+
+        Path topLevel = repo.resolve("Top.java");
+        Path nested = nestedDir.resolve("Nested.java");
+        Files.writeString(topLevel, "class Top {}\n");
+        Files.writeString(nested, "class Nested {}\n");
+
+        List<Path> files = Main.collectJavaFiles(List.of(repo), false);
+        assertThat(files).containsExactly(topLevel);
+    }
 }
