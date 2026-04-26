@@ -9,6 +9,7 @@ subprojects {
 
     pluginManager.withPlugin("java") {
         apply(plugin = "com.diffplug.spotless")
+        apply(plugin = "pmd")
 
         spotless {
             java {
@@ -16,6 +17,7 @@ subprojects {
                 importOrder("", "java|javax", "\\#")
             }
         }
+
     }
 
     // Publish all Maven artifacts to a single staging directory so the release workflow
