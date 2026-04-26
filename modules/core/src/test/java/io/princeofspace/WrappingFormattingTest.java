@@ -507,9 +507,12 @@ class WrappingFormattingTest {
 
         String out = f.format(input);
 
-        assertThat(out).contains("                    loadData();\n");
-        assertThat(out).contains("                    return processData();\n");
-        assertThat(out).contains("                }, executorService)\n");
+        // After Rule 7's chain-continuation carve-out (TDR-015), wrapped chains use indentSize for
+        // continuation, so a block lambda body inside the first chain segment lands at
+        // lineStart + continuationIndentSize (= 8 + 8 = 16) rather than chain+continuation.
+        assertThat(out).contains("                loadData();\n");
+        assertThat(out).contains("                return processData();\n");
+        assertThat(out).contains("            }, executorService)\n");
         assertThat(f.format(out)).isEqualTo(out);
     }
 
@@ -1703,7 +1706,9 @@ class WrappingFormattingTest {
                 }
                 """;
         String out = f.format(input);
-        assertThat(out).contains("\n                .formatted(");
+        // Chain segments after a wrapped text-block receiver use the chain-continuation indent
+        // (block + indentSize = 8 + 4 = 12 with default config); see Rule 7 / TDR-015.
+        assertThat(out).contains("\n            .formatted(");
         assertThat(out).contains("a.toLowerCase()");
         assertThat(out).contains("b.stripTrailing()");
         assertThat(out).contains("c.replace(\"-\", \"_\")");

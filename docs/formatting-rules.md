@@ -61,6 +61,8 @@ public void process(
 }
 ```
 
+**Method-chain exception.** Wrapped method-chain segments use a single `indentSize` step instead of `2 * indentSize`. Each chain segment begins with a `.`, which is its own visual delimiter, so the deeper continuation indent is not needed and only adds excess depth in nested chains. See "Method Chaining" in Part 3 and TDR-015 for rationale.
+
 ---
 
 ### 4. Line Wrapping Strategy
@@ -194,15 +196,39 @@ Continuation indent is always `2 * indentSize` (e.g. 8 spaces with the default `
 
 ### Method Chaining (Fluent APIs / Builders / Streams)
 
-When a chain **wraps** (line length exceeded, or a lambda-heavy chain forces wrapping), each **chained** call is placed on its **own** line with a **leading dot** (same idea as Kotlin’s fluent style and Prettier’s typical JS/TS chains). The **receiver** is alone on the first line; every `.method(...)` after it starts a continuation line. Continuation lines are indented by adding `2 * indentSize` on top of the active enclosing indent (not dot-aligned into the horizon).
+When a chain **wraps** (line length exceeded, or a lambda-heavy chain forces wrapping), each **chained** call is placed on its **own** line with a **leading dot** (same idea as Kotlin's fluent style and Prettier's typical JS/TS chains). The **receiver** is alone on the first line; every `.method(...)` after it starts a continuation line. Each continuation line is indented by adding **one `indentSize` step** on top of the active enclosing indent (not the `2 * indentSize` continuation indent used for delimited list continuations, and not dot-aligned into the horizon).
 
 ```java
 // Multi-segment chain (two or more .method() links after the receiver)
+// indentSize = 4 → chain segments at 8 spaces (block 4 + chain 4)
 var result = list
-        .stream()
-        .filter(x -> x.isActive())
-        .map(x -> x.getName())
-        .collect(Collectors.toList());
+    .stream()
+    .filter(x -> x.isActive())
+    .map(x -> x.getName())
+    .collect(Collectors.toList());
+```
+
+**Why a single `indentSize` step?** A wrapped method chain is already visually self-delimiting: every segment begins with a leading `.`, so a reader can pick out the chain at a glance even without extra indentation. Using one indent step instead of two keeps deeply nested chains (streams of streams, builder chains inside other chains) from drifting far to the right.
+
+**Block lambdas inside a wrapped chain segment** continue to use ordinary block indent (`indentSize`) for the lambda body, measured from the chain-segment's column:
+
+```java
+CompletableFuture
+    .supplyAsync(() -> {
+        loadData();
+        return processData();
+    }, executorService)
+    .thenApply(result -> transformResult(result));
+```
+
+**Wrapped chain as an operand of a binary chain.** When a wrapped method chain is itself an operand inside a wrapped binary/logical chain (Rule 6), the chain segments are pushed one extra `indentSize` past the operator's continuation column, so the chain stays visually distinct from the operator that introduces it:
+
+```java
+return items != null
+        && items
+            .stream()                                // chain dots one step past `&&`
+            .filter(s -> !s.isBlank())
+            .anyMatch(s -> s.contains(query));
 ```
 
 **Single-segment chain:** If there is only **one** method call after a **simple** receiver (a name, `this`, `super`, or field access such as `obj.field`), it stays on one line with the receiver so trivial calls do not add an extra line:
@@ -211,9 +237,9 @@ var result = list
 var s = items.stream();   // not split into "items" + ".stream()"
 ```
 
-If the receiver is **not** “simple” (e.g. a parenthesized or nested expression), the lone `.method()` still begins on the next continuation line so layout stays consistent.
+If the receiver is **not** "simple" (e.g. a parenthesized or nested expression), the lone `.method()` still begins on the next continuation line so layout stays consistent.
 
-**Rationale:** Leading-dot chains are easy to scan, produce **one method per line** in diffs when the chain changes, and align with common practice in Kotlin and in Prettier-style formatters. The single-call exception matches typical Java usage for `foo.bar()` and `items.stream()` without needless vertical sprawl.
+**Rationale:** Leading-dot chains are easy to scan, produce **one method per line** in diffs when the chain changes, and align with common practice in Kotlin and in Prettier-style formatters. The single-call exception matches typical Java usage for `foo.bar()` and `items.stream()` without needless vertical sprawl. See TDR-015 for the chain-indent decision history.
 
 ---
 

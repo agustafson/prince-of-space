@@ -69,30 +69,30 @@ public class FormatterShowcase
     // Scenario 5: Method chaining with streams
     public List<String> getProcessedItems() {
         return items
-                .stream()
-                .filter(item -> item != null && !item.isBlank())
-                .map(String::trim)
-                .map(String::toLowerCase)
-                .filter(item -> item.length() > 3)
-                .sorted()
-                .distinct()
-                .collect(Collectors.toList());
+            .stream()
+            .filter(item -> item != null && !item.isBlank())
+            .map(String::trim)
+            .map(String::toLowerCase)
+            .filter(item -> item.length() > 3)
+            .sorted()
+            .distinct()
+            .collect(Collectors.toList());
     }
 
     // Scenario 6: Method chaining with builder pattern
     public String buildQuery() {
         return new StringBuilder()
-                .append("SELECT ")
-                .append(String.join(", ", getColumns()))
-                .append(" FROM ")
-                .append(getTableName())
-                .append(" WHERE ")
-                .append(buildWhereClause())
-                .append(" ORDER BY ")
-                .append(getOrderColumn())
-                .append(" LIMIT ")
-                .append(getLimit())
-                .toString();
+            .append("SELECT ")
+            .append(String.join(", ", getColumns()))
+            .append(" FROM ")
+            .append(getTableName())
+            .append(" WHERE ")
+            .append(buildWhereClause())
+            .append(" ORDER BY ")
+            .append(getOrderColumn())
+            .append(" LIMIT ")
+            .append(getLimit())
+            .toString();
     }
 
     // Scenario 7: Lambda expressions
@@ -100,27 +100,27 @@ public class FormatterShowcase
         items.forEach(item -> System.out.println(item));
 
         items
-                .stream()
-                .filter(item -> {
-                    var trimmed = item.trim();
-                    return !trimmed.isEmpty() && trimmed.length() > 3;
-                })
-                .forEach(item -> System.out.println(item));
+            .stream()
+            .filter(item -> {
+                var trimmed = item.trim();
+                return !trimmed.isEmpty() && trimmed.length() > 3;
+            })
+            .forEach(item -> System.out.println(item));
 
         CompletableFuture
-                .supplyAsync(() -> {
-                    loadData();
-                    return processData();
-                }, executorService)
-                .thenApply(result -> transformResult(result, getDefaultOptions()))
-                .thenAccept(finalResult -> {
-                    saveResult(finalResult);
-                    notifyListeners(finalResult);
-                })
-                .exceptionally(ex -> {
-                    logError("Processing failed", ex);
-                    return null;
-                });
+            .supplyAsync(() -> {
+                loadData();
+                return processData();
+            }, executorService)
+            .thenApply(result -> transformResult(result, getDefaultOptions()))
+            .thenAccept(finalResult -> {
+                saveResult(finalResult);
+                notifyListeners(finalResult);
+            })
+            .exceptionally(ex -> {
+                logError("Processing failed", ex);
+                return null;
+            });
     }
 
     // Scenario 8: Ternary expressions
@@ -172,11 +172,11 @@ public class FormatterShowcase
     // Scenario 11: Nested generics and long method calls
     public Map<String, List<String>> groupByFirstLetter() {
         return items
-                .stream()
-                .filter(item -> item != null && !item.isBlank())
-                .collect(Collectors.groupingBy(
-                        item -> String.valueOf(item.charAt(0)).toUpperCase(),
-                        Collectors.mapping(String::toLowerCase, Collectors.toList())));
+            .stream()
+            .filter(item -> item != null && !item.isBlank())
+            .collect(Collectors.groupingBy(
+                    item -> String.valueOf(item.charAt(0)).toUpperCase(),
+                    Collectors.mapping(String::toLowerCase, Collectors.toList())));
     }
 
     // Scenario 12: Try-with-resources
@@ -191,10 +191,10 @@ public class FormatterShowcase
     // Scenario 13: Annotation placement (including JSpecify type-use)
     public @org.jspecify.annotations.Nullable String findItem(String query) {
         return items
-                .stream()
-                .filter(item -> item.contains(query))
-                .findFirst()
-                .orElse(null);
+            .stream()
+            .filter(item -> item.contains(query))
+            .findFirst()
+            .orElse(null);
     }
 
     @Override
@@ -272,10 +272,10 @@ public class FormatterShowcase
             Function<T, R> transformer,
             java.util.function.BinaryOperator<R> combiner) {
         return source
-                .stream()
-                .map(transformer)
-                .reduce(combiner)
-                .orElseThrow(() -> new IllegalStateException("Cannot transform empty list"));
+            .stream()
+            .map(transformer)
+            .reduce(combiner)
+            .orElseThrow(() -> new IllegalStateException("Cannot transform empty list"));
     }
 
     // Scenario 19: Multiple single-line methods
@@ -386,7 +386,7 @@ public class FormatterShowcase
                 Items: %d
                 Status: %s
                 """
-                .formatted(legacyField, items.size(), isValid() ? "valid" : "invalid");
+            .formatted(legacyField, items.size(), isValid() ? "valid" : "invalid");
     }
 
     // Scenario 26: Record patterns in switch
@@ -416,9 +416,9 @@ public class FormatterShowcase
     public void processWithVirtualThreads(List<String> urls) throws Exception {
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             var futures = urls
-                    .stream()
-                    .map(url -> executor.submit(() -> fetchAndProcess(url)))
-                    .toList();
+                .stream()
+                .map(url -> executor.submit(() -> fetchAndProcess(url)))
+                .toList();
             for (var future : futures) {
                 var result = future.get();
                 System.out.println("Processed: " + result);
@@ -549,7 +549,7 @@ public class FormatterShowcase
         throw new IllegalStateException("""
                 Package-private method [%s] declared in class [%s] cannot be advised by CGLIB-proxied handler class [%s], because it is effectively private.
                 """
-                .formatted(a, b, c));
+            .formatted(a, b, c));
     }
 
     // Scenario 40: Synchronized block
@@ -586,15 +586,15 @@ public class FormatterShowcase
     // Scenario 43: Long return expression
     public String longReturnExpression() {
         return items
-                .stream()
-                .filter(item -> item != null && !item.isEmpty())
-                .map(String::trim)
-                .sorted()
-                .findFirst()
-                .orElse("none")
-                .toUpperCase()
-                .concat("-")
-                .concat(legacyField != null ? legacyField : "x");
+            .stream()
+            .filter(item -> item != null && !item.isEmpty())
+            .map(String::trim)
+            .sorted()
+            .findFirst()
+            .orElse("none")
+            .toUpperCase()
+            .concat("-")
+            .concat(legacyField != null ? legacyField : "x");
     }
 
     // Scenario 44: Lambda with long parameter list (line length)
@@ -606,8 +606,8 @@ public class FormatterShowcase
                 (
                                 java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> left,
                                 java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> right) -> left
-                .getKey()
-                .compareTo(right.getKey());
+            .getKey()
+            .compareTo(right.getKey());
         cmp.apply(null, null);
     }
 
@@ -699,36 +699,36 @@ public class FormatterShowcase
     // Scenario 51: Deeply nested chained calls (2-3 levels)
     public boolean deeplyNestedChainOperations(String query) {
         return items
-                .stream()
+            .stream()
+            .map(String::trim)
+            .filter(s -> !s.isBlank())
+            .map(s -> s
+                .toLowerCase()
+                .chars()
+                .mapToObj(ch -> String.valueOf((char) ch))
+                .collect(Collectors.joining())
+                .trim())
+            .filter(s -> s.length() > 3)
+            .map(s -> Arrays
+                .stream(s.split("-"))
                 .map(String::trim)
-                .filter(s -> !s.isBlank())
-                .map(s -> s
-                        .toLowerCase()
+                .filter(part -> !part.isBlank())
+                .map(part -> part
+                    .toLowerCase()
+                    .replace("_", "")
+                    .replace(".", "")
+                    .substring(0, Math.min(part.length(), 12)))
+                .collect(Collectors.joining("-")))
+            .map(s -> Arrays
+                .stream(s.split(":"))
+                .map(segment -> segment.trim().toLowerCase())
+                .collect(Collectors.joining(":")))
+            .anyMatch(s -> s.contains(query.toLowerCase().trim())
+                    && s
                         .chars()
-                        .mapToObj(ch -> String.valueOf((char) ch))
+                        .mapToObj(c -> String.valueOf((char) c))
                         .collect(Collectors.joining())
-                        .trim())
-                .filter(s -> s.length() > 3)
-                .map(s -> Arrays
-                        .stream(s.split("-"))
-                        .map(String::trim)
-                        .filter(part -> !part.isBlank())
-                        .map(part -> part
-                                .toLowerCase()
-                                .replace("_", "")
-                                .replace(".", "")
-                                .substring(0, Math.min(part.length(), 12)))
-                        .collect(Collectors.joining("-")))
-                .map(s -> Arrays
-                        .stream(s.split(":"))
-                        .map(segment -> segment.trim().toLowerCase())
-                        .collect(Collectors.joining(":")))
-                .anyMatch(s -> s.contains(query.toLowerCase().trim())
-                        && s
-                            .chars()
-                            .mapToObj(c -> String.valueOf((char) c))
-                            .collect(Collectors.joining())
-                            .startsWith(query.substring(0, Math.min(query.length(), 3)).toLowerCase()));
+                        .startsWith(query.substring(0, Math.min(query.length(), 3)).toLowerCase()));
     }
 
     // Scenario 52: Nested lambda call should avoid dangling ')' before ';'

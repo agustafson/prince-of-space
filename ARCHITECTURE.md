@@ -109,7 +109,7 @@ This design means the public API is stable even when JavaParser adds new enum va
 | `trailingCommas` | `false` |
 | `javaLanguageLevel` | `JavaLanguageLevel.of(17)` |
 
-For **`indentSize`**, the numeric value is a count of **spaces** when using spaces, or a count of **tab characters** when using tabs (`docs/formatting-rules.md`, §1 and §3). Continuation indent is always `2 * indentSize` (not configurable).
+For **`indentSize`**, the numeric value is a count of **spaces** when using spaces, or a count of **tab characters** when using tabs (`docs/formatting-rules.md`, §1 and §3). Continuation indent for delimited list continuations is always `2 * indentSize` (not configurable). Wrapped method chains are an exception and use a single `indentSize` step (see TDR-015).
 
 ## Pipeline (`FormattingEngine`)
 

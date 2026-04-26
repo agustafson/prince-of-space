@@ -36,6 +36,7 @@ These rules define output shape for Java formatting in `modules/core`.
 
 - Block indentation is controlled by `indentStyle` + `indentSize`.
 - Wrapped continuation lines are indented by `2 * indentSize` relative to the current block indentation. This follows the Oracle/IntelliJ convention and ensures parameters are always visually distinct from the method body.
+- Method chain continuations are an exception (see Rule 7): they use a single `indentSize` step rather than `2 * indentSize`, because chain segments are visually self-delimiting (each starts with `.`).
 
 ### Rule 4: Line length and wrapping trigger
 
@@ -59,7 +60,9 @@ These rules define output shape for Java formatting in `modules/core`.
 ### Rule 7: Method chains
 
 - A wrapped method chain places each chain segment on its own continuation line with leading `.`.
-- Chain indentation follows Rule 3 and Rule 5.
+- Chain segments are indented by exactly **`indentSize`** (one block-indent unit) relative to the receiver's line, rather than the `2 * indentSize` continuation indent used for delimited list continuations (Rule 3). The leading `.` on every segment provides its own visual delimiter, so a single indent step is sufficient and reduces excess depth in deeply chained code (see TDR-015).
+- When a wrapped method chain appears as an operand of a wrapped binary/logical chain (Rule 6), its segments are indented by one additional `indentSize` past the operator-line indent, so the chain remains visually distinct from the operator that introduces it.
+- Wrapping decisions for chain segments still follow Rule 5 (`wide` / `balanced` / `narrow`).
 
 ### Rule 8: Closing delimiter placement
 

@@ -89,6 +89,22 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
         }
     }
 
+    /**
+     * Prints a single block-indent unit, used as the chain-continuation indent.
+     *
+     * <p>Method chains are visually self-delimiting (each wrapped segment starts with {@code .}),
+     * so they only need one indent level to remain readable instead of the {@code 2 * indentSize}
+     * used for delimited list continuations. See {@code docs/canonical-formatting-rules.md} Rule 7
+     * and TDR-015.
+     */
+    void printChainIndent() {
+        if (fmt.indentStyle() == IndentStyle.TABS) {
+            printer.print("\t".repeat(fmt.indentSize()));
+        } else {
+            printer.print(" ".repeat(fmt.indentSize()));
+        }
+    }
+
     /** Prints extra indentation used by narrow wrapped lists. */
     void printNarrowListIndent() {
         if (fmt.indentStyle() == IndentStyle.TABS) {

@@ -116,7 +116,7 @@ The `modules/vscode-extension/` directory contains a TypeScript extension that r
 | `trailingCommas` | `false` | Trailing commas in multi-line enums/arrays            |
 | `javaLanguageLevel` | `17` | Java syntax level accepted by the parser              |
 
-Continuation indent is always `2 * indentSize` (8 spaces with the default). This follows the Oracle/IntelliJ convention and ensures parameters are always visually distinct from the method body.
+Continuation indent is always `2 * indentSize` (8 spaces with the default) for delimited list continuations (parameters, arguments, binary expressions, ternaries, etc.). This follows the Oracle/IntelliJ convention and ensures parameters are always visually distinct from the method body. Wrapped method chains use a single `indentSize` step instead — see [`docs/formatting-rules.md`](docs/formatting-rules.md) "Method Chaining" and TDR-015.
 
 ### Wrap style
 

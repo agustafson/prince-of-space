@@ -304,10 +304,15 @@ final class BinaryExprFormatter {
         if (!isMethodChainExpression(stripEnclosed(expr))) {
             return printExprWithTrailingCommentAfter(expr, arg);
         }
+        // Push two indent levels so a wrapped method-chain operand lands one indentSize past the
+        // operator-line indent (operator at base+continuation; chain segments at operator + indentSize).
+        // See docs/canonical-formatting-rules.md Rule 7 and TDR-015.
+        ctx.indent();
         ctx.indent();
         try {
             return printExprWithTrailingCommentAfter(expr, arg);
         } finally {
+            ctx.unindent();
             ctx.unindent();
         }
     }

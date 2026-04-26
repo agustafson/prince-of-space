@@ -204,7 +204,7 @@ final class MethodChainFormatter {
         }
 
         ctx.println();
-        ctx.printCont();
+        ctx.printChainIndent();
         int contCol = ctx.column();
         ctx.indentWithAlignToSafe(contCol);
         for (int i = 0; i < calls.size(); i++) {

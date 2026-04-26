@@ -117,7 +117,7 @@ return legacyField != null && !legacyField.isBlank() && items != null && !items.
 
 ## Continuation indent
 
-Continuation indent is always `2 * indentSize` (8 spaces with the default `indentSize=4`). This follows the Oracle/IntelliJ convention and guarantees that wrapped parameters are visually distinct from the method body:
+Continuation indent for delimited list continuations is always `2 * indentSize` (8 spaces with the default `indentSize=4`). This follows the Oracle/IntelliJ convention and guarantees that wrapped parameters are visually distinct from the method body:
 
 ```java
 public FormatterShowcase(
@@ -127,6 +127,18 @@ public FormatterShowcase(
 ) {
     this.legacyField = legacyField;      // 4 spaces (body indent) — clearly separate
 ```
+
+**Method-chain exception.** Wrapped method-chain segments use a single `indentSize` step (4 spaces with the default), not `2 * indentSize`. Each segment is already visually distinguished by its leading `.`, so the deeper continuation indent isn't needed and would only push deeply-nested chains far to the right:
+
+```java
+return items
+    .stream()                            // 4 spaces past the receiver's column
+    .filter(item -> !item.isBlank())
+    .map(String::trim)
+    .collect(Collectors.toList());
+```
+
+See `docs/formatting-rules.md` "Method Chaining" and TDR-015 for the rationale.
 
 ---
 

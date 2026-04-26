@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **BREAKING: `continuationIndentSize` removed from public API** — continuation indent is now always `2 * indentSize` (e.g. 8 spaces with default indent of 4). This follows the Oracle/IntelliJ convention and ensures wrapped parameters are always visually distinct from the method body. The `FormatterConfig.Builder.continuationIndentSize()` method and the IntelliJ plugin's continuation indent spinner have been removed. Config options reduced from 8 to 7; showroom goldens from 48 to 24.
+- **Formatting: wrapped method chains now use `indentSize`, not `2 * indentSize`** — when a method chain wraps and each `.method(...)` segment goes on its own line, segments are now indented by a single `indentSize` step rather than the full continuation indent. Each chain segment already begins with a leading `.`, so the deeper continuation indent is redundant and only pushed deeply-nested chains far to the right. When a wrapped chain is an operand of a wrapped binary chain, segments still sit one `indentSize` past the operator line, preserving operator/operand visual separation. All 24 showroom goldens regenerated. See TDR-015 and `docs/canonical-formatting-rules.md` Rule 7.
 - **CI** — Release workflow uses Nyx again for version inference, pinned to a stable action version and configured so conventional `chore/docs/style/refactor/test/ci/perf/build` commits count as patch bumps.
 
 ### Fixed
