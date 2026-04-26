@@ -169,11 +169,11 @@ or tag anything. Check the logs to confirm the inferred version is correct.
 The workflow will:
 1. Infer the next version from git tags + conventional commits (see below)
 2. Run the full test suite
-3. Build and GPG-sign all artifacts (`core`, `spotless`, `core-bundled`)
-4. Bundle artifacts and upload to Sonatype Central Portal
-5. Poll until the bundle is **VALIDATED** (checksums, signatures, POM requirements)
-6. Publish the deployment (artifacts available on Maven Central within ~15 minutes)
-7. Build downloadable assets: CLI shadow JAR, IntelliJ plugin ZIP, VS Code `.vsix` (VS Code `package.json` version is set in CI to match the release)
+3. Build and GPG-sign all artifacts (`core`, `spotless`, `core-bundled`) into the local staging directory
+4. Build downloadable assets: CLI shadow JAR, IntelliJ plugin ZIP, VS Code `.vsix` (VS Code `package.json` version is set in CI to match the release). **This runs before any Sonatype upload** so a failed IDE or VS Code build does not leave Maven Central already published without matching release assets.
+5. Bundle artifacts and upload to Sonatype Central Portal
+6. Poll until the bundle is **VALIDATED** (checksums, signatures, POM requirements)
+7. Publish the deployment (artifacts available on Maven Central within ~15 minutes)
 8. Push a `vX.Y.Z` git tag, create a GitHub Release using Nyx-generated release notes, and attach those three files
 9. Commit Nyx-generated `CHANGELOG.md` updates and bump `gradle.properties` to the next patch `-SNAPSHOT` (best-effort push; warns on branch protection)
 

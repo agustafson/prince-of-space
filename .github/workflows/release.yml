@@ -3,8 +3,10 @@ name: Release
 # Triggered manually. Infers the next version with Nyx (git tags + conventional commits),
 # or an optional manual override. Passes version to Gradle via
 # ORG_GRADLE_PROJECT_version, then builds and signs all
-# artifacts, uploads to Sonatype Central Portal, then creates
-# a git tag and a GitHub Release.
+# artifacts, builds CLI / IntelliJ / VS Code assets, uploads to
+# Sonatype Central Portal (Maven), then creates a git tag and a
+# GitHub Release. IDE packaging runs before Central upload so a
+# failed VS Code or IntelliJ build never leaves Maven partially published.
 #
 # Required secrets (configure in Settings → Secrets → Actions):
 #   SONATYPE_CENTRAL_TOKEN  — Bearer token from central.sonatype.com → User Token
@@ -202,6 +204,31 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
+      # Fail before any Sonatype/Maven step if IDE packaging breaks (avoids a published Maven
+      # coordinate with no matching GitHub Release assets).
+      - name: Build CLI shadow JAR and IntelliJ plugin distribution
+        if: ${{ !inputs.dry_run }}
+        run: ./gradlew :cli:shadowJar :intellij-plugin:buildPlugin --no-daemon
+
+      - name: Set up Node (VS Code extension)
+        if: ${{ !inputs.dry_run }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: modules/vscode-extension/package-lock.json
+
+      - name: Package VS Code extension (.vsix)
+        if: ${{ !inputs.dry_run }}
+        working-directory: modules/vscode-extension
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          npm ci
+          npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
+          npm run compile
+          npx --yes @vscode/vsce@3 package --out "$GITHUB_WORKSPACE/prince-of-space-vscode-${RELEASE_VERSION}.vsix"
+
       # Bundle the staging directory into a ZIP for Sonatype Central Portal upload.
       - name: Bundle staging artifacts
         run: |
@@ -278,30 +305,6 @@ jobs:
             --header "Authorization: Bearer ${{ secrets.SONATYPE_CENTRAL_TOKEN }}" \
             "https://central.sonatype.com/api/v1/publisher/deployment/${{ steps.upload.outputs.deployment_id }}"
           echo "Publication triggered — artifacts will appear on Maven Central within ~15 minutes."
-
-      # Not published to Maven Central — attach to GitHub Release for manual download / VS Code / local use.
-      - name: Build CLI shadow JAR and IntelliJ plugin distribution
-        if: ${{ !inputs.dry_run }}
-        run: ./gradlew :cli:shadowJar :intellij-plugin:buildPlugin --no-daemon
-
-      - name: Set up Node (VS Code extension)
-        if: ${{ !inputs.dry_run }}
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: modules/vscode-extension/package-lock.json
-
-      - name: Package VS Code extension (.vsix)
-        if: ${{ !inputs.dry_run }}
-        working-directory: modules/vscode-extension
-        env:
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          npm ci
-          npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
-          npm run compile
-          npx --yes @vscode/vsce@3 package --out "$GITHUB_WORKSPACE/prince-of-space-vscode-${RELEASE_VERSION}.vsix"
 
       - name: Tag and push release
         if: ${{ !inputs.dry_run }}
