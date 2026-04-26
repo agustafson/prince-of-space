@@ -411,17 +411,21 @@ final class DeclarationFormatter {
     private void printEnumConstants(EnumDeclaration n, Void arg, boolean hasBodies) {
         if (fmt.wrapStyle() == WrapStyle.WIDE && !hasBodies) {
             boolean first = true;
+            boolean prevHadLineComment = false;
             int budget = fmt.lineLength();
             for (EnumConstantDeclaration e : n.getEntries()) {
-                int need = e.toString().length() + (first ? 0 : 2);
+                int need = enumConstantNameWidth(e) + (first ? 0 : 2);
                 if (!first
-                        && (ctx.column() + need > budget || argumentListFormatter.wouldExceedLineLength(need))) {
+                        && (prevHadLineComment
+                                || ctx.column() + need > budget
+                                || argumentListFormatter.wouldExceedLineLength(need))) {
                     ctx.print(",");
                     ctx.println();
                 } else if (!first) {
                     ctx.print(", ");
                 }
                 ctx.accept(e, arg);
+                prevHadLineComment = commentUtils.hasAnyLineOrBlockComment(e);
                 first = false;
             }
             if (fmt.trailingCommas() && !n.getEntries().isEmpty()) {
@@ -450,6 +454,36 @@ final class DeclarationFormatter {
             }
             first = false;
             w += e.toString().length();
+        }
+        return w;
+    }
+
+    /**
+     * Width of an enum constant name (plus annotations and arguments if any), excluding any
+     * attached comments.  {@code EnumConstantDeclaration.toString()} includes trailing line comments,
+     * which inflates the width and causes the greedy packer to oscillate when JavaParser re-attributes
+     * comments across passes.
+     */
+    private static int enumConstantNameWidth(EnumConstantDeclaration e) {
+        int w = e.getNameAsString().length();
+        if (!isNullOrEmpty(e.getAnnotations())) {
+            for (AnnotationExpr a : e.getAnnotations()) {
+                w += a.toString().length() + 1;
+            }
+        }
+        if (!isNullOrEmpty(e.getArguments())) {
+            w += 2;
+            boolean first = true;
+            for (var arg : e.getArguments()) {
+                if (!first) {
+                    w += 2;
+                }
+                first = false;
+                w += arg.toString().length();
+            }
+        }
+        if (!e.getClassBody().isEmpty()) {
+            w += " { ... }".length();
         }
         return w;
     }
