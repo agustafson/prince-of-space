@@ -4,4 +4,7 @@
     "https://checkstyle.org/dtds/suppressions_1_2.dtd">
 <suppressions>
     <suppress checks="MagicNumber" files=".*/src/test/java/.*"/>
+    <suppress checks="IllegalImport" files=".*/src/main/java/io/princeofspace/Formatter.java"/>
+    <suppress checks="IllegalImport" files=".*/src/main/java/io/princeofspace/internal/.*"/>
+    <suppress checks="IllegalImport" files=".*/src/test/java/io/princeofspace/internal/.*"/>
 </suppressions>

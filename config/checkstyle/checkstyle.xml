@@ -13,6 +13,9 @@
         <!-- Naming & structure only — avoid formatting rules that duplicate Spotless. -->
         <module name="OuterTypeFilename"/>
         <module name="IllegalTokenText"/>
+        <module name="IllegalImport">
+            <property name="illegalPkgs" value="io.princeofspace.internal"/>
+        </module>
         <module name="AvoidStarImport"/>
         <module name="RedundantImport"/>
         <module name="UnusedImports"/>
