@@ -20,7 +20,7 @@ public sealed interface FormatResult permits FormatResult.Success, FormatResult.
     record Success(String formattedSource) implements FormatResult {}
 
     /** Could not produce formatted output. */
-    sealed interface Failure extends FormatResult permits ParseFailure, EmptyCompilationUnit {
+    sealed interface Failure extends FormatResult permits ParseFailure, EmptyCompilationUnit, NonConvergent {
 
         /**
          * Returns a human-readable failure message suitable for {@link FormatterException} or logging.
@@ -52,6 +52,18 @@ public sealed interface FormatResult permits FormatResult.Success, FormatResult.
         @Override
         public String message() {
             return "Parser returned no compilation unit";
+        }
+    }
+
+    /**
+     * Formatting changed output on each pass and did not reach a fixed point within the configured pass budget.
+     *
+     * @param passesAttempted number of format passes performed
+     */
+    record NonConvergent(int passesAttempted) implements Failure {
+        @Override
+        public String message() {
+            return "Formatting did not converge to a fixed point within " + passesAttempted + " pass(es)";
         }
     }
 }

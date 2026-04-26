@@ -88,4 +88,11 @@ class FormattingEngineTest {
         String twice = ((FormatResult.Success) engine.format(once)).formattedSource();
         assertThat(twice).isEqualTo(once);
     }
+
+    @Test
+    void maxConvergencePassesZero_returnsNonConvergentWhenFirstPassChangesOutput() {
+        FormattingEngine onePassOnly = new FormattingEngine(FormatterConfig.defaults(), 0);
+        FormatResult result = onePassOnly.format("class T {void m(){int x=1;}}");
+        assertThat(result).isInstanceOf(FormatResult.NonConvergent.class);
+    }
 }

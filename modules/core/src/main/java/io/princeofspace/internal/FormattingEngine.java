@@ -26,6 +26,7 @@ import java.util.List;
 public final class FormattingEngine {
 
     private final FormatterConfig config;
+    private final int maxConvergencePasses;
 
     /**
      * Creates a formatting engine bound to a formatter configuration.
@@ -33,7 +34,15 @@ public final class FormattingEngine {
      * @param config parser and layout options
      */
     public FormattingEngine(FormatterConfig config) {
+        this(config, CONFIGURED_MAX_CONVERGENCE_PASSES);
+    }
+
+    /**
+     * Visible for tests to exercise convergence-boundary behavior deterministically.
+     */
+    FormattingEngine(FormatterConfig config, int maxConvergencePasses) {
         this.config = config;
+        this.maxConvergencePasses = Math.max(0, maxConvergencePasses);
     }
 
     /**
@@ -44,7 +53,7 @@ public final class FormattingEngine {
      * rounds to stabilize.
      */
     private static final int DEFAULT_MAX_CONVERGENCE_PASSES = 3;
-    private static final int MAX_CONVERGENCE_PASSES = resolveMaxConvergencePasses();
+    private static final int CONFIGURED_MAX_CONVERGENCE_PASSES = resolveMaxConvergencePasses();
 
     /**
      * Parses and formats the given source, or returns a typed failure without throwing.
@@ -59,10 +68,10 @@ public final class FormattingEngine {
      */
     public FormatResult format(String sourceCode) {
         String current = sourceCode;
-        for (int pass = 0; pass <= MAX_CONVERGENCE_PASSES; pass++) {
+        for (int pass = 0; pass <= maxConvergencePasses; pass++) {
             FormatResult result = singlePassFormat(current);
             if (!(result instanceof FormatResult.Success success)) {
-                return (pass == 0) ? result : new FormatResult.Success(current);
+                return result;
             }
             String next = success.formattedSource();
             if (next.equals(current)) {
@@ -70,7 +79,7 @@ public final class FormattingEngine {
             }
             current = next;
         }
-        return new FormatResult.Success(current);
+        return new FormatResult.NonConvergent(maxConvergencePasses + 1);
     }
 
     private static int resolveMaxConvergencePasses() {
