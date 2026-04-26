@@ -10,6 +10,8 @@ import io.princeofspace.FormatResult;
 import io.princeofspace.model.FormatterConfig;
 import org.jspecify.annotations.Nullable;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.List;
 
 /**
@@ -25,7 +27,7 @@ import java.util.List;
  */
 public final class FormattingEngine {
 
-    private static final System.Logger LOG = System.getLogger(FormattingEngine.class.getName());
+    private static final Logger LOG = System.getLogger(FormattingEngine.class.getName());
 
     private final int maxConvergencePasses;
     private final ParserConfiguration parserConfig;
@@ -82,7 +84,7 @@ public final class FormattingEngine {
             String next = success.formattedSource();
             if (next.equals(current)) {
                 if (pass > CONVERGENCE_LOG_THRESHOLD) {
-                    LOG.log(System.Logger.Level.DEBUG,
+                    LOG.log(Level.DEBUG,
                             "Convergence required {0} passes (budget {1})",
                             pass + 1, maxConvergencePasses + 1);
                 }
@@ -90,7 +92,7 @@ public final class FormattingEngine {
             }
             current = next;
         }
-        LOG.log(System.Logger.Level.WARNING,
+        LOG.log(Level.WARNING,
                 "Formatting did not converge within {0} passes", maxConvergencePasses + 1);
         return new FormatResult.NonConvergent(maxConvergencePasses + 1);
     }
