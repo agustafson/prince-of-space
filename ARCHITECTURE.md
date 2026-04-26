@@ -97,7 +97,7 @@ Internal translation to JavaParser's `LanguageLevel` happens in `io.princeofspac
 
 This design means the public API is stable even when JavaParser adds new enum variants.
 
-## Configuration Options (8 total)
+## Configuration Options (7 total)
 
 | Option | Default |
 |--------|---------|
@@ -105,12 +105,11 @@ This design means the public API is stable even when JavaParser adds new enum va
 | `indentStyle` | `spaces` |
 | `indentSize` | `4` |
 | `lineLength` | `120` |
-| `continuationIndentSize` | `4` |
 | `closingParenOnNewLine` | `true` |
 | `trailingCommas` | `false` |
 | `javaLanguageLevel` | `JavaLanguageLevel.of(17)` |
 
-For **`indentSize`** and **`continuationIndentSize`**, the numeric value is a count of **spaces** when using spaces, or a count of **tab characters** when using tabs (`docs/formatting-rules.md`, §1 and §3).
+For **`indentSize`**, the numeric value is a count of **spaces** when using spaces, or a count of **tab characters** when using tabs (`docs/formatting-rules.md`, §1 and §3). Continuation indent is always `2 * indentSize` (not configurable).
 
 ## Pipeline (`FormattingEngine`)
 
@@ -125,6 +124,6 @@ Parse → `LexicalPreservingPrinter.setup` (comment/token coherence for transfor
 - Comment preservation: `CommentPreservationTest` (line, block, Javadoc, EOL, between statements, type-use)
 - Idempotency fuzz: `IdempotencyFuzzTest` (randomized `FormatterConfig` over fixed snippets + AST-built CU)
 - Examples corpus: `ExamplesCorpusFormatTest` (outputs idempotent; inputs single-pass)
-- 4 Java levels (java8, java17, java21, java25) × 12 config combinations = 48 golden files
+- 4 Java levels (java8, java17, java21, java25) × 6 config combinations = 24 golden files
 - 200+ total tests in `core` (unit/integration + showroom goldens + corpus checks; optional tests may be skipped)
 - Every test must verify idempotency: `format(format(x)) == format(x)`

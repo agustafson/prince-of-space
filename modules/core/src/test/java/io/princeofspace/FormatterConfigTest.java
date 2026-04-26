@@ -18,7 +18,7 @@ class FormatterConfigTest {
         assertThat(config.indentStyle()).isEqualTo(IndentStyle.SPACES);
         assertThat(config.indentSize()).isEqualTo(4);
         assertThat(config.lineLength()).isEqualTo(120);
-        assertThat(config.continuationIndentSize()).isEqualTo(4);
+        assertThat(config.continuationIndentSize()).isEqualTo(8);
         assertThat(config.wrapStyle()).isEqualTo(WrapStyle.BALANCED);
         assertThat(config.closingParenOnNewLine()).isTrue();
         assertThat(config.trailingCommas()).isFalse();
@@ -55,9 +55,10 @@ class FormatterConfigTest {
     }
 
     @Test
-    void builder_overridesContinuationIndentSize() {
-        FormatterConfig config = FormatterConfig.builder().continuationIndentSize(8).build();
-        assertThat(config.continuationIndentSize()).isEqualTo(8);
+    void continuationIndentSize_isDerivedFromIndentSize() {
+        assertThat(FormatterConfig.builder().indentSize(4).build().continuationIndentSize()).isEqualTo(8);
+        assertThat(FormatterConfig.builder().indentSize(2).build().continuationIndentSize()).isEqualTo(4);
+        assertThat(FormatterConfig.builder().indentSize(3).build().continuationIndentSize()).isEqualTo(6);
     }
 
     @Test
@@ -109,13 +110,6 @@ class FormatterConfigTest {
     void validation_indentSizeNegativeThrows() {
         assertThatThrownBy(() -> FormatterConfig.builder().indentSize(-1).build())
                 .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    void validation_continuationIndentSizeZeroThrows() {
-        assertThatThrownBy(() -> FormatterConfig.builder().continuationIndentSize(0).build())
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("continuationIndentSize");
     }
 
     @Test

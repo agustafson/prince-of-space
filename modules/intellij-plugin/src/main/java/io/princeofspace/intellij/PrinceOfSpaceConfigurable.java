@@ -36,7 +36,6 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
 
     private ComboBox<String> indentStyleCombo;
     private JSpinner indentSizeSpinner;
-    private JSpinner continuationIndentSpinner;
     private JSpinner lineLengthSpinner;
     private ComboBox<String> wrapStyleCombo;
     private JBCheckBox closingParenOnNewLine;
@@ -66,7 +65,6 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
 
         indentStyleCombo = new ComboBox<>(Arrays.stream(IndentStyle.values()).map(Enum::name).toArray(String[]::new));
         indentSizeSpinner = new JSpinner(new SpinnerNumberModel(4, 1, 32, 1));
-        continuationIndentSpinner = new JSpinner(new SpinnerNumberModel(4, 1, 32, 1));
         lineLengthSpinner = new JSpinner(new SpinnerNumberModel(120, 20, 500, 1));
         wrapStyleCombo = new ComboBox<>(Arrays.stream(WrapStyle.values()).map(Enum::name).toArray(String[]::new));
         closingParenOnNewLine = new JBCheckBox("Place closing \")\" on its own line when argument lists wrap");
@@ -90,7 +88,6 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
                         .addComponent(boldSection("Indentation"))
                         .addLabeledComponent("Indent style:", indentStyleCombo)
                         .addLabeledComponent("Indent size (units per block level):", indentSizeSpinner)
-                        .addLabeledComponent("Continuation indent size (units on wrapped lines):", continuationIndentSpinner)
                         .addVerticalGap(8)
                         .addComponent(boldSection("Line width"))
                         .addLabeledComponent("Line length:", lineLengthSpinner)
@@ -168,7 +165,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         t.indentStyle = s.indentStyle;
         t.indentSize = s.indentSize;
         t.lineLength = s.lineLength;
-        t.continuationIndentSize = s.continuationIndentSize;
+
         t.wrapStyle = s.wrapStyle;
         t.closingParenOnNewLine = s.closingParenOnNewLine;
         t.trailingCommas = s.trailingCommas;
@@ -182,7 +179,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         t.indentStyle = s.indentStyle;
         t.indentSize = s.indentSize;
         t.lineLength = s.lineLength;
-        t.continuationIndentSize = s.continuationIndentSize;
+
         t.wrapStyle = s.wrapStyle;
         t.closingParenOnNewLine = s.closingParenOnNewLine;
         t.trailingCommas = s.trailingCommas;
@@ -200,7 +197,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
             useProjectLanguageLevel.setSelected(false);
             indentStyleCombo.setSelectedItem(globalState.indentStyle);
             indentSizeSpinner.setValue(globalState.indentSize);
-            continuationIndentSpinner.setValue(globalState.continuationIndentSize);
+
             lineLengthSpinner.setValue(globalState.lineLength);
             wrapStyleCombo.setSelectedItem(globalState.wrapStyle);
             closingParenOnNewLine.setSelected(globalState.closingParenOnNewLine);
@@ -210,7 +207,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
             useProjectLanguageLevel.setSelected(projectState.useProjectLanguageLevel);
             indentStyleCombo.setSelectedItem(projectState.indentStyle);
             indentSizeSpinner.setValue(projectState.indentSize);
-            continuationIndentSpinner.setValue(projectState.continuationIndentSize);
+
             lineLengthSpinner.setValue(projectState.lineLength);
             wrapStyleCombo.setSelectedItem(projectState.wrapStyle);
             closingParenOnNewLine.setSelected(projectState.closingParenOnNewLine);
@@ -227,7 +224,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         s.useProjectLanguageLevel = useProjectLanguageLevel.isSelected();
         s.indentStyle = (String) indentStyleCombo.getSelectedItem();
         s.indentSize = (Integer) indentSizeSpinner.getValue();
-        s.continuationIndentSize = (Integer) continuationIndentSpinner.getValue();
+
         s.lineLength = (Integer) lineLengthSpinner.getValue();
         s.wrapStyle = (String) wrapStyleCombo.getSelectedItem();
         s.closingParenOnNewLine = closingParenOnNewLine.isSelected();
@@ -242,7 +239,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         PrinceOfSpaceGlobalSettings.State s = new PrinceOfSpaceGlobalSettings.State();
         s.indentStyle = (String) indentStyleCombo.getSelectedItem();
         s.indentSize = (Integer) indentSizeSpinner.getValue();
-        s.continuationIndentSize = (Integer) continuationIndentSpinner.getValue();
+
         s.lineLength = (Integer) lineLengthSpinner.getValue();
         s.wrapStyle = (String) wrapStyleCombo.getSelectedItem();
         s.closingParenOnNewLine = closingParenOnNewLine.isSelected();
@@ -260,8 +257,8 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         } catch (IllegalArgumentException | NullPointerException e) {
             throw new ConfigurationException("Invalid indent or wrap style: " + e.getMessage());
         }
-        if (s.indentSize <= 0 || s.continuationIndentSize <= 0) {
-            throw new ConfigurationException("Indent sizes must be positive.");
+        if (s.indentSize <= 0) {
+            throw new ConfigurationException("Indent size must be positive.");
         }
         if (s.lineLength <= 0) {
             throw new ConfigurationException("Line length must be positive.");
@@ -283,8 +280,8 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         } catch (IllegalArgumentException | NullPointerException e) {
             throw new ConfigurationException("Invalid global formatter setting: " + e.getMessage());
         }
-        if (s.indentSize <= 0 || s.continuationIndentSize <= 0) {
-            throw new ConfigurationException("Indent sizes must be positive.");
+        if (s.indentSize <= 0) {
+            throw new ConfigurationException("Indent size must be positive.");
         }
         if (s.lineLength <= 0) {
             throw new ConfigurationException("Line length must be positive.");

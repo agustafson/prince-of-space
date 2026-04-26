@@ -46,7 +46,6 @@ public final class PrinceOfSpaceProjectSettings implements PersistentStateCompon
                 .indentStyle(indentStyle)
                 .indentSize(s.indentSize)
                 .lineLength(s.lineLength)
-                .continuationIndentSize(s.continuationIndentSize)
                 .wrapStyle(wrapStyle)
                 .closingParenOnNewLine(s.closingParenOnNewLine)
                 .trailingCommas(s.trailingCommas)
@@ -88,7 +87,6 @@ public final class PrinceOfSpaceProjectSettings implements PersistentStateCompon
         public @NotNull String indentStyle = IndentStyle.SPACES.name();
         public int indentSize = 4;
         public int lineLength = 120;
-        public int continuationIndentSize = 4;
         public @NotNull String wrapStyle = WrapStyle.BALANCED.name();
         public boolean closingParenOnNewLine = true;
         public boolean trailingCommas = false;
@@ -110,7 +108,6 @@ public final class PrinceOfSpaceProjectSettings implements PersistentStateCompon
                 wrapStyle = WrapStyle.BALANCED.name();
             }
             indentSize = clamp(indentSize, 1, 32, 4);
-            continuationIndentSize = clamp(continuationIndentSize, 1, 32, 4);
             lineLength = clamp(lineLength, 20, 500, 120);
             javaRelease = clamp(javaRelease, 1, 25, 17);
         }
@@ -135,7 +132,6 @@ public final class PrinceOfSpaceProjectSettings implements PersistentStateCompon
                     && useGlobalFormatterSettings == state.useGlobalFormatterSettings
                     && indentSize == state.indentSize
                     && lineLength == state.lineLength
-                    && continuationIndentSize == state.continuationIndentSize
                     && closingParenOnNewLine == state.closingParenOnNewLine
                     && trailingCommas == state.trailingCommas
                     && useProjectLanguageLevel == state.useProjectLanguageLevel
@@ -152,7 +148,6 @@ public final class PrinceOfSpaceProjectSettings implements PersistentStateCompon
                     indentStyle,
                     indentSize,
                     lineLength,
-                    continuationIndentSize,
                     wrapStyle,
                     closingParenOnNewLine,
                     trailingCommas,

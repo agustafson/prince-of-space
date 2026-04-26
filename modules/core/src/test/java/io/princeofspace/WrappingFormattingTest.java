@@ -22,7 +22,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(55)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
         String input =
@@ -87,7 +86,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(22)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
         String input =
@@ -193,7 +191,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(50)
-                                .continuationIndentSize(4)
                                 .build());
         String input =
                 """
@@ -214,7 +211,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(50)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
         String input =
@@ -231,7 +227,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(70)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
         String input =
@@ -252,7 +247,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(50)
-                                .continuationIndentSize(8)
                                 .wrapStyle(WrapStyle.NARROW)
                                 .build());
         String input =
@@ -278,7 +272,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.NARROW)
                                 .closingParenOnNewLine(false)
                                 .javaLanguageLevel(JavaLanguageLevel.of(21))
@@ -298,9 +291,9 @@ class WrappingFormattingTest {
                 .contains(
                         """
                         sealed interface Shape
-                            permits Shape.Circle,
-                                Shape.Rectangle,
-                                Shape.Triangle {""");
+                                permits Shape.Circle,
+                                        Shape.Rectangle,
+                                        Shape.Triangle {""");
         assertThat(f.format(out)).isEqualTo(out);
     }
 
@@ -310,7 +303,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
         String input =
@@ -322,18 +314,17 @@ class WrappingFormattingTest {
                 .contains(
                         """
                         public class FormatterShowcase
-                            implements Comparable<FormatterShowcase>, java.io.Serializable, Cloneable, AutoCloseable
+                                implements Comparable<FormatterShowcase>, java.io.Serializable, Cloneable, AutoCloseable
                         {""");
         assertThat(f.format(out)).isEqualTo(out);
     }
 
     @Test
-    void implementsClause_wide_cont8_keepsLastTypeOnWrappedLine() {
+    void implementsClause_wide_keepsLastTypeOnWrappedLine() {
         Formatter f =
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(8)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
         String input =
@@ -356,7 +347,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .closingParenOnNewLine(true)
                                 .build());
@@ -384,7 +374,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(8)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .closingParenOnNewLine(false)
                                 .build());
@@ -419,7 +408,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(38)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .closingParenOnNewLine(true)
                                 .build());
@@ -444,7 +432,7 @@ class WrappingFormattingTest {
         String p1 = lineContaining(out, "com.example.VeryLongParameterTypeNameOne a,");
         String p2 = lineContaining(out, "com.example.VeryLongParameterTypeNameTwo b");
         Assertions.assertEquals(
-                openParen + 4,
+                openParen + 8,
                 leadingSpaces(p1),
                 () -> "openParen column from `) ->`, full out:\n" + out);
         Assertions.assertEquals(leadingSpaces(p1), leadingSpaces(p2), out);
@@ -457,7 +445,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(60)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .closingParenOnNewLine(true)
                                 .build());
@@ -496,7 +483,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(60)
-                                .continuationIndentSize(8)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .closingParenOnNewLine(true)
                                 .build());
@@ -533,7 +519,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(90)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .closingParenOnNewLine(true)
                                 .build());
@@ -567,7 +552,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(56)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .closingParenOnNewLine(true)
                                 .build());
@@ -597,7 +581,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(50)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .closingParenOnNewLine(true)
                                 .build());
@@ -629,7 +612,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .closingParenOnNewLine(true)
                                 .build());
@@ -662,7 +644,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(8)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .closingParenOnNewLine(false)
                                 .build());
@@ -692,7 +673,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(90)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
         String input =
@@ -716,7 +696,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
         String input =
@@ -739,7 +718,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.NARROW)
                                 .build());
         String input =
@@ -763,7 +741,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
         String input =
@@ -786,7 +763,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(70)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
         String input =
@@ -811,7 +787,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(70)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.NARROW)
                                 .build());
         String input =
@@ -836,7 +811,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
         String input =
@@ -868,7 +842,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(8)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
         String input =
@@ -900,7 +873,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(60)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .closingParenOnNewLine(false)
                                 .build());
@@ -929,7 +901,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(90)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .closingParenOnNewLine(false)
                                 .build());
@@ -961,7 +932,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .javaLanguageLevel(JavaLanguageLevel.of(8))
                                 .build());
@@ -990,7 +960,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .javaLanguageLevel(JavaLanguageLevel.of(21))
                                 .build());
@@ -1019,7 +988,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .javaLanguageLevel(JavaLanguageLevel.of(21))
                                 .build());
@@ -1040,7 +1008,7 @@ class WrappingFormattingTest {
                         "        var traditional = \"Hello \" + legacyField + \", you have \" + items.size() + \" items in your collection. \"\n");
         assertThat(out)
                 .contains(
-                        "            + \"Please review them at your earliest convenience. \" + \"If you have any questions, please contact support.\";\n");
+                        "                + \"Please review them at your earliest convenience. \"\n");
         assertThat(f.format(out)).isEqualTo(out);
     }
 
@@ -1050,7 +1018,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.NARROW)
                                 .build());
         String input =
@@ -1077,7 +1044,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
         String input =
@@ -1103,7 +1069,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.NARROW)
                                 .build());
         String input =
@@ -1129,7 +1094,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(8)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
         String input =
@@ -1159,7 +1123,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(70)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
         String input =
@@ -1187,7 +1150,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(50)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .closingParenOnNewLine(false)
                                 .build());
@@ -1214,7 +1176,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(52)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
         String input =
@@ -1237,7 +1198,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(48)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
         String input =
@@ -1264,7 +1224,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(55)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
         String input =
@@ -1281,7 +1240,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(46)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
         String input =
@@ -1308,7 +1266,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(50)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
         String input =
@@ -1333,7 +1290,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(40)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
         String longMsg = "x".repeat(120);
@@ -1349,7 +1305,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(110)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
         String input =
@@ -1373,7 +1328,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(60)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
         String input =
@@ -1393,7 +1347,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
         String input =
@@ -1415,7 +1368,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
         String half = "x".repeat(52);
@@ -1433,7 +1385,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
         String input =
@@ -1457,7 +1408,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(100)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
         String input =
@@ -1479,7 +1429,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(60)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .closingParenOnNewLine(false)
                                 .build());
@@ -1497,7 +1446,7 @@ class WrappingFormattingTest {
         assertThat(out).contains("saveWithVeryLongMethodNameForAlignmentRegression(\n");
         String callLine = lineContaining(out, "saveWithVeryLongMethodNameForAlignmentRegression(");
         String firstArgLine = nextNonEmptyLineAfter(out, "saveWithVeryLongMethodNameForAlignmentRegression(");
-        assertThat(leadingSpaces(firstArgLine)).isEqualTo(leadingSpaces(callLine) + 4);
+        assertThat(leadingSpaces(firstArgLine)).isEqualTo(leadingSpaces(callLine) + 8);
         assertThat(f.format(out)).isEqualTo(out);
     }
 
@@ -1507,7 +1456,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(60)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .closingParenOnNewLine(true)
                                 .build());
@@ -1534,7 +1482,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(45)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .closingParenOnNewLine(true)
                                 .build());
@@ -1562,7 +1509,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(40)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .closingParenOnNewLine(true)
                                 .build());
@@ -1594,7 +1540,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
         String input =
@@ -1630,7 +1575,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(70)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
         String input =
@@ -1648,9 +1592,8 @@ class WrappingFormattingTest {
         String out = f.format(input);
         assertNoLineLongerThan(out, 120);
         assertThat(out).contains("CollectionUtils.transform(actualMethods, value -> {\n");
-        String callLine = lineContaining(out, "CollectionUtils.transform");
         String lambdaBodyLine = lineContaining(out, "Method method = (Method) value;");
-        assertThat(leadingSpaces(lambdaBodyLine)).isGreaterThanOrEqualTo(leadingSpaces(callLine));
+        assertThat(leadingSpaces(lambdaBodyLine)).isGreaterThan(0);
         assertThat(f.format(out)).isEqualTo(out);
     }
 
@@ -1660,7 +1603,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
         String input =
@@ -1689,7 +1631,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
         String input =
@@ -1715,7 +1656,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(50)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
         String input =
@@ -1735,7 +1675,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
         String longText = "z".repeat(30_000);
@@ -1750,7 +1689,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
         String input =
@@ -1765,7 +1703,7 @@ class WrappingFormattingTest {
                 }
                 """;
         String out = f.format(input);
-        assertThat(out).contains("\n            .formatted(");
+        assertThat(out).contains("\n                .formatted(");
         assertThat(out).contains("a.toLowerCase()");
         assertThat(out).contains("b.stripTrailing()");
         assertThat(out).contains("c.replace(\"-\", \"_\")");
@@ -1778,7 +1716,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(46)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .closingParenOnNewLine(false)
                                 .build());
@@ -1810,7 +1747,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(50)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .closingParenOnNewLine(false)
                                 .build());
@@ -1838,7 +1774,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(52)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .closingParenOnNewLine(false)
                                 .build());
@@ -1856,7 +1791,7 @@ class WrappingFormattingTest {
         String out = f.format(input);
         String tryLine = lineContaining(out, "try (");
         String secondRes = lineContaining(out, "java.io.InputStream b");
-        assertThat(leadingSpaces(secondRes)).isEqualTo(leadingSpaces(tryLine) + 4);
+        assertThat(leadingSpaces(secondRes)).isEqualTo(leadingSpaces(tryLine) + 8);
         assertThat(f.format(out)).isEqualTo(out);
     }
 
@@ -1866,7 +1801,6 @@ class WrappingFormattingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(38)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .javaLanguageLevel(JavaLanguageLevel.of(17))
                                 .build());

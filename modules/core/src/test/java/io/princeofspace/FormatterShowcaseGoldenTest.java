@@ -37,18 +37,12 @@ class FormatterShowcaseGoldenTest {
             JavaLanguageLevel.of(21), JavaLanguageLevel.of(25)
         };
         String[] goldens = {
-            "balanced-cont4-closingparen-false.java",
-            "balanced-cont4-closingparen-true.java",
-            "balanced-cont8-closingparen-false.java",
-            "balanced-cont8-closingparen-true.java",
-            "narrow-cont4-closingparen-false.java",
-            "narrow-cont4-closingparen-true.java",
-            "narrow-cont8-closingparen-false.java",
-            "narrow-cont8-closingparen-true.java",
-            "wide-cont4-closingparen-false.java",
-            "wide-cont4-closingparen-true.java",
-            "wide-cont8-closingparen-false.java",
-            "wide-cont8-closingparen-true.java",
+            "balanced-closingparen-false.java",
+            "balanced-closingparen-true.java",
+            "narrow-closingparen-false.java",
+            "narrow-closingparen-true.java",
+            "wide-closingparen-false.java",
+            "wide-closingparen-true.java",
         };
         Stream.Builder<Arguments> b = Stream.builder();
         for (JavaLanguageLevel level : levels) {
@@ -69,22 +63,17 @@ class FormatterShowcaseGoldenTest {
      */
     static FormatterConfig formatterConfigFor(JavaLanguageLevel level, String goldenFileName) {
         String base = goldenFileName.replace(".java", "");
-        String[] p = base.split("-", 4);
-        if (p.length != 4) {
+        String[] p = base.split("-", 3);
+        if (p.length != 3) {
             throw new IllegalArgumentException("Unexpected golden name: " + goldenFileName);
         }
         WrapStyle wrap = WrapStyle.valueOf(p[0].toUpperCase(Locale.ROOT));
-        if (!p[1].startsWith("cont")) {
-            throw new IllegalArgumentException("Expected cont<N> segment: " + goldenFileName);
-        }
-        int cont = Integer.parseInt(p[1].substring(4));
-        if (!"closingparen".equals(p[2])) {
+        if (!"closingparen".equals(p[1])) {
             throw new IllegalArgumentException("Expected closingparen segment: " + goldenFileName);
         }
-        boolean closing = Boolean.parseBoolean(p[3]);
+        boolean closing = Boolean.parseBoolean(p[2]);
         return FormatterConfig.builder()
                 .wrapStyle(wrap)
-                .continuationIndentSize(cont)
                 .closingParenOnNewLine(closing)
                 .javaLanguageLevel(level)
                 .build();

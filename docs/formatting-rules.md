@@ -41,35 +41,23 @@ var result = someService.processRequest(
 
 ---
 
-### 3. Continuation Indent Size
+### 3. Continuation Indent
 
-When a statement wraps to the next line, how far should the continuation be indented? This is the #1 cause of the "pushed too far right" complaint about google-java-format.
+When a statement wraps to the next line, the continuation is always indented by **`2 * indentSize`**. This is not configurable — it follows the Oracle/IntelliJ convention (`indent=4 → continuation=8`, `indent=2 → continuation=4`) and guarantees that wrapped parameters are visually distinct from the method body.
 
-| Choice | Used By |
-|--------|---------|
-| Same as indent size | Simpler; what Black does for Python |
-| +4 from parent | Oracle convention |
-| +8 from parent | google-java-format double-continuation |
-
-**Config:** `continuationIndentSize: <number>`
-**Default:** `4` (same as default indent size)
-
-Units match **`indentSize`**: with **`spaces`**, this is the number of space characters inserted before a wrapped continuation line. With **`tabs`**, it is the number of **tab characters** inserted for that continuation (not derived by dividing by `indentSize`—both settings are direct character counts in their respective styles).
-
-`continuationIndentSize` is **additive** over the enclosing block indent (not an absolute left margin from the statement start).
+The continuation indent is **additive** over the enclosing block indent (not an absolute left margin from the statement start).
 
 ```java
-// indentSize = 4, continuationIndentSize = 4
-// Before (incorrect mental model: "absolute from statement start"):
+// indentSize = 4, continuation = 8
 if (ready) {
     return veryLongCondition &&
-        nextPart;   // only 8 spaces
+            nextPart; // 12 spaces (4 block + 8 continuation)
 }
 
-// After (actual formatter rule: enclosing indent + continuation indent):
-if (ready) {
-    return veryLongCondition &&
-            nextPart; // 12 spaces (4 block + 4 statement + 4 continuation)
+public void process(
+        String name,       // 8 spaces continuation — clearly not body
+        int age) {
+    doSomething();         // 4 spaces body indent
 }
 ```
 
@@ -132,7 +120,7 @@ This applies consistently to both method parameter declarations and method call 
 
 **Wrapped type clauses:** When `implements`, `extends`, or `permits` lists wrap across lines, the **`{`** that begins the class/interface/record body uses the same idea: with `closingParenOnNewLine=true`, the `{` is typically alone on the line after the last type; with `false`, `{` stays on the same line as the last type (K&R style). There is no `)` in a type clause, but the config name reflects the shared “closing delimiter” behavior.
 
-When `closingParenOnNewLine=true` and `continuationIndentSize` equals `indentSize`, this provides a crucial visual separator between wrapped parameters and the method body — without it, parameters and body are indistinguishable. This convention aligns with Kotlin's default style and common TypeScript/Prettier formatting.
+Since continuation indent is always `2 * indentSize`, wrapped parameters are always visually distinct from the method body regardless of the `closingParenOnNewLine` setting.
 
 **Config:** `closingParenOnNewLine: true|false`
 **Default:** `true`
@@ -191,13 +179,14 @@ it only controls the accepted source-language surface.
 | `indentStyle` | `spaces` \| `tabs` | `spaces` | Use tabs or spaces for indentation |
 | `indentSize` | integer | `4` | Number of spaces or tabs per indent level |
 | `lineLength` | integer | `120` | Target line width; wrapping is triggered here |
-| `continuationIndentSize` | integer | `4` | Spaces or tabs for continuation lines (same unit convention as `indentSize`) |
 | `wrapStyle` | `wide` \| `narrow` \| `balanced` | `balanced` | How to handle line wrapping |
 | `closingParenOnNewLine` | boolean | `true` | Whether closing `)` goes on its own line in multi-line params/args |
 | `trailingCommas` | boolean | `false` | Add trailing commas in enum constants and array initializers |
 | `javaLanguageLevel` | `JavaLanguageLevel` | `JavaLanguageLevel.of(17)` | Java syntax release accepted by the parser |
 
-**Total: 8 options.**
+Continuation indent is always `2 * indentSize` (e.g. 8 spaces with the default `indentSize=4`). This is not configurable.
+
+**Total: 7 options.**
 
 ---
 
@@ -205,7 +194,7 @@ it only controls the accepted source-language surface.
 
 ### Method Chaining (Fluent APIs / Builders / Streams)
 
-When a chain **wraps** (line length exceeded, or a lambda-heavy chain forces wrapping), each **chained** call is placed on its **own** line with a **leading dot** (same idea as Kotlin’s fluent style and Prettier’s typical JS/TS chains). The **receiver** is alone on the first line; every `.method(...)` after it starts a continuation line. Continuation lines are indented by adding `continuationIndentSize` on top of the active enclosing indent (not dot-aligned into the horizon).
+When a chain **wraps** (line length exceeded, or a lambda-heavy chain forces wrapping), each **chained** call is placed on its **own** line with a **leading dot** (same idea as Kotlin’s fluent style and Prettier’s typical JS/TS chains). The **receiver** is alone on the first line; every `.method(...)` after it starts a continuation line. Continuation lines are indented by adding `2 * indentSize` on top of the active enclosing indent (not dot-aligned into the horizon).
 
 ```java
 // Multi-segment chain (two or more .method() links after the receiver)

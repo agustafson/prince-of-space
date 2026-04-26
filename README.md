@@ -112,10 +112,11 @@ The `modules/vscode-extension/` directory contains a TypeScript extension that r
 | `indentStyle` | `spaces` | `spaces` or `tabs`                                    |
 | `indentSize` | `4` | Units per indent level (spaces or tabs)               |
 | `lineLength` | `120` | Target line width — wrapping is triggered here        |
-| `continuationIndentSize` | `4` | Units for continuation lines                          |
 | `closingParenOnNewLine` | `true` | Closing `)` on its own line when args wrap            |
 | `trailingCommas` | `false` | Trailing commas in multi-line enums/arrays            |
 | `javaLanguageLevel` | `17` | Java syntax level accepted by the parser              |
+
+Continuation indent is always `2 * indentSize` (8 spaces with the default). This follows the Oracle/IntelliJ convention and ensures parameters are always visually distinct from the method body.
 
 ### Wrap style
 
@@ -159,7 +160,7 @@ The `javaLanguageLevel` (default: `17`) controls which Java syntax the parser ac
 The `examples/` directory is the best way to evaluate how options affect real output:
 
 - **`examples/inputs/java{8,17,21,25}/FormatterShowcase.java`** — a single unformatted source file covering 46+ scenarios: constructors, method chains, lambdas, binary operators, generics, switch expressions, records, sealed types, text blocks, and more.
-- **`examples/outputs/java{8,17,21,25}/`** — 12 formatted versions per Java level (48 total), one for each combination of `wrapStyle`, `continuationIndentSize`, and `closingParenOnNewLine`.
+- **`examples/outputs/java{8,17,21,25}/`** — 6 formatted versions per Java level (24 total), one for each combination of `wrapStyle` and `closingParenOnNewLine`.
 
 For an interactive side-by-side diff, open **[`examples/compare.html`](examples/compare.html)** in a browser (or visit the hosted version at the GitHub Pages URL for this repo) — pick a Java version and two configurations to compare. For a narrated walkthrough of the key differences, see **[docs/output-showcase.md](docs/output-showcase.md)**.
 
@@ -170,7 +171,7 @@ The public API consists of four types:
 | Type | Description |
 |------|-------------|
 | `Formatter` | Entry point — `format(String)` throws on failure, `formatResult(String)` returns a sealed result |
-| `FormatterConfig` | Immutable record with builder for all 8 options + language level |
+| `FormatterConfig` | Immutable record with builder for all 7 options + language level |
 | `FormatResult` | Sealed interface: `Success` or `Failure` (`ParseFailure`, `EmptyCompilationUnit`) |
 | `FormatterException` | Thrown by `Formatter.format()` on parse or pipeline failure |
 

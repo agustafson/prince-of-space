@@ -14,11 +14,11 @@ These rules define output shape for Java formatting in `modules/core`.
   - `indentStyle`
   - `indentSize`
   - `lineLength`
-  - `continuationIndentSize`
   - `wrapStyle`
   - `closingParenOnNewLine`
   - `trailingCommas`
   - `javaLanguageLevel`
+- Continuation indent is derived as `2 * indentSize` and is not configurable.
 - Any new public knob requires a TDR entry and updates to this file.
 
 ## Normative Rules
@@ -35,7 +35,7 @@ These rules define output shape for Java formatting in `modules/core`.
 ### Rule 3: Indentation
 
 - Block indentation is controlled by `indentStyle` + `indentSize`.
-- Wrapped continuation lines are indented by `continuationIndentSize` relative to the current block indentation.
+- Wrapped continuation lines are indented by `2 * indentSize` relative to the current block indentation. This follows the Oracle/IntelliJ convention and ensures parameters are always visually distinct from the method body.
 
 ### Rule 4: Line length and wrapping trigger
 

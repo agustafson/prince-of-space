@@ -107,6 +107,14 @@ Use it as the primary source of *why* design choices exist.
 - **Consequences:** Wrapped segments in nested expressions use the same continuation math as top-level wrapped segments; docs and tests should assert additive behavior.
 - **Related docs:** `docs/formatting-rules.md`, `modules/core/src/test/java/io/princeofspace/WrappingFormattingTest.java`
 
+### TDR-014: Remove continuationIndentSize config, hardcode to 2 × indentSize
+- **Date:** 2026-04
+- **Status:** Accepted
+- **Decision:** Remove `continuationIndentSize` as a public configuration knob. Continuation indent is now always `2 * indentSize`, following the Oracle/IntelliJ convention.
+- **Rationale:** When `continuationIndentSize == indentSize` (the previous default), wrapped method parameters and the method body are indented to the same column, making them visually indistinguishable. The `2×` convention eliminates this ambiguity by construction. No well-known opinionated Java formatter (google-java-format, Prettier, Black, ktlint) exposes continuation indent as a config knob. Reducing from 8 to 7 options simplifies the configuration surface and halves the showroom golden matrix (48→24 files).
+- **Consequences:** The `FormatterConfig` record no longer has a `continuationIndentSize` record component; a derived method `continuationIndentSize()` returns `2 * indentSize`. Showroom goldens drop the `cont4`/`cont8` filename axis. IntelliJ plugin settings UI no longer shows a continuation indent spinner. TDR-012 (additive continuation indent) still applies — the indent is additive, just no longer user-configurable.
+- **Related docs:** `docs/formatting-rules.md`, `docs/canonical-formatting-rules.md`, `ARCHITECTURE.md`
+
 ### TDR-013: Showroom rule-uniformity migration is complete
 - **Date:** 2026-04
 - **Status:** Accepted

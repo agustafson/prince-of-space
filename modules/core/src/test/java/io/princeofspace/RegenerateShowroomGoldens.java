@@ -32,18 +32,12 @@ class RegenerateShowroomGoldens {
             JavaLanguageLevel.of(21), JavaLanguageLevel.of(25)
         };
         String[] goldens = {
-            "balanced-cont4-closingparen-false.java",
-            "balanced-cont4-closingparen-true.java",
-            "balanced-cont8-closingparen-false.java",
-            "balanced-cont8-closingparen-true.java",
-            "narrow-cont4-closingparen-false.java",
-            "narrow-cont4-closingparen-true.java",
-            "narrow-cont8-closingparen-false.java",
-            "narrow-cont8-closingparen-true.java",
-            "wide-cont4-closingparen-false.java",
-            "wide-cont4-closingparen-true.java",
-            "wide-cont8-closingparen-false.java",
-            "wide-cont8-closingparen-true.java",
+            "balanced-closingparen-false.java",
+            "balanced-closingparen-true.java",
+            "narrow-closingparen-false.java",
+            "narrow-closingparen-true.java",
+            "wide-closingparen-false.java",
+            "wide-closingparen-true.java",
         };
         for (JavaLanguageLevel level : levels) {
             String dir = FormatterShowcaseGoldenTest.showcaseDirFor(level);

@@ -28,7 +28,6 @@ class RuleUniformityTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(40)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .closingParenOnNewLine(false)
                                 .build());
@@ -36,7 +35,6 @@ class RuleUniformityTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(40)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .closingParenOnNewLine(false)
                                 .build());
@@ -64,7 +62,6 @@ class RuleUniformityTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(40)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.NARROW)
                                 .closingParenOnNewLine(false)
                                 .build());
@@ -72,7 +69,6 @@ class RuleUniformityTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(40)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .closingParenOnNewLine(false)
                                 .build());

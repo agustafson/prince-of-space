@@ -22,7 +22,6 @@ class DebugTest {
         String input = Files.readString(root.resolve("examples/inputs/java8/FormatterShowcase.java"), StandardCharsets.UTF_8);
         FormatterConfig config = FormatterConfig.builder()
             .wrapStyle(WrapStyle.WIDE)
-            .continuationIndentSize(4)
             .closingParenOnNewLine(true)
             .javaLanguageLevel(JavaLanguageLevel.of(8))
             .build();

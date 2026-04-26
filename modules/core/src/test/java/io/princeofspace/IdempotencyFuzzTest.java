@@ -56,7 +56,7 @@ class IdempotencyFuzzTest {
             FormatterConfig cfg =
                     FormatterConfig.builder()
                             .lineLength(lineLen)
-                            .continuationIndentSize(4 + rng.nextInt(2) * 4)
+                            .indentSize(2 + rng.nextInt(2) * 2)
                             .wrapStyle(styles[rng.nextInt(styles.length)])
                             .closingParenOnNewLine(rng.nextBoolean())
                             .trailingCommas(rng.nextBoolean())

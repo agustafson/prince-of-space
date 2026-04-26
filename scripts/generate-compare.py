@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Generate examples/compare.html — a self-contained, dependency-free diff viewer
-for all 48 Prince of Space showroom outputs.
+for all 24 Prince of Space showroom outputs.
 
 Usage:
     python3 scripts/generate-compare.py
@@ -22,33 +22,21 @@ OUT_FILE = REPO / "examples" / "compare.html"
 JAVA_LEVELS = ["java8", "java17", "java21", "java25"]
 
 CONFIGS = [
-    "balanced-cont4-closingparen-true",
-    "balanced-cont4-closingparen-false",
-    "balanced-cont8-closingparen-true",
-    "balanced-cont8-closingparen-false",
-    "narrow-cont4-closingparen-true",
-    "narrow-cont4-closingparen-false",
-    "narrow-cont8-closingparen-true",
-    "narrow-cont8-closingparen-false",
-    "wide-cont4-closingparen-true",
-    "wide-cont4-closingparen-false",
-    "wide-cont8-closingparen-true",
-    "wide-cont8-closingparen-false",
+    "balanced-closingparen-true",
+    "balanced-closingparen-false",
+    "narrow-closingparen-true",
+    "narrow-closingparen-false",
+    "wide-closingparen-true",
+    "wide-closingparen-false",
 ]
 
 LABELS = {
-    "balanced-cont4-closingparen-true":  "Balanced · indent 4 · ) on new line",
-    "balanced-cont4-closingparen-false": "Balanced · indent 4 · ) inline",
-    "balanced-cont8-closingparen-true":  "Balanced · indent 8 · ) on new line",
-    "balanced-cont8-closingparen-false": "Balanced · indent 8 · ) inline",
-    "narrow-cont4-closingparen-true":    "Narrow · indent 4 · ) on new line",
-    "narrow-cont4-closingparen-false":   "Narrow · indent 4 · ) inline",
-    "narrow-cont8-closingparen-true":    "Narrow · indent 8 · ) on new line",
-    "narrow-cont8-closingparen-false":   "Narrow · indent 8 · ) inline",
-    "wide-cont4-closingparen-true":      "Wide · indent 4 · ) on new line",
-    "wide-cont4-closingparen-false":     "Wide · indent 4 · ) inline",
-    "wide-cont8-closingparen-true":      "Wide · indent 8 · ) on new line",
-    "wide-cont8-closingparen-false":     "Wide · indent 8 · ) inline",
+    "balanced-closingparen-true":  "Balanced \u00b7 ) on new line",
+    "balanced-closingparen-false": "Balanced \u00b7 ) inline",
+    "narrow-closingparen-true":    "Narrow \u00b7 ) on new line",
+    "narrow-closingparen-false":   "Narrow \u00b7 ) inline",
+    "wide-closingparen-true":      "Wide \u00b7 ) on new line",
+    "wide-closingparen-false":     "Wide \u00b7 ) inline",
 }
 
 
@@ -154,7 +142,7 @@ CONFIGS.forEach((c,i)=>{
   const mk=()=>{const o=document.createElement('option');o.value=c;o.textContent=LABELS[c];return o;};
   lSel.appendChild(mk()); rSel.appendChild(mk());
 });
-rSel.selectedIndex=2; // default: balanced-cont8 vs balanced-cont4 — shows indent difference
+rSel.selectedIndex=1; // default: balanced closingparen true vs false
 
 // LCS-based line diff. Returns [{type:'eq'|'del'|'ins', a?:number, b?:number}].
 // O(N*M) — correct and fast for files up to ~1000 lines each.

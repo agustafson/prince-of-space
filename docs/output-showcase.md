@@ -2,7 +2,7 @@
 
 This page shows the same Java source formatted with different configuration options.
 All examples use the `java17` input from [`examples/inputs/java17/FormatterShowcase.java`](https://github.com/agustafson/prince-of-space/blob/main/examples/inputs/java17/FormatterShowcase.java).
-The full set of 48 golden outputs lives in the [`examples/outputs/`](https://github.com/agustafson/prince-of-space/tree/main/examples/outputs) directory.
+The full set of 24 golden outputs lives in the [`examples/outputs/`](https://github.com/agustafson/prince-of-space/tree/main/examples/outputs) directory.
 
 ---
 
@@ -26,12 +26,12 @@ public FormatterShowcase(String legacyField, List<String> items,
 
 ```java
 public FormatterShowcase(
-    String legacyField,
-    List<String> items,
-    Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField,
-    boolean validateOnConstruction,
-    String defaultLocale,
-    ExecutorService executorService
+        String legacyField,
+        List<String> items,
+        Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField,
+        boolean validateOnConstruction,
+        String defaultLocale,
+        ExecutorService executorService
 ) {
 ```
 
@@ -39,8 +39,8 @@ public FormatterShowcase(
 
 ```java
 public FormatterShowcase(String legacyField, List<String> items,
-    Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField, boolean validateOnConstruction,
-    String defaultLocale, ExecutorService executorService
+        Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField, boolean validateOnConstruction,
+        String defaultLocale, ExecutorService executorService
 ) {
 ```
 
@@ -48,12 +48,12 @@ public FormatterShowcase(String legacyField, List<String> items,
 
 ```java
 public FormatterShowcase(
-    String legacyField,
-    List<String> items,
-    Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField,
-    boolean validateOnConstruction,
-    String defaultLocale,
-    ExecutorService executorService
+        String legacyField,
+        List<String> items,
+        Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField,
+        boolean validateOnConstruction,
+        String defaultLocale,
+        ExecutorService executorService
 ) {
 ```
 
@@ -69,11 +69,11 @@ public static <T extends Comparable<T>> List<T> filterAndSort(List<T> input, Pre
 
 ```java
 public static <T extends Comparable<T>> List<T> filterAndSort(
-    List<T> input,
-    Predicate<T> predicate,
-    java.util.Comparator<T> comparator,
-    boolean removeDuplicates,
-    int maxResults
+        List<T> input,
+        Predicate<T> predicate,
+        java.util.Comparator<T> comparator,
+        boolean removeDuplicates,
+        int maxResults
 ) {
 ```
 
@@ -81,7 +81,7 @@ public static <T extends Comparable<T>> List<T> filterAndSort(
 
 ```java
 public static <T extends Comparable<T>> List<T> filterAndSort(List<T> input, Predicate<T> predicate,
-    java.util.Comparator<T> comparator, boolean removeDuplicates, int maxResults
+        java.util.Comparator<T> comparator, boolean removeDuplicates, int maxResults
 ) {
 ```
 
@@ -97,48 +97,35 @@ return legacyField != null && !legacyField.isBlank() && items != null && !items.
 
 ```java
 return legacyField != null
-    && !legacyField.isBlank()
-    && items != null
-    && !items.isEmpty()
-    && items.stream().allMatch(item -> item != null && !item.isBlank())
-    && complexGenericField != null
-    && complexGenericField.size() > 0;
+        && !legacyField.isBlank()
+        && items != null
+        && !items.isEmpty()
+        && items.stream().allMatch(item -> item != null && !item.isBlank())
+        && complexGenericField != null
+        && complexGenericField.size() > 0;
 ```
 
 **`wide`** — packs operands until the line is full:
 
 ```java
 return legacyField != null && !legacyField.isBlank() && items != null && !items.isEmpty()
-    && items.stream().allMatch(item -> item != null && !item.isBlank()) && complexGenericField != null
-    && complexGenericField.size() > 0;
+        && items.stream().allMatch(item -> item != null && !item.isBlank()) && complexGenericField != null
+        && complexGenericField.size() > 0;
 ```
 
 ---
 
-## Continuation indent size
+## Continuation indent
 
-`continuationIndentSize` controls how far wrapped continuation lines are indented relative to the statement's opening column. Defaults to `4` (matching `indentSize`). Setting it to `8` follows the Oracle convention and visually distinguishes continuation lines from the method body.
-
-**`cont4`** (default, `continuationIndentSize: 4`):
+Continuation indent is always `2 * indentSize` (8 spaces with the default `indentSize=4`). This follows the Oracle/IntelliJ convention and guarantees that wrapped parameters are visually distinct from the method body:
 
 ```java
 public FormatterShowcase(
-    String legacyField,
-    List<String> items,
-    ...
-) {
-    this.legacyField = legacyField;  // body indented 4 — same as params
-```
-
-**`cont8`** (`continuationIndentSize: 8`):
-
-```java
-public FormatterShowcase(
-        String legacyField,
+        String legacyField,              // 8 spaces (continuation)
         List<String> items,
-        ...
+        ExecutorService executorService
 ) {
-    this.legacyField = legacyField;  // body indented 4 — params indented 8, clearly separate
+    this.legacyField = legacyField;      // 4 spaces (body indent) — clearly separate
 ```
 
 ---
@@ -151,24 +138,14 @@ public FormatterShowcase(
 
 ```java
 public FormatterShowcase(
-    String legacyField,
-    List<String> items,
-    ExecutorService executorService
+        String legacyField,
+        List<String> items,
+        ExecutorService executorService
 ) {
-    // ← closing paren on its own line; body is unambiguously separate
+    // ← closing paren on its own line
 ```
 
 **`closingParenOnNewLine: false`**:
-
-```java
-public FormatterShowcase(
-    String legacyField,
-    List<String> items,
-    ExecutorService executorService) {
-    // ← closing paren on same line as last param (K&R style)
-```
-
-The combination of `continuationIndentSize: 8` + `closingParenOnNewLine: false` matches the classic Oracle/Sun style:
 
 ```java
 public FormatterShowcase(
@@ -184,7 +161,7 @@ public FormatterShowcase(
 
 Open **`examples/compare.html`** in a browser for a live diff viewer: pick a Java version, choose two configurations from the dropdowns, and the two outputs are shown side-by-side with changed lines highlighted. Scroll is synchronized between the two panes.
 
-## Viewing all 48 outputs
+## Viewing all 24 outputs
 
 The `examples/outputs/` directory contains one file per configuration:
 
@@ -192,17 +169,17 @@ The `examples/outputs/` directory contains one file per configuration:
 examples/outputs/
   java8/
   java17/
-    balanced-cont4-closingparen-true.java
-    balanced-cont4-closingparen-false.java
-    balanced-cont8-closingparen-true.java
-    balanced-cont8-closingparen-false.java
-    narrow-cont4-closingparen-true.java
-    ...
+    balanced-closingparen-true.java
+    balanced-closingparen-false.java
+    narrow-closingparen-true.java
+    narrow-closingparen-false.java
+    wide-closingparen-true.java
+    wide-closingparen-false.java
   java21/
   java25/
 ```
 
-Each file is the full `FormatterShowcase.java` formatted with that combination of options (the three vary-able options are `wrapStyle`, `continuationIndentSize`, and `closingParenOnNewLine`; `indentStyle`, `indentSize`, `lineLength`, and `trailingCommas` are held at their defaults).
+Each file is the full `FormatterShowcase.java` formatted with that combination of options (the two vary-able options are `wrapStyle` and `closingParenOnNewLine`; `indentStyle`, `indentSize`, `lineLength`, and `trailingCommas` are held at their defaults).
 
 To regenerate after changing formatting behaviour:
 

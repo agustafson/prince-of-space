@@ -23,7 +23,6 @@ class EnumConstantWrappingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
 
@@ -41,7 +40,6 @@ class EnumConstantWrappingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
 
@@ -59,7 +57,6 @@ class EnumConstantWrappingTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.NARROW)
                                 .build());
 

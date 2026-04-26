@@ -210,7 +210,6 @@ class FormatterTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(50)
-                                .continuationIndentSize(4)
                                 .wrapStyle(io.princeofspace.model.WrapStyle.BALANCED)
                                 .closingParenOnNewLine(true)
                                 .javaLanguageLevel(JavaLanguageLevel.of(21))
@@ -418,7 +417,6 @@ class FormatterTest {
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(55)
-                                .continuationIndentSize(4)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
         String input =
