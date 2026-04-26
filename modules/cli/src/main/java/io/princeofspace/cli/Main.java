@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -128,7 +129,9 @@ public final class Main implements Callable<Integer> {
     private int runBatch(Formatter formatter, List<Path> files)
             throws IOException, InterruptedException, ExecutionException {
         boolean anyChange = false;
-        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+        int workers = Math.max(1, Runtime.getRuntime().availableProcessors());
+        ExecutorService executor = Executors.newFixedThreadPool(workers);
+        try {
             List<Future<BatchResult>> futures = new ArrayList<>();
             for (Path file : files) {
                 futures.add(
@@ -151,6 +154,8 @@ public final class Main implements Callable<Integer> {
                     }
                 }
             }
+        } finally {
+            executor.shutdown();
         }
         if (check && anyChange) {
             System.err.println("check failed: one or more files need formatting");
