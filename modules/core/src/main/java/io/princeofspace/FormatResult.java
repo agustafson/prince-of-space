@@ -31,9 +31,9 @@ public sealed interface FormatResult permits FormatResult.Success, FormatResult.
     }
 
     /**
-     * JavaParser reported problems; typically invalid or incomplete syntax.
+     * Parser reported problems; typically invalid or incomplete syntax.
      *
-     * @param problemMessages one entry per {@link com.github.javaparser.Problem}, usually {@link Object#toString()}
+     * @param problemMessages one entry per parser problem, usually {@link Object#toString()}
      */
     record ParseFailure(List<String> problemMessages) implements Failure {
         /** Creates an immutable parse-failure payload from parser problem messages. */
@@ -47,7 +47,7 @@ public sealed interface FormatResult permits FormatResult.Success, FormatResult.
         }
     }
 
-    /** Parse succeeded structurally but the parser supplied no {@link com.github.javaparser.ast.CompilationUnit}. */
+    /** Parse succeeded structurally but the parser supplied no compilation unit. */
     record EmptyCompilationUnit() implements Failure {
         @Override
         public String message() {
