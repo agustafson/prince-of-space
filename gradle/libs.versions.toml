@@ -1,7 +1,6 @@
 [versions]
 archunit = "1.4.1"
 assertj = "3.27.7"
-build-health = "3.7.0"
 # Keep aligned with NullAway (0.13.x targets Error Prone ~2.45; 2.49+ breaks NullAway at runtime).
 errorprone = "2.45.0"
 errorprone-plugin = "5.1.0"
@@ -38,7 +37,6 @@ slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
 spotless-lib = { module = "com.diffplug.spotless:spotless-lib", version.ref = "spotless-lib" }
 
 [plugins]
-build-health = { id = "com.autonomousapps.build-health", version.ref = "build-health" }
 errorprone = { id = "net.ltgt.errorprone", version.ref = "errorprone-plugin" }
 shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
 spotbugs = { id = "com.github.spotbugs", version.ref = "spotbugs-gradle" }
