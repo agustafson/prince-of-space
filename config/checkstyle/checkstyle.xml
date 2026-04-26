@@ -10,6 +10,14 @@
         <property name="file" value="${config_loc}/suppressions.xml"/>
     </module>
     <module name="TreeWalker">
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="^\s*public\s+(?:final\s+|sealed\s+|non-sealed\s+|abstract\s+)?(?:class|interface|enum|record)\s+\w+"/>
+            <property name="message" value="Internal package top-level types must not be public unless explicitly allowlisted."/>
+        </module>
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="^\s*public\s+(?!class\b|interface\b|enum\b|record\b)(?:static\s+)?(?:final\s+|synchronized\s+)?[\w\[\], ?]+\s+\w+\s*\("/>
+            <property name="message" value="Internal package methods must not be public unless explicitly allowlisted."/>
+        </module>
         <!-- Naming & structure only — avoid formatting rules that duplicate Spotless. -->
         <module name="OuterTypeFilename"/>
         <module name="IllegalTokenText"/>
