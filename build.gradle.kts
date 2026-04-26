@@ -10,6 +10,7 @@ subprojects {
     pluginManager.withPlugin("java") {
         apply(plugin = "com.diffplug.spotless")
         apply(plugin = "pmd")
+        apply(plugin = "jacoco")
 
         spotless {
             java {

@@ -3,7 +3,6 @@ import net.ltgt.gradle.errorprone.errorprone
 
 plugins {
     `java-library`
-    jacoco
     checkstyle
     alias(libs.plugins.errorprone)
     alias(libs.plugins.spotbugs)
@@ -139,6 +138,23 @@ tasks.jacocoTestReport {
         xml.required.set(true)
         html.required.set(true)
     }
+}
+
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.test)
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "0.85".toBigDecimal()
+            }
+        }
+    }
+}
+
+tasks.check {
+    dependsOn(tasks.jacocoTestCoverageVerification)
 }
 
 checkstyle {
