@@ -73,7 +73,7 @@ Meanwhile, other ecosystems have excellent formatters: Go has `gofmt`, Rust has 
 **"Reasonable defaults, meaningful knobs."**
 
 - We are NOT gofmt (zero options) or rustfmt (60+ options)
-- We target **~8 configuration options** that cover the formatting decisions developers actually argue about
+- We target a **small, curated configuration surface (currently 7 options)** that covers the formatting decisions developers actually argue about
 - Every option must have a clear default that works for the majority
 - We will not add options for things that have clear community consensus (e.g., spaces around operators: yes)
 - Import management is delegated to Spotless (not our responsibility)
