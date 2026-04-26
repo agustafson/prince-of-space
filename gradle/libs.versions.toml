@@ -10,6 +10,7 @@ jspecify = "1.0.0"
 slf4j = "2.0.17"
 junit = "6.0.3"
 assertj = "3.27.7"
+archunit = "1.4.1"
 shadow = "9.4.1"
 spotless = "8.4.0"
 test-logger = "4.0.0"
@@ -26,6 +27,7 @@ jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 
 [plugins]
 errorprone = { id = "net.ltgt.errorprone", version.ref = "errorprone-plugin" }

@@ -24,7 +24,7 @@
 ## Coding Conventions
 
 ### Internal package
-- All implementation classes live in `io.princeofspace.internal`. Checkstyle import-control rules enforce that non-internal code cannot import `io.princeofspace.internal.*`.
+- All implementation classes live in `io.princeofspace.internal`. ArchUnit tests enforce import boundaries and visibility allowlists for this package.
 - Classes in `io.princeofspace.internal` are **package-private** by default. Callers outside the package cannot see them.
 - The single exception is the "engine" class that `Formatter` must call across the package boundary — currently `FormattingEngine`. It is `public` but still lives in `internal` as a clear signal that it is not part of the public API.
 - Never add `public` to an internal class unless it genuinely needs to be called from a different package.

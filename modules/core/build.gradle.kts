@@ -39,6 +39,7 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation(libs.assertj.core)
+    testImplementation(libs.archunit.junit5)
 }
 
 tasks.withType<Javadoc>().configureEach {
