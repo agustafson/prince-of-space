@@ -31,7 +31,56 @@ permissions:
   contents: write
 
 jobs:
+  # Pre-release gate: full 9-config eval against external corpora (Spring Framework +
+  # Guava). Blocks the publish job via `needs:` below. Hard-fails on any parse error
+  # or idempotency failure (RealWorldEvalTest assertions), so we never ship a build
+  # that breaks real-world codebases. Runs on dry-run and full release alike.
+  external-eval:
+    name: External eval gate (Spring + Guava, full matrix)
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout Prince of Space
+        uses: actions/checkout@v6
+
+      - name: Checkout Spring Framework
+        uses: actions/checkout@v6
+        with:
+          repository: spring-projects/spring-framework
+          path: external/spring-framework
+          fetch-depth: 1
+
+      - name: Checkout Guava
+        uses: actions/checkout@v6
+        with:
+          repository: google/guava
+          path: external/guava
+          fetch-depth: 1
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Run eval (full matrix — must pass for release)
+        env:
+          PRINCE_EVAL_ROOTS: ${{ github.workspace }}/external/spring-framework,${{ github.workspace }}/external/guava
+          PRINCE_EVAL_MAX_HEAP: 6g
+          PRINCE_EVAL_MAX_OVER_LONG_SAMPLES: "0"
+        run: ./gradlew :core:evalTest --no-configuration-cache --no-daemon
+
+      - name: Upload eval report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-eval-report-${{ github.sha }}
+          path: docs/eval-results/*.md
+          if-no-files-found: ignore
+
   release:
+    needs: external-eval
     runs-on: ubuntu-latest
     environment: release
 

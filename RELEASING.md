@@ -81,12 +81,53 @@ required reviewers so the workflow must be approved before it can publish.
 Before triggering the workflow, verify:
 
 - [ ] `main` branch CI is green (`./gradlew build` passes locally or via Actions)
+- [ ] The most recent **External eval** workflow run on `main` is green (smoke job).
+      A full-matrix eval re-runs as part of the release workflow itself (see below);
+      a green smoke run on `main` is a quick pre-flight signal.
 - [ ] Commits/PR titles since the last release follow Conventional Commits so Nyx can generate accurate changelog entries
 - [ ] All commits since the last tag follow [Conventional Commits](https://www.conventionalcommits.org/)
       so Nyx can derive the correct next version:
   - `feat:` → minor bump (`0.1.x` → `0.2.0`)
   - `fix:` → patch bump (`0.1.0` → `0.1.1`)
   - `feat!:` or `BREAKING CHANGE:` in footer → major bump
+
+---
+
+## External eval gate (mandatory)
+
+The release workflow runs the **full 9-config eval** (3 line-length bands × 3 wrap
+styles) against **Spring Framework** and **Guava** in a dedicated `external-eval` job
+**before** any publish/sign/tag step. The publish job declares `needs: external-eval`,
+so a failure in eval blocks the entire release — including dry runs.
+
+The eval hard-asserts:
+
+- **Zero parse errors** across every formatted file in every config.
+- **Zero idempotency failures** — `format(format(x)) == format(x)` everywhere, including
+  convergence within the engine's 4-pass budget.
+
+Over-long line warnings remain informational and do **not** fail the gate.
+
+If the gate fails:
+
+1. Open the failed run in GitHub Actions and download the
+   **`release-eval-report-<sha>`** artifact for the per-config Markdown report
+   (same format as `docs/eval-results/<date>.md`).
+2. Reproduce locally with the failing repo:
+   ```bash
+   git clone --depth=1 https://github.com/spring-projects/spring-framework /tmp/eval/spring-framework
+   git clone --depth=1 https://github.com/google/guava /tmp/eval/guava
+   PRINCE_EVAL_ROOTS=/tmp/eval/spring-framework,/tmp/eval/guava \
+     PRINCE_EVAL_REPORT_DIR="$(pwd)/docs/eval-results" \
+     ./gradlew :core:evalTest
+   ```
+3. Fix the formatter (or knowingly accept and document the breakage), commit, then
+   re-trigger the release workflow.
+
+This gate exists because a regression that breaks a real-world codebase is far more
+expensive than a delayed release. **Do not bypass it.** If you must ship without a
+green eval (e.g. the corpora are temporarily unavailable), open a tracking issue,
+disable the gate via PR with explicit review, and re-enable it in the same release.
 
 ---
 

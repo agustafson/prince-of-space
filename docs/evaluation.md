@@ -63,6 +63,18 @@ Reports are overwritten on re-run for the same day.
 | Any idempotency failure | **Fails** — all paths printed |
 | Over-long non-comment lines | **Warning only** — printed to stdout; test passes |
 
+## Release gating
+
+The eval is mandatory for releases. The `release` workflow has a dedicated
+`external-eval` job that runs the full 9-config matrix against Spring Framework
+and Guava and is declared as a prerequisite (`needs: external-eval`) of the
+publish job. A failed eval blocks publishing even on dry runs. See
+[`RELEASING.md`](../RELEASING.md#external-eval-gate-mandatory) for recovery steps.
+
+A lighter `external-eval-smoke` job (`default-balanced` only) also runs on every
+push and pull request for fast feedback; the full matrix runs weekly and
+on-demand via `workflow_dispatch`. See `.github/workflows/external-eval.yml`.
+
 ## Config permutations
 
 The full eval runs 9 configs per project across three `lineLength` bands and three wrap styles:
