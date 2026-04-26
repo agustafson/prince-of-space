@@ -27,7 +27,7 @@ First release on **Maven Central** (`io.github.agustafson`).
 - **8 configuration options** — `indentStyle`, `indentSize`, `lineLength`, `continuationIndentSize`, `wrapStyle`, `closingParenOnNewLine`, `trailingCommas`, `javaLanguageLevel` — exposed via `FormatterConfig` record with builder.
 - **`JavaLanguageLevel` record** — first-party type for language level configuration, replacing direct use of JavaParser's `LanguageLevel` in the public API. Supports any Java version (1–25+) with optional preview flag.
 - **Sealed `FormatResult` API** — `Formatter.formatResult()` returns `FormatResult.Success` or `FormatResult.Failure` (subtypes: `ParseFailure`, `EmptyCompilationUnit`) for non-throwing error handling.
-- **CLI** (`:cli`) — Picocli-based command-line tool with `--check`, `--stdin`/`--stdout`, `--java-version`, recursive directory formatting, and git-aware file discovery.
+- **CLI** (`:cli`) — Picocli-based command-line tool with `--check`, `--stdin` (reads stdin, writes stdout), `--java-version`, recursive directory formatting, and git-aware file discovery.
 - **Spotless integration** (`:spotless`) — `PrinceOfSpaceStep` implementing Spotless `FormatterStep` with serializable configuration for classloader isolation.
 - **IntelliJ plugin** (`:intellij-plugin`) — Settings UI for all 8 options, language level from module or fixed release, optional format-on-save, and **Code > Reformat with Prince of Space...** action.
 - **VS Code extension** (`modules/vscode-extension/`) — TypeScript extension registering a Java formatting provider, delegating to the CLI shadow JAR.

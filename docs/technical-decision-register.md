@@ -13,8 +13,8 @@ Use it as the primary source of *why* design choices exist.
 
 ### TDR-001: Small, curated configuration surface
 - **Date:** 2026-04
-- **Status:** Accepted
-- **Decision:** Keep a bounded set of public formatter knobs (8 options), not zero-config and not highly granular.
+- **Status:** Superseded by TDR-014
+- **Decision:** Keep a bounded set of public formatter knobs (now 7 options), not zero-config and not highly granular.
 - **Rationale:** Java teams need some style flexibility, but too many options cause bikeshedding and inconsistent output.
 - **Consequences:** `FormatterConfig` remains intentionally small; feature requests for new options require strong justification.
 - **Related docs:** `docs/formatting-rules.md`, `ARCHITECTURE.md`

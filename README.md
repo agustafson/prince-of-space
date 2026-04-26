@@ -22,7 +22,7 @@ Prince of Space takes its philosophy from Prettier and ktlint: strong, readable 
 
 ## Features
 
-- **8 configuration options** covering indentation, line length, wrapping, and trailing commas
+- **7 configuration options** covering indentation, line length, wrapping, and trailing commas
 - **Single-threshold line length** — one `lineLength` target keeps wrapping predictable and the configuration surface small
 - **Idempotent** — formatting already-formatted code produces identical output (`format(format(x)) == format(x)`)
 - **Java 8 through 25+** — parses any Java language level; runs on JDK 17+
@@ -70,7 +70,7 @@ Common flags:
 | Flag | Description |
 |------|-------------|
 | `--check` | Exit 1 if any file would change (no writes) |
-| `--stdin` / `--stdout` | Read from stdin, write to stdout |
+| `--stdin` | Read from stdin, write to stdout |
 | `--java-version N` | Java language level (8, 11, 17, 21, 25, etc.) |
 | `-r` | Recurse into directories |
 | `-v` | Verbose progress on stderr |
@@ -93,7 +93,7 @@ Put `io.github.agustafson:prince-of-space-spotless:0.1.0` on the classpath where
 
 ### IntelliJ Plugin
 
-**Settings > Tools > Prince of Space** — configure all 8 options, choose a fixed Java level or inherit from the module, and optionally enable format-on-save. Format via **Code > Reformat with Prince of Space...**
+**Settings > Tools > Prince of Space** — configure all 7 options, choose a fixed Java level or inherit from the module, and optionally enable format-on-save. Format via **Code > Reformat with Prince of Space...**
 
 ```bash
 ./gradlew :intellij-plugin:runIde      # develop
