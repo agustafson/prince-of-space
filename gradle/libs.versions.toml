@@ -1,38 +1,46 @@
 [versions]
-javaparser = "3.28.0"
-picocli = "4.7.7"
-spotless-lib = "4.5.0"
+archunit = "1.4.1"
+assertj = "3.27.7"
+build-health = "3.7.0"
 # Keep aligned with NullAway (0.13.x targets Error Prone ~2.45; 2.49+ breaks NullAway at runtime).
 errorprone = "2.45.0"
 errorprone-plugin = "5.1.0"
-nullaway = "0.13.1"
+javaparser = "3.28.0"
+jqwik = "1.9.3"
 jspecify = "1.0.0"
-slf4j = "2.0.17"
 junit = "6.0.3"
-assertj = "3.27.7"
-archunit = "1.4.1"
+nullaway = "0.13.1"
+picocli = "4.7.7"
 shadow = "9.4.1"
-spotless = "8.4.0"
-test-logger = "4.0.0"
-build-health = "3.7.0"
+slf4j = "2.0.17"
 spotbugs-gradle = "6.5.0"
+spotless = "8.4.0"
+spotless-lib = "4.5.0"
+test-logger = "4.0.0"
+
 [libraries]
+# Keep entries alphabetically sorted by key.
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+errorprone-core = { module = "com.google.errorprone:error_prone_core", version.ref = "errorprone" }
 javaparser-core = { module = "com.github.javaparser:javaparser-core", version.ref = "javaparser" }
+jqwik = { module = "net.jqwik:jqwik", version.ref = "jqwik" }
+jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }
+junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+nullaway = { module = "com.uber.nullaway:nullaway", version.ref = "nullaway" }
 picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
 spotless-lib = { module = "com.diffplug.spotless:spotless-lib", version.ref = "spotless-lib" }
-errorprone-core = { module = "com.google.errorprone:error_prone_core", version.ref = "errorprone" }
-nullaway = { module = "com.uber.nullaway:nullaway", version.ref = "nullaway" }
-jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
-slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
-junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
-assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
-archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 
 [plugins]
+build-health = { id = "com.autonomousapps.build-health", version.ref = "build-health" }
 errorprone = { id = "net.ltgt.errorprone", version.ref = "errorprone-plugin" }
 shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
+spotbugs = { id = "com.github.spotbugs", version.ref = "spotbugs-gradle" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 test-logger = { id = "com.adarshr.test-logger", version.ref = "test-logger" }
-build-health = { id = "com.autonomousapps.build-health", version.ref = "build-health" }
-spotbugs = { id = "com.github.spotbugs", version.ref = "spotbugs-gradle" }
