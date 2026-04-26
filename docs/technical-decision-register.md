@@ -25,7 +25,7 @@ Use it as the primary source of *why* design choices exist.
 - **Decision:** Use JavaParser AST + custom pretty-printing for formatting.
 - **Rationale:** Good API ergonomics, practical language coverage, and comment-aware workflow for formatter development velocity.
 - **Consequences:** Language-level handling depends on JavaParser support; parser upgrades are part of maintenance.
-- **Related docs:** `ARCHITECTURE.md`, `docs/research-notes.md`
+- **Related docs:** `ARCHITECTURE.md`, TDR-016
 
 ### TDR-003: Separation of public API and internal implementation
 - **Date:** 2026-04
@@ -89,7 +89,7 @@ Use it as the primary source of *why* design choices exist.
 - **Decision:** Prefer decision records + architecture docs over active “implementation plan” narrative docs.
 - **Rationale:** The project is beyond early scaffolding; historical plans are useful context but no longer primary guidance.
 - **Consequences:** Keep research/priorities historical context, and remove stale implementation-plan/roadmap checklists from active docs.
-- **Related docs:** `docs/research-notes.md`, `docs/project-priorities.md`
+- **Related docs:** TDR-016
 
 ### TDR-011: WrapStyle behavior for string concatenation is construct-uniform
 - **Date:** 2026-04
@@ -97,7 +97,7 @@ Use it as the primary source of *why* design choices exist.
 - **Decision:** Treat `+` string concatenation wrapping the same as other list-like constructs for `WrapStyle` policy.
 - **Rationale:** `BALANCED` should mean fit-or-tall consistently; allowing greedy packing only for string concatenation made behavior surprising and undermined predictability.
 - **Consequences:** `BALANCED` and `NARROW` now put each `+` operand on its own continuation line when wrapping; `WIDE` retains greedy packing.
-- **Related docs:** `docs/rule-uniformity-migration-plan.md`, `docs/formatting-rules.md`, `modules/core/src/test/java/io/princeofspace/WrappingFormattingTest.java`
+- **Related docs:** `docs/formatting-rules.md`, `modules/core/src/test/java/io/princeofspace/WrappingFormattingTest.java`
 
 ### TDR-012: continuationIndentSize is additive
 - **Date:** 2026-04
@@ -118,10 +118,10 @@ Use it as the primary source of *why* design choices exist.
 ### TDR-013: Showroom rule-uniformity migration is complete
 - **Date:** 2026-04
 - **Status:** Accepted
-- **Decision:** Treat `docs/rule-uniformity-migration-plan.md` Tasks 1.1 through 6.2 as done: `wrapStyle` behavior is consistent across the showroom’s list-like and wrapping constructs, with regression coverage in `WrappingFormattingTest` and an overview check in `RuleUniformityTest`.
-- **Rationale:** One wrap vocabulary (`wide` / `balanced` / `narrow`) keeps configuration predictable; the rule-uniformity plan drove alignment between docs, the Java printer, and golden outputs.
+- **Decision:** The showroom rule-uniformity work is complete: `wrapStyle` behavior is consistent across the showroom’s list-like and wrapping constructs, with regression coverage in `WrappingFormattingTest` and an overview check in `RuleUniformityTest`. (Earlier stepwise tasks spanned `WidthMeasurer` introduction, `BALANCED` string concat alignment with TDR-011, shared comma-list wrapping for enum/array/type parameters, `extends` clause wrapping, `closingParenOnNewLine` unification, try-with-resources/`for`/`switch` wrapping, and `AnnotationArranger` / `BlankLineNormalizer` alignment.)
+- **Rationale:** One wrap vocabulary (`wide` / `balanced` / `narrow`) keeps configuration predictable; the migration aligned docs, the Java printer, and golden outputs.
 - **Consequences:** Further wrapping tweaks should update `docs/formatting-rules.md` and the showroom in lockstep; avoid reintroducing per-construct ad-hoc wrap semantics without a TDR.
-- **Related docs:** `docs/rule-uniformity-migration-plan.md`, `docs/formatting-rules.md`, `modules/core/src/test/java/io/princeofspace/RuleUniformityTest.java`
+- **Related docs:** `docs/formatting-rules.md`, `modules/core/src/test/java/io/princeofspace/RuleUniformityTest.java`
 
 ### TDR-015: Wrapped method chains use indentSize, not 2 × indentSize
 - **Date:** 2026-04
@@ -134,3 +134,29 @@ Use it as the primary source of *why* design choices exist.
   - All 24 showroom golden files were regenerated; existing chain assertions in `WrappingFormattingTest` were updated to reflect the new column math (chain at base + indentSize, lambda body inside a chain segment at chain + indentSize, text-block-receiver chain at base + indentSize).
   - TDR-012 (additive continuation indent) and TDR-014 (continuation indent is fixed at `2 * indentSize`) still apply to every other wrapping construct; this TDR is a Rule 7 carve-out only.
 - **Related docs:** `docs/canonical-formatting-rules.md` (Rules 3, 7), `docs/formatting-rules.md` (Part 1 §3, Part 3 "Method Chaining"), `modules/core/src/main/java/io/princeofspace/internal/MethodChainFormatter.java`, `modules/core/src/main/java/io/princeofspace/internal/LayoutContext.java`, `modules/core/src/main/java/io/princeofspace/internal/BinaryExprFormatter.java`
+
+### TDR-016: Mission, ecosystem context, and research bibliography
+- **Date:** 2026-04
+- **Status:** Accepted
+- **Decision:** Retain the following as durable context (consolidated from former `docs/project-priorities.md` and `docs/research-notes.md` when those historical docs were retired).
+- **Mission:** Build a Java formatter that is readable, meaningfully configurable (small public surface: 7 options; see TDR-001, TDR-014), and straightforward to wire into real projects (see TDR-007, TDR-008).
+- **Ecosystem — pain points in other Java formatters (informal):**
+
+| Tool | Usual pain points (not exhaustive) |
+|------|------------------------------------|
+| **google-java-format** | Effectively unconfigurable; 2-space default (non-Android); heavy rightward indent / lambdas often criticized |
+| **palantir-java-format** | Very limited configurability; still a GJF-style fork in spirit |
+| **Eclipse JDT** | Opaque XML; painful to use without the Eclipse config workflow |
+| **IntelliJ** | No stable standalone CLI; hundreds of options encourage drift |
+| **Prettier (Java)** | Node runtime; teams care about version churn vs JVM-native stacks |
+| **Spring Java Format** | Fixed style, Eclipse-centric integration patterns |
+
+*Commentary is opinionated; teams differ. The point of the table is the product gap PoS is aimed at: Prettier/ktlint-like *bounded* config plus good JVM/CI/IDE story.*
+
+- **Configuration sweet spot (research):** Ecosystems show `gofmt`-style 0 options work where the culture is uniform; `black`-style “few” options (line length, indents) cover most real disagreements; very large option sets (e.g. rustfmt-scale) add fatigue. Prince of Space targets a **small curated** surface (7 options) — see TDR-001.
+- **What Java teams often rank highly when choosing formatters (informal):** indent width; line length; lambda layout; method-chain layout; continuation indent; import policy (here delegated to Spotless, README non-goals); wrapping policy; blank-line policy.
+- **Parser choice (extends TDR-002):** **JavaParser** was chosen for a public, comment-friendly AST, practical API/visitor model, and formatting-friendly workflows. *Alternatives considered:* **Eclipse JDT** — heavier, more IDE-coupled. **javac internal tree** (as used by some formatters) — strong language parity but comment handling and API stability are awkward for a new formatter. **Spoon** — JDT-based; more transformation-oriented than we need. The canonical “use JavaParser” decision remains TDR-002; this entry preserves *why* alternatives were less attractive.
+- **Spotless:** First-party `PrinceOfSpaceStep` and Spotless as the build-tool integration path are product decisions in TDR-008. Early research also noted Spotless’s `FormatterStep` model and `custom` / classpath integration patterns; see `docs/evaluation.md` for the harness.
+- **Bibliography (external background):** [Why are there no decent code formatters for Java?](https://jqno.nl/post/2024/08/24/why-are-there-no-decent-code-formatters-for-java/) (Jan Ouwens); [Prettier option philosophy](https://prettier.io/docs/option-philosophy); [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html); [rustfmt configuration](https://github.com/rust-lang/rustfmt/blob/main/Configurations.md); [Black](https://github.com/psf/black); [Spotless](https://github.com/diffplug/spotless); [Oracle Java code conventions (indentation)](https://www.oracle.com/java/technologies/javase/codeconventions-indentation.html).
+- **Consequences:** Product positioning and ecosystem comparisons live here; normative *formatter behavior* remains `docs/canonical-formatting-rules.md`. Historical priority-stack items (P0–P3) are subsumed by shipped modules and the decision register; treat them as background, not a roadmap checklist.
+- **Related docs:** TDR-002, TDR-007, TDR-008, `README.md`, `docs/evaluation.md`

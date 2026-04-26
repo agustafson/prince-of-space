@@ -62,6 +62,3 @@ nav:
     - Benchmarks: benchmarks.md
   - Decision Register: technical-decision-register.md
   - Changelog: changelog.md
-  - Historical:
-    - Project Priorities: project-priorities.md
-    - Research Notes: research-notes.md

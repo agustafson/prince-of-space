@@ -21,11 +21,6 @@
 | [Benchmarks](benchmarks.md) | Performance smoke tests and future JMH plans |
 | [Changelog](../CHANGELOG.md) | Release history |
 
-## Historical reference
+## Background
 
-These documents capture early research and design decisions. They remain useful as context but are no longer actively maintained — current decisions are recorded in the [decision register](technical-decision-register.md).
-
-| Document | Contents |
-|----------|----------|
-| [Project Priorities](project-priorities.md) | Original mission, priority stack, and design philosophy |
-| [Research Notes](research-notes.md) | Formatter comparison matrix, community analysis, and AST parser evaluation |
+Informal product positioning, ecosystem comparisons, parser-choice rationale, and a research bibliography are archived as **TDR-016** in the [decision register](technical-decision-register.md).
