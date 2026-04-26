@@ -24,6 +24,12 @@ Use **JDK 21+** to run Gradle here: the **Error Prone** compiler plugin needs a 
 
 CI runs tests, Spotless, Checkstyle, SpotBugs, Error Prone, and dependency health. Keep `./gradlew build` green locally.
 
+## Dependency declarations
+
+- Do not use dynamic versions (`latest.release`, `+`, ranges).
+- Declare dependency coordinates and versions in `gradle/libs.versions.toml`.
+- Keep each `libs.versions.toml` section alphabetically ordered by key.
+
 ## Code
 
 - Prefer **small public API** changes — every public type is a compatibility promise.

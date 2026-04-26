@@ -42,3 +42,6 @@ Always run `:core:test` after any change to `modules/core/`. A clean `./gradlew 
 - Tests for package-private classes live in the same package as the class (`src/test/java/io/princeofspace/internal/`).
 - Every test touching `Formatter` must assert idempotency: `format(format(x)) == format(x)`.
 - For any formatter behavior change or bugfix, treat `docs/canonical-formatting-rules.md` as the canonical contract. If behavior changes intentionally, update that document in the same PR.
+- Never use dynamic dependency versions (for example `latest.release`, version ranges, or `+`).
+- Declare dependency coordinates and versions in `gradle/libs.versions.toml`; Gradle build scripts should reference `libs.*` entries rather than hardcoding module/version strings.
+- Keep each section in `gradle/libs.versions.toml` alphabetically ordered by key.
