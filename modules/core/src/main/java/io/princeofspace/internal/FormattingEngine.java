@@ -25,6 +25,8 @@ import java.util.List;
  */
 public final class FormattingEngine {
 
+    private static final System.Logger LOG = System.getLogger(FormattingEngine.class.getName());
+
     private final FormatterConfig config;
     private final int maxConvergencePasses;
 
@@ -75,10 +77,17 @@ public final class FormattingEngine {
             }
             String next = success.formattedSource();
             if (next.equals(current)) {
+                if (pass > 1) {
+                    LOG.log(System.Logger.Level.DEBUG,
+                            "Convergence required {0} passes (budget {1})",
+                            pass + 1, maxConvergencePasses + 1);
+                }
                 return success;
             }
             current = next;
         }
+        LOG.log(System.Logger.Level.WARNING,
+                "Formatting did not converge within {0} passes", maxConvergencePasses + 1);
         return new FormatResult.NonConvergent(maxConvergencePasses + 1);
     }
 

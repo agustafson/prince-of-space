@@ -34,6 +34,7 @@ record EvalReport(
                         .append(")\n");
                 sb.append("- Files: ").append(total).append(" scanned, ").append(attempted).append(" attempted\n");
                 sb.append("- Parse errors: ").append(run.parseErrors().size()).append('\n');
+                sb.append("- Convergence failures: ").append(run.convergenceFailures().size()).append('\n');
                 sb.append("- Idempotency failures: ").append(run.idempotencyFailures().size()).append('\n');
                 sb.append("- Reformatted: ").append(run.reformatted())
                         .append(" (").append(formatPercent(reformattedPct)).append(")\n");
@@ -95,8 +96,8 @@ record EvalReport(
         }
 
         sb.append("## Summary\n\n");
-        sb.append("| Project | Config | Parse errors | Idempotency failures | Over-long (fmt) | Over-long (src) | Net Δ | Files worse | Files better |\n");
-        sb.append("|---------|--------|-------------|----------------------|----------------|-----------------|-------|------------|-------------|\n");
+        sb.append("| Project | Config | Parse errors | Convergence failures | Idempotency failures | Over-long (fmt) | Over-long (src) | Net Δ | Files worse | Files better |\n");
+        sb.append("|---------|--------|-------------|----------------------|----------------------|----------------|-----------------|-------|------------|-------------|\n");
         for (RealWorldEvalTest.ProjectEvalResult project : results) {
             for (RealWorldEvalTest.ConfigRunResult run : project.configResults()) {
                 int fmtLong = run.formattedOverLongLineCount();
@@ -105,6 +106,7 @@ record EvalReport(
                 sb.append("| ").append(project.name())
                         .append(" | ").append(run.config().name())
                         .append(" | ").append(run.parseErrors().size())
+                        .append(" | ").append(run.convergenceFailures().size())
                         .append(" | ").append(run.idempotencyFailures().size())
                         .append(" | ").append(fmtLong)
                         .append(" | ").append(srcLong)

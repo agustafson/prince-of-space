@@ -114,6 +114,7 @@ class RealWorldEvalTest {
             EvalConfig config,
             int totalFiles,
             List<String> parseErrors,
+            List<String> convergenceFailures,
             List<String> idempotencyFailures,
             /** Sample of over-long lines (capped); see {@link #formattedOverLongLineCount()}. */
             List<OverLongLine> overLongLines,
@@ -157,6 +158,7 @@ class RealWorldEvalTest {
 
         List<ProjectEvalResult> results = new ArrayList<>();
         List<String> allParseErrors = new ArrayList<>();
+        List<String> allConvergenceFailures = new ArrayList<>();
         List<String> allIdempotencyFailures = new ArrayList<>();
 
         for (Path project : projects) {
@@ -180,6 +182,10 @@ class RealWorldEvalTest {
 
                 for (String e : result.parseErrors()) {
                     allParseErrors.add("[" + projectName + " / " + evalConfig.name() + "] " + e);
+                }
+                for (String e : result.convergenceFailures()) {
+                    allConvergenceFailures.add(
+                            "[" + projectName + " / " + evalConfig.name() + "] " + e);
                 }
                 for (String e : result.idempotencyFailures()) {
                     allIdempotencyFailures.add(
@@ -206,10 +212,12 @@ class RealWorldEvalTest {
                 int srcLong = result.sourceOverLongLineCount();
                 int net = fmtLong - srcLong;
                 System.out.printf(
-                        "  Done: %d files, %d parse errors, %d idempotency failures,"
+                        "  Done: %d files, %d parse errors, %d convergence failures,"
+                                + " %d idempotency failures,"
                                 + " over-long fmt=%d src=%d (net %+d), files worse=%d better=%d, %d ms%n",
                         result.totalFiles(),
                         result.parseErrors().size(),
+                        result.convergenceFailures().size(),
                         result.idempotencyFailures().size(),
                         fmtLong,
                         srcLong,
@@ -228,9 +236,14 @@ class RealWorldEvalTest {
         Files.writeString(reportFile, report);
         System.out.println("\nReport written to: " + reportFile);
 
-        // Hard assertions — collect both lists so a single run surfaces all problems.
+        // Hard assertions — collect all lists so a single run surfaces all problems.
         assertThat(allParseErrors)
                 .as("Parse errors (must be zero):\n%s", String.join("\n", allParseErrors))
+                .isEmpty();
+        assertThat(allConvergenceFailures)
+                .as(
+                        "Convergence failures (must be zero):\n%s",
+                        String.join("\n", allConvergenceFailures))
                 .isEmpty();
         assertThat(allIdempotencyFailures)
                 .as(
@@ -247,6 +260,7 @@ class RealWorldEvalTest {
             Path projectRoot, EvalConfig evalConfig, List<Path> files, FormatterConfig config) {
         Formatter formatter = new Formatter(config);
         List<String> parseErrors = new ArrayList<>();
+        List<String> convergenceFailures = new ArrayList<>();
         List<String> idempotencyFailures = new ArrayList<>();
         List<OverLongLine> overLongLineSamples = new ArrayList<>();
         OverLongAgg overLongAgg = new OverLongAgg();
@@ -281,11 +295,9 @@ class RealWorldEvalTest {
                 }
                 srcLong = countOverLongLines(source, max);
                 sourceOverLongLineCount += srcLong;
+                FormatResult result;
                 try {
-                    once = formatter.format(source);
-                } catch (FormatterException e) {
-                    parseErrors.add(relative + ": " + e.getMessage());
-                    continue;
+                    result = formatter.formatResult(source);
                 } catch (RuntimeException e) {
                     parseErrors.add(
                             relative
@@ -295,18 +307,27 @@ class RealWorldEvalTest {
                                     + e.getMessage());
                     continue;
                 }
+                if (result instanceof FormatResult.Success success) {
+                    once = success.formattedSource();
+                } else if (result instanceof FormatResult.NonConvergent nc) {
+                    convergenceFailures.add(relative + ": " + nc.message());
+                    System.out.printf(
+                            "    CONVERGENCE FAILURE: %s — did not stabilize in %d passes%n",
+                            relative, nc.passesAttempted());
+                    continue;
+                } else {
+                    parseErrors.add(
+                            relative + ": " + ((FormatResult.Failure) result).message());
+                    continue;
+                }
                 fileAlreadyClean = once.equals(source);
                 // Drop `source` before the optional second format so peak heap is ~2× output, not 3×.
             }
 
             if (!skipSecondFormat) {
+                FormatResult secondResult;
                 try {
-                    String twice = formatter.format(once);
-                    if (!twice.equals(once)) {
-                        idempotencyFailures.add(relative);
-                    }
-                } catch (FormatterException e) {
-                    idempotencyFailures.add(relative + " (second pass threw): " + e.getMessage());
+                    secondResult = formatter.formatResult(once);
                 } catch (RuntimeException e) {
                     idempotencyFailures.add(
                             relative
@@ -315,6 +336,19 @@ class RealWorldEvalTest {
                                     + ": "
                                     + e.getMessage()
                                     + ")");
+                    secondResult = null;
+                }
+                if (secondResult instanceof FormatResult.Success success) {
+                    if (!success.formattedSource().equals(once)) {
+                        idempotencyFailures.add(relative);
+                    }
+                } else if (secondResult instanceof FormatResult.NonConvergent nc) {
+                    idempotencyFailures.add(
+                            relative + " (second pass did not converge in "
+                                    + nc.passesAttempted() + " passes)");
+                } else if (secondResult instanceof FormatResult.Failure failure) {
+                    idempotencyFailures.add(
+                            relative + " (second pass failed): " + failure.message());
                 }
             }
 
@@ -348,6 +382,7 @@ class RealWorldEvalTest {
                 evalConfig,
                 files.size(),
                 parseErrors,
+                convergenceFailures,
                 idempotencyFailures,
                 List.copyOf(overLongLineSamples),
                 overLongAgg.total,
