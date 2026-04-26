@@ -16,6 +16,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class WrappingFormattingTest {
 
+    private static final String EXPECTED_PLUS_LEGACY_FIELD_LINE = "            + legacyField\n";
+    private static final String EXPECTED_PLUS_YOU_HAVE_LITERAL_LINE = "            + \", you have \"\n";
+    private static final String EXPECTED_PLUS_ITEMS_SIZE_LINE = "            + items.size()\n";
+
     @Test
     void throwsClause_balanced_wrapsEachExceptionType() {
         Formatter f =
@@ -964,9 +968,9 @@ class WrappingFormattingTest {
         String out = f.format(input);
 
         assertThat(out).contains("        String traditional = \"Hello \"\n");
-        assertThat(out).contains("            + legacyField\n");
-        assertThat(out).contains("            + \", you have \"\n");
-        assertThat(out).contains("            + items.size()\n");
+        assertThat(out).contains(EXPECTED_PLUS_LEGACY_FIELD_LINE);
+        assertThat(out).contains(EXPECTED_PLUS_YOU_HAVE_LITERAL_LINE);
+        assertThat(out).contains(EXPECTED_PLUS_ITEMS_SIZE_LINE);
         assertThat(f.format(out)).isEqualTo(out);
     }
 
@@ -992,14 +996,14 @@ class WrappingFormattingTest {
         String out = f.format(input);
 
         assertThat(out).contains("        var traditional = \"Hello \"\n");
-        assertThat(out).contains("            + legacyField\n");
-        assertThat(out).contains("            + \", you have \"\n");
-        assertThat(out).contains("            + items.size()\n");
+        assertThat(out).contains(EXPECTED_PLUS_LEGACY_FIELD_LINE);
+        assertThat(out).contains(EXPECTED_PLUS_YOU_HAVE_LITERAL_LINE);
+        assertThat(out).contains(EXPECTED_PLUS_ITEMS_SIZE_LINE);
         assertThat(f.format(out)).isEqualTo(out);
     }
 
     @Test
-    void stringConcatenation_wide_keepsGreedyPacking() {
+    void stringConcatenation_wide_wrappedChain_oneOperandPerLine() {
         Formatter f =
                 new Formatter(
                         FormatterConfig.builder()
@@ -1019,12 +1023,10 @@ class WrappingFormattingTest {
 
         String out = f.format(input);
 
-        assertThat(out)
-                .contains(
-                        "        var traditional = \"Hello \" + legacyField + \", you have \" + items.size() + \" items in your collection. \"\n");
-        assertThat(out)
-                .contains(
-                        "                + \"Please review them at your earliest convenience. \"\n");
+        assertThat(out).contains("        var traditional = \"Hello \"\n");
+        assertThat(out).contains(EXPECTED_PLUS_LEGACY_FIELD_LINE);
+        assertThat(out).contains(EXPECTED_PLUS_YOU_HAVE_LITERAL_LINE);
+        assertThat(out).contains(EXPECTED_PLUS_ITEMS_SIZE_LINE);
         assertThat(f.format(out)).isEqualTo(out);
     }
 
@@ -1049,8 +1051,8 @@ class WrappingFormattingTest {
         String out = f.format(input);
 
         assertThat(out).contains("        String traditional = \"Hello \"\n");
-        assertThat(out).contains("            + legacyField\n");
-        assertThat(out).contains("            + \", you have \"\n");
+        assertThat(out).contains(EXPECTED_PLUS_LEGACY_FIELD_LINE);
+        assertThat(out).contains(EXPECTED_PLUS_YOU_HAVE_LITERAL_LINE);
         assertThat(f.format(out)).isEqualTo(out);
     }
 

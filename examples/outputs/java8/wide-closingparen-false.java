@@ -212,7 +212,11 @@ public class FormatterShowcase
 
     // Scenario 16: Long string concatenation
     public String buildMessage() {
-        String traditional = "Hello " + legacyField + ", you have " + items.size() + " items in your collection. "
+        String traditional = "Hello "
+                + legacyField
+                + ", you have "
+                + items.size()
+                + " items in your collection. "
                 + "Please review them at your earliest convenience. "
                 + "If you have any questions, please contact support.";
         return traditional;
@@ -335,13 +339,13 @@ public class FormatterShowcase
     public void longAssert() {
         assert legacyField != null && items != null && !items.isEmpty() : 
                 "legacyField and items must be populated before calling longAssert in production systems "
-                + "with strict validation rules " + "enabled";
+                + "with strict validation rules enabled";
     }
 
     // Scenario 39b: Long string literal in method argument
     public void longExceptionMessage() {
         throw new IllegalStateException("Component scan for configuration class [%s] could not be used with "
-                + "conditions in REGISTER_BEAN phase: " + "%s".formatted(legacyField, items));
+                + "conditions in REGISTER_BEAN phase: %s".formatted(legacyField, items));
     }
 
     // Scenario 39c: Text block with formatted arguments
@@ -421,7 +425,7 @@ public class FormatterShowcase
     public void assertChunkBoundaryWordSplit(boolean enabled) {
         assert enabled : 
                 "legacyField and items must be populated before calling assertChunkBoundaryWordSplit in "
-                + "production systems with strict validation rules enabled and mandatory audit " + "logging";
+                + "production systems with strict validation rules enabled and mandatory audit logging";
     }
 
     // Scenario 47: Break after '=' while keeping RHS on one continuation line
@@ -477,9 +481,9 @@ public class FormatterShowcase
     // Scenario 50: Nested lambda call should avoid dangling ')' before ';'
     public void nestedLambdaWarnCallWrapping() {
         cappedLogNoCustomerData(l -> l.warn("Bad thing happened and we have lots of information to tell you in this "
-                + "warning " + "payload",
+                + "warning payload",
                 new IllegalStateException("Bad thing happened and this diagnostic stack summary is also "
-                + "intentionally very long to force " + "wrapping")));
+                + "intentionally very long to force wrapping")));
     }
 
     // Scenario 53: Interface extends clause with many super-interfaces

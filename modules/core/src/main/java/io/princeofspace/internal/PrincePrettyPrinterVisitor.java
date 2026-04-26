@@ -784,18 +784,27 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     private static final int MAX_SHALLOW_LINEAR_STRING_CONCAT_PARTS = 128;
 
     private void printWrappedStringLiteralChunks(String raw) {
-        List<String> pieces = collectRawStringPiecesForChunking(raw);
+        // R1: subsequent piece boundaries depend only on (raw, config) so a re-parse of "a"+"b"+...
+        // splits identically (each operand is preserved as-is by visit(StringLiteralExpr) inside a
+        // + chain — see isInsideStringConcatChain). The FIRST piece is sized to the current column
+        // so it can stay on the same line as the prefix (e.g. throw new T("…") chunked inline).
+        // Pass-N stability holds because the first piece becomes the LEFT operand of a + tree on
+        // re-parse and is not re-chunked there.
+        List<String> pieces = collectRawStringPiecesForChunking(raw, columnAwareFirstPieceMaxRoom());
         if (pieces.size() <= MAX_SHALLOW_LINEAR_STRING_CONCAT_PARTS) {
-            String first = pieces.get(0);
-            int firstPieceLen = StringEscapeUtils.escapeJava(first).length() + 2;
-            int firstLineRoom = Math.max(1, fmt.lineLength() - column() - 2);
-            if (firstPieceLen > firstLineRoom) {
-                pieces = splitRawIntoStringPieces(raw, Math.min(stableMaxRoomAfterPlusPrefix(), firstLineRoom));
-            }
             emitLinearStringPiecesFromList(pieces);
         } else {
             emitBalancedParenStringPieces(pieces);
         }
+    }
+
+    /**
+     * Maximum width (including both {@code "} delimiters and escapes) for the first chunked piece
+     * so it fits on the current line at {@link #column()}. Returns at least {@code 1} so chunking
+     * always makes forward progress.
+     */
+    private int columnAwareFirstPieceMaxRoom() {
+        return Math.max(1, fmt.lineLength() - column() - 2);
     }
 
     /**
@@ -837,28 +846,39 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 Math.min(BALANCED_PAREN_HEADROOM_MAX, fmt.lineLength() / BALANCED_PAREN_HEADROOM_DIVISOR));
     }
 
-    private List<String> collectRawStringPiecesForChunking(String raw) {
+    private List<String> collectRawStringPiecesForChunking(String raw, int firstPieceMaxRoom) {
         int baseMax = stableMaxRoomAfterPlusPrefix();
-        List<String> pieces = splitRawIntoStringPieces(raw, baseMax);
+        int firstMax = Math.max(1, Math.min(baseMax, firstPieceMaxRoom));
+        List<String> pieces = splitRawIntoStringPieces(raw, firstMax, baseMax);
         if (pieces.size() <= MAX_SHALLOW_LINEAR_STRING_CONCAT_PARTS) {
             return pieces;
         }
         int headroom = balancedStringConcatParenHeadroom();
-        return splitRawIntoStringPieces(
-                raw, Math.max(1, baseMax - headroom));
+        int restBudget = Math.max(1, baseMax - headroom);
+        int firstBudget = Math.max(1, Math.min(firstMax, restBudget));
+        return splitRawIntoStringPieces(raw, firstBudget, restBudget);
     }
 
-    private static List<String> splitRawIntoStringPieces(String raw, int maxRoom) {
+    /**
+     * Splits {@code raw} into chunks where the first piece uses {@code firstMaxRoom} (column-aware
+     * so it fits on the current line) and remaining pieces use {@code restMaxRoom} (stable
+     * continuation budget). Pass-N idempotency holds because subsequent passes treat each piece as
+     * a {@link StringLiteralExpr} operand inside a {@code +} chain and do not re-chunk.
+     */
+    private static List<String> splitRawIntoStringPieces(String raw, int firstMaxRoom, int restMaxRoom) {
         List<String> pieces = new ArrayList<>();
         if (raw.isEmpty()) {
             pieces.add("");
             return pieces;
         }
         int i = 0;
+        boolean first = true;
         while (i < raw.length()) {
-            int grow = growPieceEndIndexForChunking(raw, i, maxRoom);
+            int useMax = first ? firstMaxRoom : restMaxRoom;
+            int grow = growPieceEndIndexForChunking(raw, i, useMax);
             pieces.add(raw.substring(i, grow));
             i = grow;
+            first = false;
         }
         return pieces;
     }
@@ -882,6 +902,14 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (grow == i) {
             return i + Character.charCount(raw.codePointAt(i));
         }
+        // R1: when the entire remainder fits in maxRoom, do not backtrack to a preferred break — the
+        // remainder forms one piece. Backtracking here turns "BEAN phase: %s" (14 chars, fits) into
+        // two pieces ("BEAN phase: " + "%s") and triggers extra `+ "..."` lines that re-parse into a
+        // longer + chain on the next pass, breaking idempotency budgets for callers like
+        // throw new IllegalStateException("…long…".formatted(…)).
+        if (grow == raw.length()) {
+            return grow;
+        }
         // Prefer semantic boundaries (space/punctuation/end-of-line) so words are not split mid-token.
         return preferredBreak > i ? preferredBreak : grow;
     }
@@ -903,6 +931,18 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     /** Multi-line concat for precomputed fragments (line breaks inserted only when emitting). */
     private void emitLinearStringPiecesFromList(List<String> pieces) {
+        if (pieces.isEmpty()) {
+            return;
+        }
+        int firstLen = StringEscapeUtils.escapeJava(pieces.get(0)).length() + 2;
+        int lineLen = fmt.lineLength();
+        // R4 safety net: column-aware first-piece sizing in collectRawStringPiecesForChunking should
+        // make this branch unreachable for chunk-driven callers; keep the guard for any caller that
+        // pre-built pieces without column awareness so a long first chunk still gets a continuation.
+        if (column() + firstLen > lineLen) {
+            printer.println();
+            printCont();
+        }
         for (int idx = 0; idx < pieces.size(); idx++) {
             if (idx > 0) {
                 printer.println();
@@ -1212,7 +1252,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
         int quotedLen = StringEscapeUtils.escapeJava(n.getValue()).length() + 2;
-        if (column() + quotedLen > fmt.lineLength() && !isInsideStringConcatChain(n)) {
+        int lineLen = fmt.lineLength();
+        boolean shouldChunk = !isInsideStringConcatChain(n) && column() + quotedLen > lineLen;
+        if (shouldChunk) {
             emitChunkedStringLiteral(n.getValue());
         } else {
             // Do not call super.visit: DefaultPrettyPrinterVisitor would print orphan + comment again.

@@ -12,6 +12,7 @@ import io.princeofspace.model.WrapStyle;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Formats {@link BinaryExpr} nodes (boolean chains, string concatenation, arithmetic).
@@ -165,34 +166,58 @@ final class BinaryExprFormatter {
                 }
                 return;
             }
-            if (!useGreedyPackingForList(BinaryExpr.Operator.PLUS)) {
-                boolean prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(0), arg);
-                for (int i = 1; i < parts.size(); i++) {
-                    if (comments.hasLeadingLineOrBlockComment(parts.get(i))) {
-                        printBinaryChainOperandWithInterposedLeadingComments(parts.get(i), "+", arg);
-                        prevTrailing = false;
-                    } else {
-                        if (!prevTrailing) {
-                            ctx.println();
-                        }
-                        ctx.printCont();
-                        ctx.print("+ ");
-                        prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(i), arg);
-                    }
-                }
-            } else {
-                printBinaryGreedy(parts, "+", arg);
-            }
+            // R1: WIDE greedy packing for + was column-based and could fail to reach a fixed point
+            // (e.g. Spring withMessage with +// continuations, long annotation args). For non-inline
+            // + chains, use the same one-infix-per-line layout as BALANCED (see
+            // printPlusChainOnePerLineWithPlusSpine javadoc). Greedy remains for other operators
+            // (e.g. &&) under WIDE.
+            List<BinaryExpr> plusOrphanSplits = listLeftAssociativePlusSplitNodes(n);
+            printPlusChainOnePerLineWithPlusSpine(parts, arg, plusOrphanSplits);
             return;
         }
         ctx.acceptDefault(n, arg);
     }
 
-    private boolean useGreedyPackingForList(BinaryExpr.Operator op) {
-        if (op == BinaryExpr.Operator.PLUS) {
-            return ctx.config().wrapStyle() == WrapStyle.WIDE;
+    /**
+     * One infix and operand per line (continuation). This is the layout for all wrapped {@code +}
+     * chains (WIDE, BALANCED, NARROW). Emits and removes any orphan line comments (e.g. empty {@code
+     * //} after {@code +}) from the left-associative + spine; Greedy WIDE no longer applies to +
+     * for idempotency.
+     */
+    private void printPlusChainOnePerLineWithPlusSpine(
+            List<Expression> parts, Void arg, List<BinaryExpr> plusOrphanSplits) {
+        // R4: a long string-literal first operand can overflow if printed at the chain's start
+        // column. Inside a + chain we do not chunk the literal (see visit(StringLiteralExpr) +
+        // isInsideStringConcatChain), so force a continuation before parts[0] when its flat width
+        // would not fit. Pass-1 column-aware piece sizing in PrincePrettyPrinterVisitor keeps
+        // re-parsed first operands within budget, so only the obvious overflow check is needed
+        // here — a conservative "close to the limit" guard would spuriously break asserts where
+        // the first operand was sized to fit at column 16 (continuation indent).
+        Expression first = parts.get(0);
+        if (first instanceof StringLiteralExpr) {
+            int flat = WidthMeasurer.flatWidth(first, ctx.config());
+            if (ctx.column() + flat > ctx.config().lineLength()) {
+                ctx.println();
+                ctx.printCont();
+            }
         }
-        return ctx.config().wrapStyle() == WrapStyle.WIDE;
+        boolean prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(0), arg);
+        for (int i = 1; i < parts.size(); i++) {
+            if (comments.hasLeadingLineOrBlockComment(parts.get(i))) {
+                printBinaryChainOperandWithInterposedLeadingComments(parts.get(i), "+", arg);
+                prevTrailing = false;
+            } else {
+                if (!prevTrailing) {
+                    ctx.println();
+                }
+                ctx.printCont();
+                ctx.print("+ ");
+                if (i - 1 < plusOrphanSplits.size() && plusOrphanSplits.size() == parts.size() - 1) {
+                    printOrphansFromNode(plusOrphanSplits.get(i - 1), arg);
+                }
+                prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(i), arg);
+            }
+        }
     }
 
     /**
@@ -298,6 +323,44 @@ final class BinaryExprFormatter {
             prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(i), arg);
             used = ctx.column();
         }
+    }
+
+    private void printOrphansFromNode(BinaryExpr n, Void arg) {
+        for (Comment c : new ArrayList<>(n.getOrphanComments())) {
+            ctx.accept(c, arg);
+            if (c.isOrphan()) {
+                c.remove();
+            }
+        }
+    }
+
+    /**
+     * Left-associative {@code +} tree only: the {@code p0 + p1 + ...} spine from the deepest
+     * subexpression up to the root, bottom-first order (split 0 = between parts 0|1, ...).
+     */
+    private static List<BinaryExpr> listLeftAssociativePlusSplitNodes(BinaryExpr top) {
+        if (top.getOperator() != BinaryExpr.Operator.PLUS) {
+            return List.of();
+        }
+        BinaryExpr bottom = top;
+        while (bottom.getLeft() instanceof BinaryExpr lb && lb.getOperator() == BinaryExpr.Operator.PLUS) {
+            bottom = lb;
+        }
+        List<BinaryExpr> fromBottom = new ArrayList<>();
+        BinaryExpr cur = bottom;
+        while (true) {
+            fromBottom.add(cur);
+            if (!(cur.getParentNode()
+                    .orElse(null) instanceof BinaryExpr parent)) {
+                break;
+            }
+            if (parent.getOperator() != BinaryExpr.Operator.PLUS
+                    || !Objects.equals(parent.getLeft(), cur)) {
+                break;
+            }
+            cur = parent;
+        }
+        return fromBottom;
     }
 
     private boolean printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(

@@ -20,6 +20,9 @@ build/
 hs_err_pid*
 replay_pid*
 
+# jqwik property-based test cache
+.jqwik-database
+
 # Logs
 *.log
 
