@@ -4,7 +4,7 @@
 
 - **`FormatterShowcase.java`** under `examples/inputs/java8`, `java17`, `java21`, and `java25` drives the **24 golden files** (`examples/outputs/...`, 6 formatter configs × 4 language trees). Scenario comments in those files label each block.
 - **Do not add extra** `.java` files under `examples/inputs/java*/` for showroom-only syntax: fold new cases into `FormatterShowcase.java` for the right level, then run `REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens` so `examples/outputs/` stays in sync. `ExamplesCorpusFormatTest` still walks every `.java` input, but the golden matrix is defined only for `FormatterShowcase.java`.
-- **Commit messages** for input/golden changes: use **`fix:`** for true bugfixes, **`feat:`** for new or materially changed showcase behavior, **`feat!:`** / **`BREAKING CHANGE:`** when golden churn is a breaking contract change for integrators. See **Showroom, examples, and golden files** in `docs/contributing.md` (TDR-018).
+- **Commit messages** for input/golden changes: a **new numbered scenario** here usually goes with **`feat:`** (broader, intentional work); **`fix:`** for a narrow bug with no new scenario; **`feat!:`** for substantive `docs/canonical-formatting-rules.md` / contract change. See **Showroom, examples, and golden files** in `docs/contributing.md` (TDR-018).
 
 ## Scenario numbering vs. language level
 

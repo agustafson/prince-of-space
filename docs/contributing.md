@@ -23,11 +23,15 @@ Nyx looks at commits **after the latest `v*.*.*` tag** and applies the **stronge
 
 `examples/inputs/**/FormatterShowcase.java` and `examples/outputs/**` are the public **showcase of formatter output**, not just internal tests. Do **not** default those changes to `fix:` unless you are strictly correcting **wrong** output.
 
+**Heuristic — new showroom scenario → usually `feat`:** If you add a **new numbered scenario** in `FormatterShowcase.java` (or materially expand the showroom story), that almost always means the work is **broad and user-visible**—a bigger correction that covers more cases—so prefer **`feat:`**. It matches releases such as `7e619f8` (scenarios 54–55) better than a narrow `fix:`. A **one-off** layout bug with **no** new scenario can still be **`fix:`** when the story is “wrong output, tight patch.”
+
 | Situation | Prefer |
 |-----------|--------|
-| Formatter had a **bug**; goldens update to match the **correct** behavior | `fix:` — appears under **Fixed** in the changelog. |
-| **New** scenarios, expanded coverage, or changes that **demonstrate new or changed formatting behavior** (including normative rule updates) | `feat:` — **minor** bump; appears under **Added** (per Nyx’s changelog sections). |
-| **Breaking** change to the formatting contract: integrators who diff goldens, pin baselines, or depend on previous output must take action | `feat!:` and/or a `BREAKING CHANGE:` **footer** — **major** bump; say what broke and what to do. |
+| **Bug**: formatter output was **wrong** relative to the **already intended** rule; goldens update to the corrected behavior | `fix:` — **Fixed** in the changelog. |
+| **New numbered scenario** or **large** showcase expansion (see heuristic above) | `feat:` — **minor** bump; **Added** in the changelog. |
+| **Substantive** change to `docs/canonical-formatting-rules.md` (redefined **Rule 1–10** behavior, removed or added **public** knobs, new normative requirements that change the product contract) | `feat!:` and a `BREAKING CHANGE:` **footer** when users must act — e.g. `bd21397` (remove `continuationIndentSize`, TDR-014), `846fa82` (wrapped method-chain indent, TDR-015). |
+| **Small** clarification or a **narrow** rule tweak in `docs/canonical-formatting-rules.md` that mainly **documents a bugfix** (old output was incorrect or an invariant like idempotency failed) | `fix:` or **`feat:`** if the stress is on newly written normative detail — e.g. `db0658c` (enum idempotence) stayed **`fix:`**; **`feat:`** is optional when a minor line **extends** the written rule without redefining the whole contract. |
+| **Breaking** in the SemVer sense: integrators who diff goldens, pin baselines, or depend on old output or API **must** react | `feat!:` / `BREAKING CHANGE:` — **major** when applicable; not every golden diff is a major (see [RELEASING.md](../RELEASING.md) and TDR-018). |
 
 Use **`chore:`** only for **mechanical** golden churn with **no** intended output change (rare: for example re-running regeneration after a no-op line-ending fix). If the formatted bytes change, pick **`fix`**, **`feat`**, or **breaking** as above.
 
