@@ -36,6 +36,7 @@ These rules define output shape for Java formatting in `modules/core`.
 
 - Block indentation is controlled by `indentStyle` + `indentSize`.
 - Wrapped continuation lines are indented by `2 * indentSize` relative to the current block indentation. This follows the Oracle/IntelliJ convention and ensures parameters are always visually distinct from the method body.
+- For wrapped delimited argument/parameter-like lists that open on an already-continued line, that `2 * indentSize` continuation step is measured from the line's effective continuation start column (for example after `?` / `:` or wrapped binary operators), not from natural block indent.
 - Method chain continuations are an exception (see Rule 7): they use a single `indentSize` step rather than `2 * indentSize`, because chain segments are visually self-delimiting (each starts with `.`).
 
 ### Rule 4: Line length and wrapping trigger
@@ -69,6 +70,8 @@ These rules define output shape for Java formatting in `modules/core`.
 For wrapped argument/parameter-like lists:
 
 - `closingParenOnNewLine=true`: closing delimiter is on its own line at the opener's indentation column.
+  - For nested wrapped calls with co-line openers (for example `outer(inner(`), closers may compact on one closer line (`));`, `)));`) instead of stacking one `)` per line.
+  - For line-separated nested openers, closers remain on separate lines aligned to their corresponding opener lines.
 - `closingParenOnNewLine=false`: closing delimiter remains on the final content line.
 
 ### Rule 9: Blank lines

@@ -120,6 +120,51 @@ doSomething(
 
 This applies consistently to both method parameter declarations and method call arguments.
 
+Nested wrapped-call behavior follows opener placement:
+
+```java
+// Co-line nested openers, closingParenOnNewLine=true:
+methodA(methodB(
+        aaaaaaa,
+        bbbbbbb,
+        ccccccc
+));
+
+// Line-separated nested openers, closingParenOnNewLine=true:
+methodA(
+        methodB(
+                aaaaaaa,
+                bbbbbbb,
+                ccccccc
+        )
+);
+
+// closingParenOnNewLine=false keeps closers inline on the last content line:
+methodA(
+        methodB(
+                aaaaaaa,
+                bbbbbbb,
+                ccccccc));
+```
+
+For a single wrapped non-chain argument, the formatter breaks before the argument for readability:
+
+```java
+return methodA(
+        condition
+                ? methodB(
+                        longArg1,
+                        longArg2
+                )
+                : methodC(
+                        longArg1,
+                        longArg2
+                )
+);
+```
+
+Scoped method-chain receivers remain the carve-out and may stay inline after `(` when that preserves Rule 7 chain layout.
+
 **Wrapped type clauses:** When `implements`, `extends`, or `permits` lists wrap across lines, the **`{`** that begins the class/interface/record body uses the same idea: with `closingParenOnNewLine=true`, the `{` is typically alone on the line after the last type; with `false`, `{` stays on the same line as the last type (K&R style). There is no `)` in a type clause, but the config name reflects the shared “closing delimiter” behavior.
 
 Since continuation indent is always `2 * indentSize`, wrapped parameters are always visually distinct from the method body regardless of the `closingParenOnNewLine` setting.

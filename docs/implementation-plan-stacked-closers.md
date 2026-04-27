@@ -352,14 +352,13 @@ should be an unambiguous improvement.
 
 ## Documentation updates (must land in same PR)
 
-- `docs/canonical-formatting-rules.md` — refine Rule 8 wording to cover
-  mid-line openers; add a note to Rule 3 about column-aware wrapped-list
+- [x] `docs/canonical-formatting-rules.md` — refine Rule 8 wording to cover
+  nested opener relationships; add a note to Rule 3 about column-aware wrapped-list
   scope.
-- `docs/formatting-rules.md` — add a small example showing nested call
-  wrapping under `closingParenOnNewLine=true`.
-- `docs/technical-decision-register.md` — new TDR entry "Closing-delimiter
-  alignment for nested wrapped constructs"; supersede TDR-017 in the
-  relevant scope.
+- [x] `docs/formatting-rules.md` — add examples showing nested call
+  wrapping under `closingParenOnNewLine=true` and single-arg break-before behavior.
+- [x] `docs/technical-decision-register.md` — add TDR-019 for nested closer
+  alignment and single-arg wrapping policy (superseding the relevant TDR-017 scope).
 - This file (`docs/implementation-plan-stacked-closers.md`) — delete or
   move once the work lands.
 

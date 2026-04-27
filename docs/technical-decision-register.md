@@ -177,3 +177,11 @@ Use it as the primary source of *why* design choices exist.
 - **Rationale:** Showroom diffs are often categorized as `fix` by habit, which understates product impact and mis-files notes under “Fixed” when the work is a feature or contract change. Calling out **breaking** golden churn explicitly helps integrators.
 - **Consequences:** Maintainers and contributors follow `docs/contributing.md`; no `.nyx.yml` change required.
 - **Related docs:** `docs/contributing.md`, `RELEASING.md`, `docs/showroom-scenarios.md`
+
+### TDR-019: Nested wrapped-call closer alignment and single-arg wrap policy
+- **Date:** 2026-04
+- **Status:** Accepted
+- **Decision:** Refine nested wrapped `(...)` behavior in three parts: (1) for co-line nested wrapped call openers, `closingParenOnNewLine=true` may compact closer runs on one closer line (`));`, `)));`) instead of emitting one `)` line per nesting level; line-separated nested openers keep separate aligned closer lines. (2) Wrapped delimited-list scope indentation is continuation-line aware: when a list opens on an already-continued line, list continuation lines are based on that effective continuation start column plus Rule 3's `2 * indentSize`. (3) The "single wrapped argument stays inline" carve-out is narrowed to scoped method-chain receivers only; other wrapped single arguments break before the argument body.
+- **Rationale:** Repeated user reports showed stacked closer columns and under-indented nested argument lists in ternary/binary continuation contexts. Earlier TDR-017 scope handling improved nested list indentation but left closer placement and single-arg wrapping edge cases unresolved.
+- **Consequences:** `PrincePrettyPrinterVisitor`, `LayoutContext`, and `ArgumentListFormatter` now coordinate co-line closer compaction, continuation-aware wrapped-list scope entry, and single-arg break-before behavior. New regression coverage lives in `ClosingParenAlignmentTest`; showroom goldens were regenerated to reflect updated nested-call output.
+- **Related docs:** `docs/canonical-formatting-rules.md` (Rules 3, 8), `docs/formatting-rules.md`, `modules/core/src/test/java/io/princeofspace/internal/ClosingParenAlignmentTest.java`
