@@ -18,7 +18,8 @@ if ! ./gradlew :core:compileJava :core:compileTestJava -q --no-configuration-cac
   exit 125
 fi
 
-export PRINCE_EVAL_CONFIG_NAMES="${PRINCE_EVAL_CONFIG_NAMES:-default-balanced}"
+export PRINCE_EVAL_LINE_LENGTH="${PRINCE_EVAL_LINE_LENGTH:-120}"
+export PRINCE_EVAL_WRAP_STYLE="${PRINCE_EVAL_WRAP_STYLE:-BALANCED}"
 export PRINCE_EVAL_REPORT_DIR="${PRINCE_EVAL_REPORT_DIR:-/tmp/prince-bisect-eval}"
 
 set +e

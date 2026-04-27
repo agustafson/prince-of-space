@@ -11,7 +11,7 @@ Prince of Space is validated against two large, well-known Java codebases to cat
 
 ## Latest results
 
-Evaluated on 2026-04-15 with default-balanced config (`lineLength=120`, `wrapStyle=BALANCED`).
+Evaluated on 2026-04-15 with `lineLength=120`, `wrapStyle=BALANCED` (`w120-balanced`).
 
 | Project | Files | Parse errors | Idempotency failures | Over-long lines | Time |
 |---------|-------|-------------|----------------------|-----------------|------|
@@ -22,7 +22,7 @@ Evaluated on 2026-04-15 with default-balanced config (`lineLength=120`, `wrapSty
 
 Over-long lines are informational warnings — they occur in constructs that have no safe wrap point (very long string literals, generated data files, deeply nested generic signatures). See the full report [eval-results/2026-04-17.md](eval-results/2026-04-17.md) for per-file details.
 
-A full 9-config evaluation (3 width bands x 3 wrap styles) is also available in [`eval-results/2026-04-17.md`](eval-results/2026-04-17.md), confirming zero parse errors and zero idempotency failures across all configurations.
+[`eval-results/2026-04-17.md`](eval-results/2026-04-17.md) aggregates runs across line lengths and wrap styles, confirming zero parse errors and zero idempotency failures for each configuration shown there.
 
 ## Running the eval harness
 
@@ -35,11 +35,17 @@ git clone --depth=1 https://github.com/spring-projects/spring-framework /tmp/eva
 
 ### 2. Run
 
+Set **one** line length and wrap style per invocation (CI sets these from the workflow matrix):
+
 ```bash
 export PRINCE_EVAL_ROOTS=/tmp/eval/guava,/tmp/eval/spring-framework
+export PRINCE_EVAL_LINE_LENGTH=120
+export PRINCE_EVAL_WRAP_STYLE=BALANCED
 export PRINCE_EVAL_REPORT_DIR=$(pwd)/docs/eval-results
 ./gradlew :core:evalTest
 ```
+
+`PRINCE_EVAL_WRAP_STYLE` is case-insensitive (`BALANCED`, `balanced`, etc.).
 
 The test is skipped when `PRINCE_EVAL_ROOTS` is unset. It scans `.java` files while skipping common build and generated paths (`build/`, `.gradle/`, `.git/`, `generated/`, `generated-sources/`).
 
@@ -73,28 +79,17 @@ same-day re-runs for that slug overwrite.
 ## Release gating
 
 The eval is mandatory for releases. The `release` workflow runs **`external-eval`**
-as a **matrix** (Spring Framework and Guava in parallel, one corpus per runner) with
-the full 9-config matrix each; the publish job declares `needs: external-eval`, so a
+as a **matrix** (Spring Framework and Guava × three `lineLength` values × three wrap styles);
+the publish job declares `needs: external-eval`, so a
 failed leg blocks publishing even on dry runs. See
 [RELEASING.md — External eval gate](https://github.com/agustafson/prince-of-space/blob/main/RELEASING.md#external-eval-gate-mandatory)
 on GitHub for recovery steps.
 
-A lighter **`external-eval-smoke`** matrix (`default-balanced` only) also runs on every
+A lighter **`external-eval-smoke`** matrix (`lineLength=120`, `wrapStyle=BALANCED` only) also runs on every
 push and pull request for fast feedback; the full matrix runs weekly and
 on-demand via `workflow_dispatch`. See `.github/workflows/external-eval.yml`.
 
 ## Config permutations
 
-The full eval runs 9 configs per project across three `lineLength` bands and three wrap styles:
-
-| Name | `lineLength` | Wrap style | Rationale |
-|------|--------------|------------|-----------|
-| `aggressive-wide` | 80 | Wide | Max wrapping stress |
-| `aggressive-balanced` | 80 | Balanced | |
-| `aggressive-narrow` | 80 | Narrow | |
-| `moderate-wide` | 100 | Wide | Sensible defaults for many projects |
-| `moderate-balanced` | 100 | Balanced | Primary eval config |
-| `moderate-narrow` | 100 | Narrow | |
-| `default-wide` | 120 | Wide | Formatter's own default `lineLength` |
-| `default-balanced` | 120 | Balanced | Stability when wrapping rarely fires |
-| `default-narrow` | 120 | Narrow | |
+The full eval runs one job per combination of `lineLength` ∈ {80, 100, 120} and
+`wrapStyle` ∈ {WIDE, BALANCED, NARROW}. Reports label each run as `w<lineLength>-<wrapStyle>` (e.g. `w120-balanced`).

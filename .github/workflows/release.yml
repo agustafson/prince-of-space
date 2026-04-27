@@ -35,23 +35,91 @@ permissions:
   contents: write
 
 jobs:
-  # Pre-release gate: full 9-config eval per external corpus (matrix = parallel runners).
+  # Pre-release gate: same matrix as external-eval full (per corpus, line length, wrap style).
   # Blocks the publish job via `needs:` below. Hard-fails on any parse error or
   # idempotency failure (RealWorldEvalTest assertions). Runs on dry-run and full release alike.
   #
   # Eval result dedupe: composite .github/actions/eval-external-corpus (same keys as external-eval full).
   external-eval:
-    name: External eval (${{ matrix.corpus }})
+    name: External eval (${{ matrix.corpus }} w${{ matrix.line_length }} ${{ matrix.wrap_style }})
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
         include:
           - corpus: spring-framework
             repository: spring-projects/spring-framework
+            line_length: 80
+            wrap_style: wide
+          - corpus: spring-framework
+            repository: spring-projects/spring-framework
+            line_length: 80
+            wrap_style: balanced
+          - corpus: spring-framework
+            repository: spring-projects/spring-framework
+            line_length: 80
+            wrap_style: narrow
+          - corpus: spring-framework
+            repository: spring-projects/spring-framework
+            line_length: 100
+            wrap_style: wide
+          - corpus: spring-framework
+            repository: spring-projects/spring-framework
+            line_length: 100
+            wrap_style: balanced
+          - corpus: spring-framework
+            repository: spring-projects/spring-framework
+            line_length: 100
+            wrap_style: narrow
+          - corpus: spring-framework
+            repository: spring-projects/spring-framework
+            line_length: 120
+            wrap_style: wide
+          - corpus: spring-framework
+            repository: spring-projects/spring-framework
+            line_length: 120
+            wrap_style: balanced
+          - corpus: spring-framework
+            repository: spring-projects/spring-framework
+            line_length: 120
+            wrap_style: narrow
           - corpus: guava
             repository: google/guava
+            line_length: 80
+            wrap_style: wide
+          - corpus: guava
+            repository: google/guava
+            line_length: 80
+            wrap_style: balanced
+          - corpus: guava
+            repository: google/guava
+            line_length: 80
+            wrap_style: narrow
+          - corpus: guava
+            repository: google/guava
+            line_length: 100
+            wrap_style: wide
+          - corpus: guava
+            repository: google/guava
+            line_length: 100
+            wrap_style: balanced
+          - corpus: guava
+            repository: google/guava
+            line_length: 100
+            wrap_style: narrow
+          - corpus: guava
+            repository: google/guava
+            line_length: 120
+            wrap_style: wide
+          - corpus: guava
+            repository: google/guava
+            line_length: 120
+            wrap_style: balanced
+          - corpus: guava
+            repository: google/guava
+            line_length: 120
+            wrap_style: narrow
     steps:
       - name: Checkout Prince of Space
         uses: actions/checkout@v6
@@ -61,14 +129,14 @@ jobs:
         with:
           corpus: ${{ matrix.corpus }}
           repository: ${{ matrix.repository }}
-          cache_mode: full
-          eval_max_heap: 6g
+          line_length: ${{ matrix.line_length }}
+          wrap_style: ${{ matrix.wrap_style }}
 
       - name: Upload eval report artifact
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: release-eval-report-${{ matrix.corpus }}-${{ github.sha }}
+          name: release-eval-report-${{ matrix.corpus }}-${{ matrix.line_length }}-${{ matrix.wrap_style }}-${{ github.sha }}
           path: docs/eval-results/*.md
           if-no-files-found: ignore
 

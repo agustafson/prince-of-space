@@ -39,8 +39,7 @@ tasks.test {
 val evalTest by tasks.registering(Test::class) {
     description = "Runs the real-world evaluation harness (requires PRINCE_EVAL_ROOTS to be set)."
     group = "verification"
-    // Reads PRINCE_EVAL_* from the invoking environment; must not be frozen by configuration cache
-    // (otherwise PRINCE_EVAL_CONFIG_NAMES from an earlier run can stick and subset configs silently).
+    // Reads PRINCE_EVAL_* from the invoking environment; must not be frozen by configuration cache.
     notCompatibleWithConfigurationCache("eval harness uses environment variables")
     useJUnitPlatform {
         includeTags("eval")
@@ -50,13 +49,14 @@ val evalTest by tasks.registering(Test::class) {
     environment("PRINCE_EVAL_ROOTS", System.getenv("PRINCE_EVAL_ROOTS") ?: "")
     environment("PRINCE_EVAL_REPORT_DIR", System.getenv("PRINCE_EVAL_REPORT_DIR") ?: "")
     environment("PRINCE_EVAL_REPORT_SLUG", System.getenv("PRINCE_EVAL_REPORT_SLUG") ?: "")
-    environment("PRINCE_EVAL_CONFIG_NAMES", System.getenv("PRINCE_EVAL_CONFIG_NAMES") ?: "")
+    environment("PRINCE_EVAL_LINE_LENGTH", System.getenv("PRINCE_EVAL_LINE_LENGTH") ?: "")
+    environment("PRINCE_EVAL_WRAP_STYLE", System.getenv("PRINCE_EVAL_WRAP_STYLE") ?: "")
     environment("PRINCE_EVAL_MAX_OVER_LONG_SAMPLES", System.getenv("PRINCE_EVAL_MAX_OVER_LONG_SAMPLES") ?: "")
     environment("MAX_OVER_LONG_LINE_SAMPLES", System.getenv("MAX_OVER_LONG_LINE_SAMPLES") ?: "")
     environment("PRINCE_EVAL_SKIP_SECOND_FORMAT", System.getenv("PRINCE_EVAL_SKIP_SECOND_FORMAT") ?: "")
-    // Heap for the forked test worker only (Gradle daemon is separate). On ~8 GiB hosts prefer 5g–6g
-    // and set PRINCE_EVAL_SKIP_SECOND_FORMAT=true if needed; override with PRINCE_EVAL_MAX_HEAP.
-    maxHeapSize = System.getenv("PRINCE_EVAL_MAX_HEAP")?.takeIf { it.isNotBlank() } ?: "5g"
+    // Heap for the forked test worker only (Gradle daemon is separate). Override with PRINCE_EVAL_MAX_HEAP
+    // if the default is too small for the corpus; PRINCE_EVAL_SKIP_SECOND_FORMAT=true also reduces use.
+    maxHeapSize = System.getenv("PRINCE_EVAL_MAX_HEAP")?.takeIf { it.isNotBlank() } ?: "1g"
     jvmArgs("-XX:+UseG1GC")
     extensions.configure<JacocoTaskExtension> {
         isEnabled = false

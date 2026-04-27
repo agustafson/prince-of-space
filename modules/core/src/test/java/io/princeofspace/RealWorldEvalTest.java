@@ -16,9 +16,10 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -29,26 +30,25 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Enhanced real-world evaluation harness.
  *
  * <p>Set {@code PRINCE_EVAL_ROOTS} to a comma-separated list of Java project checkout paths. The
- * harness formats every {@code .java} file under each root with 9 config permutations (3 width
- * bands × 3 wrap styles), hard-asserts zero parse errors and zero idempotency failures, and writes
- * a Markdown report to {@code PRINCE_EVAL_REPORT_DIR} (default: {@code docs/eval-results/}).
+ * harness formats every {@code .java} file under each root for one configuration (set with
+ * {@code PRINCE_EVAL_LINE_LENGTH} and {@code PRINCE_EVAL_WRAP_STYLE}), hard-asserts zero parse
+ * errors and zero idempotency failures, and writes a Markdown report to {@code PRINCE_EVAL_REPORT_DIR}
+ * (default: {@code docs/eval-results/}). CI runs several line length / wrap style pairs in parallel.
  * Optional {@code PRINCE_EVAL_REPORT_SLUG} (alphanumerics, {@code -}, {@code _}; max 64 chars)
  * writes {@code <date>-<slug>.md} instead of {@code <date>.md} so parallel corpus runs do not
  * overwrite each other.
  *
- * <p>Run with: {@code ./gradlew :core:evalTest}
- *
- * <p>Optional: {@code PRINCE_EVAL_CONFIG_NAMES=aggressive-wide,moderate-balanced} runs only those
- * named configs (comma-separated), for faster iteration.
+ * <p>Example: {@code PRINCE_EVAL_LINE_LENGTH=120 PRINCE_EVAL_WRAP_STYLE=BALANCED ./gradlew :core:evalTest}
  *
  * <p>Optional: {@code PRINCE_EVAL_MAX_OVER_LONG_SAMPLES} (or alias {@code MAX_OVER_LONG_LINE_SAMPLES})
  * caps how many over-long line records are retained per config for the report sample (default {@code
  * 10000}). Use {@code 0} to keep none. System property {@code prince.eval.maxOverLongSamples} is also
  * honored.
  *
- * <p>Low-memory hosts: set Gradle {@code PRINCE_EVAL_MAX_HEAP} (e.g. {@code 5g}) to size the eval test
- * worker; {@code PRINCE_EVAL_SKIP_SECOND_FORMAT=true} skips the extra {@code format(format(x))} call per
- * file (the engine already converges internally to a fixed point).
+ * <p>Low-memory hosts: set Gradle {@code PRINCE_EVAL_MAX_HEAP} to override the eval test worker heap
+ * (default {@code 1g}); {@code PRINCE_EVAL_SKIP_SECOND_FORMAT=true} skips the extra
+ * {@code format(format(x))} call per file (the engine already converges internally to a fixed
+ * point).
  */
 @Tag("eval")
 @EnabledIfEnvironmentVariable(named = "PRINCE_EVAL_ROOTS", matches = ".+")
@@ -59,7 +59,7 @@ class RealWorldEvalTest {
     private static final int DEFAULT_MAX_OVER_LONG_LINE_SAMPLES = 10_000;
 
     // ---------------------------------------------------------------------------
-    // Config permutations
+    // Eval configuration (line length + wrap style from env; CI uses a matrix)
     // ---------------------------------------------------------------------------
 
     record EvalConfig(String name, int lineLength, WrapStyle wrapStyle) {
@@ -72,40 +72,52 @@ class RealWorldEvalTest {
         }
     }
 
-    private static final List<EvalConfig> CONFIGS = List.of(
-            new EvalConfig("aggressive-wide", 80, WrapStyle.WIDE),
-            new EvalConfig("aggressive-balanced", 80, WrapStyle.BALANCED),
-            new EvalConfig("aggressive-narrow", 80, WrapStyle.NARROW),
-            new EvalConfig("moderate-wide", 100, WrapStyle.WIDE),
-            new EvalConfig("moderate-balanced", 100, WrapStyle.BALANCED),
-            new EvalConfig("moderate-narrow", 100, WrapStyle.NARROW),
-            new EvalConfig("default-wide", 120, WrapStyle.WIDE),
-            new EvalConfig("default-balanced", 120, WrapStyle.BALANCED),
-            new EvalConfig("default-narrow", 120, WrapStyle.NARROW));
+    /**
+     * Stable display name for reports and logs: {@code w<lineLength>-<wrapStyle lower>}, e.g. {@code
+     * w120-balanced}.
+     */
+    static String evalConfigName(int lineLength, WrapStyle wrapStyle) {
+        return "w" + lineLength + "-" + wrapStyle.name().toLowerCase(Locale.ROOT);
+    }
 
     /** Directory segments that indicate generated / build output — skip their subtrees. */
     private static final Set<String> SKIP_DIRS =
             Set.of("build", ".gradle", ".git", "generated", "generated-sources");
 
     private static List<EvalConfig> activeConfigs() {
-        String raw = System.getenv("PRINCE_EVAL_CONFIG_NAMES");
-        if (raw == null || raw.isBlank()) {
-            return CONFIGS;
-        }
-        LinkedHashSet<String> want = new LinkedHashSet<>();
-        for (String part : raw.split(",", -1)) {
-            String name = part.strip();
-            if (!name.isEmpty()) {
-                want.add(name);
-            }
-        }
-        List<EvalConfig> picked = CONFIGS.stream().filter(c -> want.contains(c.name())).toList();
-        if (picked.isEmpty()) {
+        return List.of(parseEvalConfigFromEnv());
+    }
+
+    private static EvalConfig parseEvalConfigFromEnv() {
+        @Nullable String lineLenRaw = System.getenv("PRINCE_EVAL_LINE_LENGTH");
+        @Nullable String styleRaw = System.getenv("PRINCE_EVAL_WRAP_STYLE");
+        boolean haveLen = lineLenRaw != null && !lineLenRaw.isBlank();
+        boolean haveStyle = styleRaw != null && !styleRaw.isBlank();
+        if (!haveLen || !haveStyle) {
             throw new IllegalStateException(
-                    "PRINCE_EVAL_CONFIG_NAMES matched no configs. Valid names: "
-                            + CONFIGS.stream().map(EvalConfig::name).toList());
+                    "PRINCE_EVAL_LINE_LENGTH and PRINCE_EVAL_WRAP_STYLE are both required (e.g. 120 and"
+                            + " BALANCED). CI sets them from the workflow matrix.");
         }
-        return picked;
+        int lineLength;
+        try {
+            lineLength = Integer.parseInt(lineLenRaw.strip());
+        } catch (NumberFormatException e) {
+            throw new IllegalStateException("Invalid PRINCE_EVAL_LINE_LENGTH: " + lineLenRaw, e);
+        }
+        if (lineLength < 1) {
+            throw new IllegalStateException("PRINCE_EVAL_LINE_LENGTH must be positive: " + lineLength);
+        }
+        WrapStyle wrapStyle;
+        try {
+            wrapStyle = WrapStyle.valueOf(styleRaw.strip().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException(
+                    "Invalid PRINCE_EVAL_WRAP_STYLE: "
+                            + styleRaw
+                            + " (use one of: " + Arrays.toString(WrapStyle.values()) + ")",
+                    e);
+        }
+        return new EvalConfig(evalConfigName(lineLength, wrapStyle), lineLength, wrapStyle);
     }
 
     // ---------------------------------------------------------------------------

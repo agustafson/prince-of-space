@@ -95,9 +95,9 @@ Before triggering the workflow, verify:
 
 ## External eval gate (mandatory)
 
-The release workflow runs the **full 9-config eval** (3 line-length bands × 3 wrap
-styles) against **Spring Framework** and **Guava** as **parallel matrix jobs** (one
-corpus per runner). The publish job declares `needs: external-eval`, so a failure in
+The release workflow runs the **full eval matrix** (3 line lengths × 3 wrap styles
+per **Spring Framework** and **Guava**) as **parallel jobs** (one corpus × line length
+× wrap style per runner). The publish job declares `needs: external-eval`, so a failure in
 any matrix leg blocks the entire release — including dry runs.
 
 The eval hard-asserts:
@@ -111,17 +111,15 @@ Over-long line warnings remain informational and do **not** fail the gate.
 If the gate fails:
 
 1. Open the failed run in GitHub Actions and download the
-   **`release-eval-report-spring-framework-<sha>`** or **`release-eval-report-guava-<sha>`**
-   artifact for the per-config Markdown report (same format as
-   `docs/eval-results/<date>-<corpus>.md` in CI).
-2. Reproduce locally with the failing corpus (writes `docs/eval-results/$(date +%F)-<slug>.md`):
+   **`release-eval-report-<corpus>-<line_length>-<wrap_style>-<sha>`** artifact for the
+   Markdown report (same format as `docs/eval-results/<date>-<corpus>.md` in CI).
+2. Reproduce locally with the failing corpus and the same **line length** and **wrap style**
+   as the failed job (writes `docs/eval-results/$(date +%F)-<slug>.md`):
    ```bash
    git clone --depth=1 https://github.com/spring-projects/spring-framework /tmp/eval/spring-framework
    git clone --depth=1 https://github.com/google/guava /tmp/eval/guava
+   PRINCE_EVAL_LINE_LENGTH=120 PRINCE_EVAL_WRAP_STYLE=WIDE \
    PRINCE_EVAL_ROOTS=/tmp/eval/spring-framework PRINCE_EVAL_REPORT_SLUG=spring-framework \
-     PRINCE_EVAL_REPORT_DIR="$(pwd)/docs/eval-results" \
-     ./gradlew :core:evalTest
-   PRINCE_EVAL_ROOTS=/tmp/eval/guava PRINCE_EVAL_REPORT_SLUG=guava \
      PRINCE_EVAL_REPORT_DIR="$(pwd)/docs/eval-results" \
      ./gradlew :core:evalTest
    ```

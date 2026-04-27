@@ -1,9 +1,9 @@
-# Shared steps: resolve upstream HEAD, restore/save eval report cache (keyed by corpus +
-# upstream SHA + github.sha), conditional checkout + JDK + Gradle + :core:evalTest.
+# Shared steps: resolve upstream HEAD, restore/save eval report cache (keyed by wrap style, line
+# width, corpus, upstream SHA, github.sha), conditional checkout + JDK + Gradle + :core:evalTest.
 name: Eval external corpus (result cache)
 description: >
   Runs RealWorldEvalTest against a cloned corpus when no cached docs/eval-results exists
-  for this PoS commit and upstream default-branch HEAD.
+  for this PoS commit, corpus, line length, and wrap style. Upstream default-branch HEAD is in the key.
 
 inputs:
   corpus:
@@ -12,16 +12,12 @@ inputs:
   repository:
     description: GitHub repo as owner/name (same as actions/checkout repository)
     required: true
-  cache_mode:
-    description: Cache key segment — smoke (single config) or full (all configs); must match eval workload
+  line_length:
+    description: PRINCE_EVAL_LINE_LENGTH (e.g. 80, 100, 120)
     required: true
-  eval_max_heap:
-    description: PRINCE_EVAL_MAX_HEAP for the Gradle test worker (e.g. 5g or 6g)
+  wrap_style:
+    description: PRINCE_EVAL_WRAP_STYLE (wide, balanced, or narrow; case-insensitive in the test)
     required: true
-  eval_config_names:
-    description: Optional; when non-empty, sets PRINCE_EVAL_CONFIG_NAMES (smoke uses default-balanced)
-    required: false
-    default: ''
 
 runs:
   using: composite
@@ -32,7 +28,7 @@ runs:
       run: |
         SHA="$(git ls-remote "https://github.com/${{ inputs.repository }}.git" HEAD | cut -f1)"
         echo "sha=$SHA" >> "$GITHUB_OUTPUT"
-        KEY="eval-result-${{ inputs.cache_mode }}-${{ inputs.corpus }}-${SHA}-${{ github.sha }}"
+        KEY="eval-result-${{ inputs.wrap_style }}-w${{ inputs.line_length }}-${{ inputs.corpus }}-${SHA}-${{ github.sha }}"
         echo "EVAL_RESULT_CACHE_KEY=$KEY" >> "$GITHUB_ENV"
 
     - name: Restore eval result cache
@@ -67,11 +63,9 @@ runs:
       run: |
         export PRINCE_EVAL_ROOTS="${{ github.workspace }}/external/${{ inputs.corpus }}"
         export PRINCE_EVAL_REPORT_SLUG="${{ inputs.corpus }}"
-        export PRINCE_EVAL_MAX_HEAP="${{ inputs.eval_max_heap }}"
+        export PRINCE_EVAL_LINE_LENGTH="${{ inputs.line_length }}"
+        export PRINCE_EVAL_WRAP_STYLE="${{ inputs.wrap_style }}"
         export PRINCE_EVAL_MAX_OVER_LONG_SAMPLES="0"
-        if [ -n "${{ inputs.eval_config_names }}" ]; then
-          export PRINCE_EVAL_CONFIG_NAMES="${{ inputs.eval_config_names }}"
-        fi
         ./gradlew :core:evalTest --no-configuration-cache --no-daemon
 
     - name: Save eval result cache
