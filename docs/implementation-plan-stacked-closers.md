@@ -377,7 +377,7 @@ should be an unambiguous improvement.
 
 1. [x] Land Stage 1 + Stage 1 tests + Rule 8 doc refinement. This alone fixes
    Cases 0, 2, 3, 4 and most user-visible reports. ~1 small PR.
-2. [ ] Land Stage 2 + Rule 3 doc refinement + Case 6/7 args-indent tests. ~1
+2. [x] Land Stage 2 + Rule 3 doc refinement + Case 6/7 args-indent tests. ~1
    small PR; updates `LayoutContext`.
 3. [ ] Land Stage 3 + supersede TDR-017's single-arg carve-out, narrowing it to
    chain receivers only. ~1 small PR; updates `printArguments` /

@@ -77,4 +77,25 @@ class ClosingParenAlignmentTest {
         assertThat(output).contains("ggggggg));");
         assertThat(formatter.format(output)).isEqualTo(output);
     }
+
+    @Test
+    void ternaryNestedWrappedCalls_indentArgumentsPastContinuationColumn() {
+        Formatter formatter = formatter(true);
+        String input =
+                """
+                class C {
+                    Object m() {
+                        return methodA(longConditionExpressionForCheck ? methodB(longArg1, longArg2, longArg3, longArg4, longArg5, longArg6) : methodC(longArg1, longArg2, longArg3, longArg4, longArg5, longArg6));
+                    }
+                }
+                """;
+
+        String output = formatter.format(input);
+
+        assertThat(output).contains("\n                ? methodB(\n");
+        assertThat(output).contains("\n                        longArg1,\n");
+        assertThat(output).contains("\n                : methodC(\n");
+        assertThat(output).contains("\n                        longArg6");
+        assertThat(formatter.format(output)).isEqualTo(output);
+    }
 }

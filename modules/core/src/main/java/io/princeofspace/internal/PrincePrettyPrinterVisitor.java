@@ -123,6 +123,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     private final Deque<Integer> argumentListOpenerLines = new ArrayDeque<>();
     /** True while printing a co-line nested closer run like {@code ));} on a single closer line. */
     private boolean compactArgumentCloserRunActive;
+    /** Effective start column for a continuation line produced by printCont/printRawContinuation. */
+    private int continuationLineStartColumn = -1;
 
     PrincePrettyPrinterVisitor(PrinterConfiguration configuration, FormatterConfig fmt) {
         super(configuration);
@@ -143,8 +145,20 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     /** Pushes two logical indent levels for a wrapped {@code (...)} list body (R3). */
     void enterWrappedDelimitedListScope() {
-        printer.indent();
-        printer.indent();
+        if (continuationLineStartColumn >= 0) {
+            int target = continuationLineStartColumn + fmt.continuationIndentSize();
+            try {
+                printer.indentWithAlignTo(target);
+                printer.indentWithAlignTo(target);
+            } catch (IllegalStateException ex) {
+                printer.indent();
+                printer.indent();
+            }
+            continuationLineStartColumn = -1;
+        } else {
+            printer.indent();
+            printer.indent();
+        }
         wrappedDelimitedListScopeDepth++;
     }
 
@@ -157,6 +171,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     boolean isWrappedDelimitedListScopeActive() {
         return wrappedDelimitedListScopeDepth > 0;
+    }
+
+    void markContinuationLineStartColumn(int column) {
+        continuationLineStartColumn = column;
     }
 
     void doPrintComment(Optional<Comment> comment, Void arg) {
@@ -545,6 +563,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         } else {
             printer.print(" ".repeat(fmt.continuationIndentSize()));
         }
+        continuationLineStartColumn = printer.getCursor().column;
     }
 
     @Override

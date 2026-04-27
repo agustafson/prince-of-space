@@ -108,6 +108,7 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
         } else {
             printer.print(" ".repeat(fmt.continuationIndentSize()));
         }
+        visitor.markContinuationLineStartColumn(column());
     }
 
     void enterWrappedDelimitedListScope() {

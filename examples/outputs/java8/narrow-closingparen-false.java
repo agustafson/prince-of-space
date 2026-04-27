@@ -35,12 +35,12 @@ public class FormatterShowcase
 
     // Scenario 3: Constructor with many parameters
     public FormatterShowcase(
-            String legacyField,
-            List<String> items,
-            Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField,
-            boolean validateOnConstruction,
-            String defaultLocale,
-            ExecutorService executorService) {
+                    String legacyField,
+                    List<String> items,
+                    Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField,
+                    boolean validateOnConstruction,
+                    String defaultLocale,
+                    ExecutorService executorService) {
         this.legacyField = legacyField;
         this.items = items;
         this.complexGenericField = complexGenericField;
@@ -173,8 +173,8 @@ public class FormatterShowcase
             .stream()
             .filter(item -> item != null && !item.isEmpty())
             .collect(Collectors.groupingBy(
-                    item -> String.valueOf(item.charAt(0)).toUpperCase(),
-                    Collectors.mapping(String::toLowerCase, Collectors.toList())));
+                        item -> String.valueOf(item.charAt(0)).toUpperCase(),
+                        Collectors.mapping(String::toLowerCase, Collectors.toList())));
     }
 
     // Scenario 12: Try-with-resources
@@ -261,9 +261,9 @@ public class FormatterShowcase
 
     // Scenario 18: Complex generic method signature
     public <T extends Comparable<T> & java.io.Serializable, R extends List<? super T>> R transformAndCollect(
-            List<T> source,
-            Function<T, R> transformer,
-            java.util.function.BinaryOperator<R> combiner) {
+                        List<T> source,
+                        Function<T, R> transformer,
+                        java.util.function.BinaryOperator<R> combiner) {
         return source
             .stream()
             .map(transformer)
@@ -353,12 +353,12 @@ public class FormatterShowcase
     // Scenario 36: Constructor chaining with long argument list
     public FormatterShowcase(String legacyFieldOnly, List<String> itemsOnly, boolean validate) {
         this(
-                legacyFieldOnly,
-                itemsOnly,
-                java.util.Collections.emptyMap(),
-                validate,
-                "en-US",
-                java.util.concurrent.ForkJoinPool.commonPool());
+                        legacyFieldOnly,
+                        itemsOnly,
+                        java.util.Collections.emptyMap(),
+                        validate,
+                        "en-US",
+                        java.util.concurrent.ForkJoinPool.commonPool());
     }
 
     // Scenario 37: Multi-catch
@@ -491,10 +491,10 @@ public class FormatterShowcase
     // Scenario 48: Wrapped argument alignment (continuation indent, not method-name alignment)
     public void wrappedArgumentAlignmentRegression() {
         saveWithVeryLongMethodNameForAlignmentRegression(
-                "alpha-alpha-alpha-alpha",
-                "beta-beta-beta-beta",
-                "gamma-gamma-gamma-gamma",
-                "delta-delta-delta-delta");
+                        "alpha-alpha-alpha-alpha",
+                        "beta-beta-beta-beta",
+                        "gamma-gamma-gamma-gamma",
+                        "delta-delta-delta-delta");
         new VeryLongArgumentCarrierForAlignmentRegression(
                 "first-first-first",
                 "second-second-second",
@@ -540,9 +540,9 @@ public class FormatterShowcase
     // Scenario 50: Nested lambda call should avoid dangling ')' before ';'
     public void nestedLambdaWarnCallWrapping() {
         cappedLogNoCustomerData(l -> l.warn(
-                "Bad thing happened and we have lots of information to tell you in this warning payload",
-                new IllegalStateException("Bad thing happened and this diagnostic stack summary is also "
-                + "intentionally very long to force wrapping")));
+                            "Bad thing happened and we have lots of information to tell you in this warning payload",
+                            new IllegalStateException("Bad thing happened and this diagnostic stack summary is also "
+                            + "intentionally very long to force wrapping")));
     }
 
     // Scenario 53: Interface extends clause with many super-interfaces
@@ -565,11 +565,11 @@ public class FormatterShowcase
     // Scenario 54: Nested wrapped calls — inner ')' must stack continuation indent (not flush with outer call)
     public void nestedWrappedCallInnerListContinuationScenario54(String issueKey) {
         auditLogSuccessWithMessageScenario54(
-                i18nGetTextScenario54(
-                        UpdateALItemsConversationExecutionStatusScenario54.SUCCESS.getI18nKeyScenario54(),
-                        resultGetNameScenario54(),
-                        issueKey),
-                "");
+                    i18nGetTextScenario54(
+                            UpdateALItemsConversationExecutionStatusScenario54.SUCCESS.getI18nKeyScenario54(),
+                            resultGetNameScenario54(),
+                            issueKey),
+                    "");
     }
 
     // Scenario 55: Consecutive line comments before first field in a type body (no blank line between comments)
