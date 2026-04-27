@@ -23,6 +23,7 @@ dependencies {
     testImplementation(libs.assertj.core)
     testImplementation(libs.archunit.junit5)
     testImplementation(libs.jqwik)
+    testCompileOnly(libs.spotbugs.annotations)
 }
 
 tasks.withType<Javadoc>().configureEach {

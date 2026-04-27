@@ -1,5 +1,6 @@
 package io.princeofspace.internal;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.princeofspace.Formatter;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.JavaLanguageLevel;
@@ -13,12 +14,18 @@ import net.jqwik.api.Provide;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings({"PMD.TestClassWithoutTestCases", "PMD.TooManyMethods"})
+@SuppressFBWarnings(
+        value = "VA_FORMAT_STRING_USES_NEWLINE",
+        justification = "Java text blocks + String.formatted; SpotBugs text block false positive")
 class CanonicalRulesPropertyTest {
+
+    /** Jqwik provider name (must match {@link #identifier()}). */
+    private static final String IDENTIFIER_FORALL = "identifier";
 
     // Rule 1: Idempotency is mandatory
     @Property(tries = 80)
     void rule1_idempotency_holds_for_generated_binary_and_call_shapes(
-            @ForAll("identifier") String identifier,
+            @ForAll(IDENTIFIER_FORALL) String identifier,
             @ForAll("argumentCount") int argumentCount) {
         String source = """
                 class C {
@@ -38,7 +45,7 @@ class CanonicalRulesPropertyTest {
 
     @Property(tries = 80)
     void rule1_idempotency_holds_for_generated_nested_ternary_shapes(
-            @ForAll("identifier") String identifier,
+            @ForAll(IDENTIFIER_FORALL) String identifier,
             @ForAll("closingParenOnNewLine") boolean closingParenOnNewLine) {
         String source = """
                 class C {
@@ -58,7 +65,7 @@ class CanonicalRulesPropertyTest {
 
     // Rule 2: Braces and brace placement
     @Property(tries = 60)
-    void rule2_braceless_control_flow_is_always_braced(@ForAll("identifier") String identifier) {
+    void rule2_braceless_control_flow_is_always_braced(@ForAll(IDENTIFIER_FORALL) String identifier) {
         String source = """
                 class C {
                     void m(boolean c1, boolean c2, boolean c3) {
@@ -79,7 +86,7 @@ class CanonicalRulesPropertyTest {
     }
 
     @Property(tries = 60)
-    void rule2_opening_braces_use_kr_style(@ForAll("identifier") String identifier) {
+    void rule2_opening_braces_use_kr_style(@ForAll(IDENTIFIER_FORALL) String identifier) {
         String source = """
                 class Rule2_%s{
                 void m(boolean c){if(c){call();}else{call();}}
@@ -96,7 +103,7 @@ class CanonicalRulesPropertyTest {
 
     // Rule 3: Indentation
     @Property(tries = 80)
-    void rule3_wrapped_binary_continuation_uses_two_indent_steps(@ForAll("identifier") String identifier) {
+    void rule3_wrapped_binary_continuation_uses_two_indent_steps(@ForAll(IDENTIFIER_FORALL) String identifier) {
         String source = """
                 class C {
                     boolean m(boolean a, boolean b, boolean c) {
@@ -115,7 +122,7 @@ class CanonicalRulesPropertyTest {
     }
 
     @Property(tries = 80)
-    void rule3_wrapped_method_chain_uses_single_indent_step(@ForAll("identifier") String identifier) {
+    void rule3_wrapped_method_chain_uses_single_indent_step(@ForAll(IDENTIFIER_FORALL) String identifier) {
         String source = """
                 import java.util.List;
                 class C {
@@ -132,7 +139,7 @@ class CanonicalRulesPropertyTest {
 
     // Rule 4: Line length and wrapping trigger
     @Property(tries = 60)
-    void rule4_small_line_length_triggers_wrapping(@ForAll("identifier") String identifier) {
+    void rule4_small_line_length_triggers_wrapping(@ForAll(IDENTIFIER_FORALL) String identifier) {
         String source = """
                 class C {
                     void m() {
@@ -145,7 +152,7 @@ class CanonicalRulesPropertyTest {
     }
 
     @Property(tries = 60)
-    void rule4_large_line_length_keeps_equivalent_shape_more_inline(@ForAll("identifier") String identifier) {
+    void rule4_large_line_length_keeps_equivalent_shape_more_inline(@ForAll(IDENTIFIER_FORALL) String identifier) {
         String source = """
                 class C {
                     void m() {
@@ -159,7 +166,7 @@ class CanonicalRulesPropertyTest {
 
     // Rule 5: WrapStyle must be construct-uniform
     @Property(tries = 80)
-    void rule5_balanced_wraps_arguments_one_per_line_when_overflow(@ForAll("identifier") String identifier) {
+    void rule5_balanced_wraps_arguments_one_per_line_when_overflow(@ForAll(IDENTIFIER_FORALL) String identifier) {
         String source = """
                 class C {
                     void m() {
@@ -173,7 +180,7 @@ class CanonicalRulesPropertyTest {
     }
 
     @Property(tries = 80)
-    void rule5_narrow_wraps_array_initializer_one_per_line_when_overflow(@ForAll("identifier") String identifier) {
+    void rule5_narrow_wraps_array_initializer_one_per_line_when_overflow(@ForAll(IDENTIFIER_FORALL) String identifier) {
         String source = """
                 class C {
                     String[] m() {
@@ -189,7 +196,7 @@ class CanonicalRulesPropertyTest {
 
     // Rule 6: Wrapped binary/operator chains
     @Property(tries = 80)
-    void rule6_wrapped_binary_places_operator_at_line_start(@ForAll("identifier") String identifier) {
+    void rule6_wrapped_binary_places_operator_at_line_start(@ForAll(IDENTIFIER_FORALL) String identifier) {
         String source = """
                 class C {
                     boolean m(boolean a, boolean b, boolean c) {
@@ -206,7 +213,7 @@ class CanonicalRulesPropertyTest {
     }
 
     @Property(tries = 80)
-    void rule6_wrapped_plus_chain_places_operator_at_line_start(@ForAll("identifier") String identifier) {
+    void rule6_wrapped_plus_chain_places_operator_at_line_start(@ForAll(IDENTIFIER_FORALL) String identifier) {
         String source = """
                 class C {
                     String m() {
@@ -221,7 +228,7 @@ class CanonicalRulesPropertyTest {
 
     // Rule 7: Method chains
     @Property(tries = 80)
-    void rule7_wrapped_chain_segments_start_with_dot(@ForAll("identifier") String identifier) {
+    void rule7_wrapped_chain_segments_start_with_dot(@ForAll(IDENTIFIER_FORALL) String identifier) {
         String source = """
                 import java.util.List;
                 class C {
@@ -237,7 +244,7 @@ class CanonicalRulesPropertyTest {
     }
 
     @Property(tries = 60)
-    void rule7_chain_under_binary_operand_gets_extra_indent(@ForAll("identifier") String identifier) {
+    void rule7_chain_under_binary_operand_gets_extra_indent(@ForAll(IDENTIFIER_FORALL) String identifier) {
         String source = """
                 import java.util.List;
                 class C {
@@ -254,7 +261,7 @@ class CanonicalRulesPropertyTest {
 
     // Rule 8: Closing delimiter placement
     @Property(tries = 80)
-    void rule8_closing_paren_on_new_line_true_uses_own_line_for_wrapped_calls(@ForAll("identifier") String identifier) {
+    void rule8_closing_paren_on_new_line_true_uses_own_line_for_wrapped_calls(@ForAll(IDENTIFIER_FORALL) String identifier) {
         String source = """
                 class C {
                     void m() {
@@ -267,7 +274,7 @@ class CanonicalRulesPropertyTest {
     }
 
     @Property(tries = 80)
-    void rule8_closing_paren_on_new_line_false_keeps_closer_inline(@ForAll("identifier") String identifier) {
+    void rule8_closing_paren_on_new_line_false_keeps_closer_inline(@ForAll(IDENTIFIER_FORALL) String identifier) {
         String source = """
                 class C {
                     void m() {
@@ -288,7 +295,7 @@ class CanonicalRulesPropertyTest {
     }
 
     @Property(tries = 80)
-    void rule9_no_blank_line_immediately_after_open_or_before_close_brace(@ForAll("identifier") String identifier) {
+    void rule9_no_blank_line_immediately_after_open_or_before_close_brace(@ForAll(IDENTIFIER_FORALL) String identifier) {
         String source = """
                 class C {
 
@@ -306,7 +313,7 @@ class CanonicalRulesPropertyTest {
 
     // Rule 10: Comments and annotation safety (expressible subset)
     @Property(tries = 80)
-    void rule10_preserves_comment_markers_count(@ForAll("identifier") String identifier) {
+    void rule10_preserves_comment_markers_count(@ForAll(IDENTIFIER_FORALL) String identifier) {
         String source = """
                 class C {
                     // lead_%s
@@ -322,7 +329,7 @@ class CanonicalRulesPropertyTest {
     }
 
     @Property(tries = 60)
-    void rule10_preserves_type_use_annotation_position(@ForAll("identifier") String identifier) {
+    void rule10_preserves_type_use_annotation_position(@ForAll(IDENTIFIER_FORALL) String identifier) {
         String source = """
                 class C {
                     @interface Nullable {}

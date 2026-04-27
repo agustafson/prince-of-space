@@ -13,6 +13,7 @@ nullaway = "0.13.4"
 picocli = "4.7.7"
 shadow = "9.4.1"
 slf4j = "2.0.17"
+spotbugs-annotations = "4.9.8"
 spotbugs-gradle = "6.5.1"
 spotless = "8.4.0"
 spotless-lib = "4.5.0"
@@ -35,6 +36,7 @@ nullaway = { module = "com.uber.nullaway:nullaway", version.ref = "nullaway" }
 picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
+spotbugs-annotations = { module = "com.github.spotbugs:spotbugs-annotations", version.ref = "spotbugs-annotations" }
 spotless-lib = { module = "com.diffplug.spotless:spotless-lib", version.ref = "spotless-lib" }
 
 [plugins]

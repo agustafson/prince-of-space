@@ -185,3 +185,11 @@ Use it as the primary source of *why* design choices exist.
 - **Rationale:** Repeated user reports showed stacked closer columns and under-indented nested argument lists in ternary/binary continuation contexts. Earlier TDR-017 scope handling improved nested list indentation but left closer placement and single-arg wrapping edge cases unresolved.
 - **Consequences:** `PrincePrettyPrinterVisitor`, `LayoutContext`, and `ArgumentListFormatter` now coordinate co-line closer compaction, continuation-aware wrapped-list scope entry, and single-arg break-before behavior. New regression coverage lives in `ClosingParenAlignmentTest`; showroom goldens were regenerated to reflect updated nested-call output.
 - **Related docs:** `docs/canonical-formatting-rules.md` (Rules 3, 8), `docs/formatting-rules.md`, `modules/core/src/test/java/io/princeofspace/internal/ClosingParenAlignmentTest.java`
+
+### TDR-020: Default convergence pass budget
+- **Date:** 2026-04
+- **Status:** Accepted
+- **Decision:** Raise the engine's default `maxConvergencePasses` (additional single-format attempts after the first) to **11**, so the hard idempotency guarantee can be met in one `format()` call for WIDE mode at a short line length on large corpora (for example Spring Framework eval inputs). Override remains **`prince.maxConvergencePasses`** (non-negative integer).
+- **Rationale:** The prior default (**3** extra passes ⇒ **4** attempts total) was sufficient for typical inputs and comment re-attachment, but real sources showed **monotonic** refinement across many passes—greedy comma/call wrapping moving breakpoints until stable—not oscillation. Hitting `NonConvergent` there was a budget failure, not proof of non‑existence of a fixed point.
+- **Consequences:** Worst-case formatting work scales with the budget only when outputs keep changing; stable outputs still exit on the first equality check. Regression fixtures live in `WideSpringCorpusConvergenceRegressionTest` under test resources.
+- **Related docs:** `FormattingEngine`, `RealWorldEvalTest`, `RELEASING.md`

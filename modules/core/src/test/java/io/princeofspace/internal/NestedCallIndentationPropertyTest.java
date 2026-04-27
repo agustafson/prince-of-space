@@ -1,5 +1,6 @@
 package io.princeofspace.internal;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.princeofspace.Formatter;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.JavaLanguageLevel;
@@ -18,6 +19,9 @@ import java.util.Locale;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings({"PMD.TestClassWithoutTestCases", "PMD.TooManyMethods"})
+@SuppressFBWarnings(
+        value = "VA_FORMAT_STRING_USES_NEWLINE",
+        justification = "Java text blocks + String.formatted; same as CanonicalRulesPropertyTest")
 class NestedCallIndentationPropertyTest {
 
     private static final String ROOT_CALL = "rootSink";

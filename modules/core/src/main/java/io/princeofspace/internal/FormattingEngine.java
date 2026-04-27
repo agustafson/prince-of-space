@@ -54,11 +54,11 @@ public final class FormattingEngine {
     /**
      * Maximum additional passes beyond the initial format. Each extra pass re-parses the previous
      * output and formats again. The loop exits early when consecutive outputs are identical
-     * (the fixed point). In practice, well-behaved inputs converge after one extra pass; the
-     * remaining budget handles edge cases where JavaParser comment re-attribution needs two
-     * rounds to stabilize.
+     * (the fixed point). In practice, most inputs converge quickly; a larger budget covers WIDE mode
+     * at a short line length, where greedy wraps can cascade until stable (still monotonic toward a
+     * fixed point—JavaParser comment re-attribution remains a secondary driver).
      */
-    private static final int DEFAULT_MAX_CONVERGENCE_PASSES = 3;
+    private static final int DEFAULT_MAX_CONVERGENCE_PASSES = 11;
     private static final int CONVERGENCE_LOG_THRESHOLD = 1;
     private static final int CONFIGURED_MAX_CONVERGENCE_PASSES = resolveMaxConvergencePasses();
 

@@ -104,7 +104,7 @@ The eval hard-asserts:
 
 - **Zero parse errors** across every formatted file in every config.
 - **Zero idempotency failures** — `format(format(x)) == format(x)` everywhere, including
-  convergence within the engine's 4-pass budget.
+  convergence within the engine's default 12-pass budget (tune with `prince.maxConvergencePasses` if needed).
 
 Over-long line warnings remain informational and do **not** fail the gate.
 
