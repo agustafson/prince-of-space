@@ -1,5 +1,6 @@
 # Nyx configuration used by .github/workflows/release.yml to infer release versions
 # from git tags + conventional commits.
+# Commit-type semantics (e.g. showroom/golden: feat vs fix vs breaking): docs/contributing.md (TDR-018).
 # Tagging, publishing, and GitHub Release creation are handled by the release workflow.
 
 # Use the built-in Conventional Commits convention.

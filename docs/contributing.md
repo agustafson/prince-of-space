@@ -12,6 +12,25 @@ Examples:
 
 With **squash merge**, the **PR title** should follow the convention (it becomes the merge commit message).
 
+### How commit types affect releases (Nyx)
+
+Nyx looks at commits **after the latest `v*.*.*` tag** and applies the **strongest** SemVer bump among them: **major** (breaking) > **minor** (`feat`) > **patch** (`fix`, `chore`, `ci`, `docs`, …). So:
+
+- A release that includes **any** `feat:` will be a **minor** bump even if most commits are `fix:` or `chore:`. That is expected.
+- To get **patch** releases more often, use release windows where the only bump-worthy types are **patch-level** (for example `fix:`, `chore:`, `ci:`, `refactor:`) and avoid mixing in `feat:` for the same line release—**or** ship `feat` work in its own release.
+
+### Showroom, examples, and golden files
+
+`examples/inputs/**/FormatterShowcase.java` and `examples/outputs/**` are the public **showcase of formatter output**, not just internal tests. Do **not** default those changes to `fix:` unless you are strictly correcting **wrong** output.
+
+| Situation | Prefer |
+|-----------|--------|
+| Formatter had a **bug**; goldens update to match the **correct** behavior | `fix:` — appears under **Fixed** in the changelog. |
+| **New** scenarios, expanded coverage, or changes that **demonstrate new or changed formatting behavior** (including normative rule updates) | `feat:` — **minor** bump; appears under **Added** (per Nyx’s changelog sections). |
+| **Breaking** change to the formatting contract: integrators who diff goldens, pin baselines, or depend on previous output must take action | `feat!:` and/or a `BREAKING CHANGE:` **footer** — **major** bump; say what broke and what to do. |
+
+Use **`chore:`** only for **mechanical** golden churn with **no** intended output change (rare: for example re-running regeneration after a no-op line-ending fix). If the formatted bytes change, pick **`fix`**, **`feat`**, or **breaking** as above.
+
 ## Git and hooks
 
 This repository does **not** ship custom Git hooks under version control. A fresh clone only has Git’s default **`.sample`** files in `.git/hooks/` (inactive until renamed). Nothing under `.git/hooks/` in your clone is coming from this repository.

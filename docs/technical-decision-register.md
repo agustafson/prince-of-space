@@ -168,3 +168,11 @@ Use it as the primary source of *why* design choices exist.
 - **Rationale:** Continuation was previously applied as a flat `2 * indentSize` print on every wrapped line regardless of nesting, so inner `)` delimiters aligned with outer ones and looked “stacked” at the wrong column; `printMembers`’ leading newline interacted badly with orphan comment draining before the first field.
 - **Consequences:** `PrincePrettyPrinterVisitor.printArguments`, `ArgumentListFormatter`, `LayoutContext`, `DeclarationFormatter`, and `printMembers`; showroom goldens and wrapping/comment tests updated.
 - **Related docs:** `docs/canonical-formatting-rules.md` (Rules 3, 8, 9, 10), `WrappingFormattingTest`, `CommentPreservationTest`
+
+### TDR-018: Conventional Commits for showroom vs. Nyx patch/minor
+- **Date:** 2026-04
+- **Status:** Accepted
+- **Decision:** Document explicit guidance: prefer **`feat:`** (and **`feat!:`** / **`BREAKING CHANGE:`** when appropriate) for showroom and golden updates that reflect **new or changed formatting behavior** or **new showcase coverage**; reserve **`fix:`** for **bugfixes** (incorrect output relative to the intended rules). This aligns changelog sections (“Added” vs “Fixed”) and version bumps (minor vs patch) with user-visible meaning. Nyx’s **highest-bump-wins** rule is unchanged: more **patch** releases in practice require release lines where only patch-level types appear, or separate releases.
+- **Rationale:** Showroom diffs are often categorized as `fix` by habit, which understates product impact and mis-files notes under “Fixed” when the work is a feature or contract change. Calling out **breaking** golden churn explicitly helps integrators.
+- **Consequences:** Maintainers and contributors follow `docs/contributing.md`; no `.nyx.yml` change required.
+- **Related docs:** `docs/contributing.md`, `RELEASING.md`, `docs/showroom-scenarios.md`

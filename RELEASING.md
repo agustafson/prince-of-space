@@ -215,6 +215,12 @@ to push to `main` or adjust protection rules.
 The **highest** bump among commits since the last tag wins. If the inferred version equals
 the latest `v*` tag, the workflow aborts with an error (nothing new to ship).
 
+**More patch releases in practice** usually means **fewer `feat:` commits** mixed into the
+same pre-tag range (or shipping `feat` work in its own release). **Showroom / golden** commit
+conventions (when to use `fix` vs `feat` vs breaking) are documented in **`docs/contributing.md`**
+(TDR-018); mis-labeling work as `fix` when it is really a feature or breaking change blurs
+the changelog and understates the SemVer bump you intend.
+
 ---
 
 ## What is published to Maven Central
