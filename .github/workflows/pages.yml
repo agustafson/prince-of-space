@@ -44,7 +44,7 @@ jobs:
           python-version: "3.12"
 
       - name: Build docs site
-        run: ./gradlew generateCompareHtml docsSite --no-daemon
+        run: ./gradlew generateDocs --no-daemon
 
       - name: Bundle compare.html into site root
         run: cp examples/compare.html _site/compare.html

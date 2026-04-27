@@ -92,6 +92,7 @@ spotless {
     }
     format("markdown") {
         target("**/*.md")
+        targetExclude("_site/**")
         trimTrailingWhitespace()
         endWithNewline()
     }
@@ -128,8 +129,20 @@ val generateCompareHtml by tasks.registering(Exec::class) {
     commandLine("sh", "-lc", "set -eu; python3 scripts/generate-compare.py")
 }
 
-tasks.register("docsSite") {
+val docsSite = tasks.register<Exec>("docsSite") {
     group = "documentation"
-    description = "Build docs site with strict MkDocs checks into _site via Gradle MkDocs plugin."
-    dependsOn("mkdocsBuild")
+    description = "Build docs site with strict MkDocs checks into _site."
+    dependsOn("pipInstall", generateCompareHtml)
+    inputs.file(layout.projectDirectory.file("mkdocs.yml"))
+    inputs.dir(layout.projectDirectory.dir("docs"))
+    outputs.dir(layout.projectDirectory.dir("_site"))
+    commandLine("sh", "-lc", "set -eu; ./.gradle/python/bin/python -m mkdocs build --strict --site-dir _site -f mkdocs.yml")
+}
+tasks.register("generateDocs") {
+    group = "documentation"
+    description = "Generate docs."
+    dependsOn(generateCompareHtml, docsSite)
+}
+tasks.assemble {
+    dependsOn("generateDocs")
 }
