@@ -2,7 +2,7 @@
 archunit = "1.4.1"
 assertj = "3.27.7"
 # Keep aligned with NullAway (0.13.x targets Error Prone ~2.45; 2.49+ breaks NullAway at runtime).
-errorprone = "2.45.0"
+errorprone = "2.49.0"
 errorprone-plugin = "5.1.0"
 javaparser = "3.28.0"
 jqwik = "1.9.3"
