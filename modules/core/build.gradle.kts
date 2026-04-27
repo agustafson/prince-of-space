@@ -1,10 +1,5 @@
-import net.ltgt.gradle.errorprone.CheckSeverity
-import net.ltgt.gradle.errorprone.errorprone
-
 plugins {
     `java-library`
-    checkstyle
-    alias(libs.plugins.errorprone)
     alias(libs.plugins.spotbugs)
     alias(libs.plugins.test.logger)
     `maven-publish`
@@ -15,22 +10,10 @@ base {
     archivesName.set("prince-of-space-core")
 }
 
-java {
-    toolchain {
-        // Error Prone 2.49+ requires JDK 21+ to run the javac plugin; bytecode stays Java 17 via `release`.
-        languageVersion.set(JavaLanguageVersion.of(21))
-    }
-    withJavadocJar()
-    withSourcesJar()
-}
-
 dependencies {
     api(libs.jspecify)
     api(libs.slf4j.api)
     implementation(libs.javaparser.core)
-
-    errorprone(libs.errorprone.core)
-    errorprone(libs.nullaway)
 
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter.api)
@@ -44,29 +27,6 @@ dependencies {
 
 tasks.withType<Javadoc>().configureEach {
     isFailOnError = false
-}
-
-tasks.withType<JavaCompile>().configureEach {
-    options.encoding = "UTF-8"
-    options.release.set(17)
-}
-
-tasks.named<JavaCompile>("compileJava") {
-    options.errorprone {
-        option("NullAway:AnnotatedPackages", "io.princeofspace")
-        check("NullAway", CheckSeverity.ERROR)
-        check("VoidUsed", CheckSeverity.OFF)
-        check("UnrecognisedJavadocTag", CheckSeverity.OFF)
-    }
-}
-
-tasks.named<JavaCompile>("compileTestJava") {
-    options.errorprone {
-        // NullAway is enforced on main sources only; test sources stay unchecked (see compileJava).
-        check("NullAway", CheckSeverity.OFF)
-        check("VoidUsed", CheckSeverity.OFF)
-        check("UnrecognisedJavadocTag", CheckSeverity.OFF)
-    }
 }
 
 tasks.test {
@@ -161,10 +121,6 @@ tasks.jacocoTestCoverageVerification {
 
 tasks.check {
     dependsOn(tasks.jacocoTestCoverageVerification)
-}
-
-checkstyle {
-    configFile = rootProject.file("config/checkstyle/checkstyle.xml")
 }
 
 spotbugs {

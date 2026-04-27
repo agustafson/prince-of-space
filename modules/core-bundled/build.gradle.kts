@@ -5,20 +5,6 @@ plugins {
     signing
 }
 
-import org.w3c.dom.Element
-
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
-    }
-    withJavadocJar()
-    withSourcesJar()
-}
-
-tasks.withType<JavaCompile>().configureEach {
-    options.release.set(17)
-}
-
 dependencies {
     implementation(project(":core"))
     testImplementation(platform(libs.junit.bom))
@@ -87,7 +73,7 @@ publishing {
                     val dependencyBlocks = projectEl.getElementsByTagName("dependencies")
                     for (i in 0 until dependencyBlocks.length) {
                         val block = dependencyBlocks.item(i)
-                        if (block is Element) {
+                        if (block is org.w3c.dom.Element) {
                             while (block.hasChildNodes()) {
                                 block.removeChild(block.firstChild)
                             }

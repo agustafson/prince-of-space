@@ -8,19 +8,6 @@ base {
     archivesName.set("prince-of-space-spotless")
 }
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
-    }
-    withJavadocJar()
-    withSourcesJar()
-}
-
-tasks.withType<JavaCompile>().configureEach {
-    options.encoding = "UTF-8"
-    options.release.set(17)
-}
-
 dependencies {
     implementation(project(":core"))
     implementation(libs.spotless.lib)

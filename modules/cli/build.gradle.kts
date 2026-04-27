@@ -7,23 +7,11 @@ base {
     archivesName.set("prince-of-space-cli")
 }
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
-    }
-}
-
-tasks.withType<JavaCompile>().configureEach {
-    options.encoding = "UTF-8"
-    options.release.set(17)
-}
-
 dependencies {
     implementation(project(":core"))
     implementation(libs.javaparser.core)
     implementation(libs.picocli)
     runtimeOnly(libs.slf4j.simple)
-
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)

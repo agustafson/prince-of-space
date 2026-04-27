@@ -14,17 +14,6 @@ repositories {
     }
 }
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
-    }
-}
-
-tasks.withType<JavaCompile>().configureEach {
-    options.encoding = "UTF-8"
-    options.release.set(17)
-}
-
 dependencies {
     intellijPlatform {
         intellijIdeaCommunity("2023.3.6")
