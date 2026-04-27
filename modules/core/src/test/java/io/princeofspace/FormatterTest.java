@@ -1,6 +1,6 @@
 package io.princeofspace;
 
-
+import io.princeofspace.model.FormatResult;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.JavaLanguageLevel;

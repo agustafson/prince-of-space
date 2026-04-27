@@ -6,7 +6,7 @@ import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.Problem;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
-import io.princeofspace.FormatResult;
+import io.princeofspace.model.FormatResult;
 import io.princeofspace.model.FormatterConfig;
 import org.jspecify.annotations.Nullable;
 

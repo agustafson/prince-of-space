@@ -1,6 +1,7 @@
 package io.princeofspace;
 
 import io.princeofspace.internal.FormattingEngine;
+import io.princeofspace.model.FormatResult;
 import io.princeofspace.model.FormatterConfig;
 
 import java.nio.file.Path;

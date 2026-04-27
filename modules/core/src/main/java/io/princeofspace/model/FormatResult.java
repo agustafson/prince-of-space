@@ -1,4 +1,7 @@
-package io.princeofspace;
+package io.princeofspace.model;
+
+import io.princeofspace.Formatter;
+import io.princeofspace.FormatterException;
 
 import java.util.List;
 

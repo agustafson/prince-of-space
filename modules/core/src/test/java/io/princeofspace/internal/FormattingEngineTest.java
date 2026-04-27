@@ -1,6 +1,6 @@
 package io.princeofspace.internal;
 
-import io.princeofspace.FormatResult;
+import io.princeofspace.model.FormatResult;
 import io.princeofspace.model.FormatterConfig;
 import org.junit.jupiter.api.Test;
 
