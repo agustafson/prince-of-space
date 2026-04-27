@@ -31,7 +31,6 @@ dependencies {
         bundledPlugin("com.intellij.java")
     }
     implementation(project(":core"))
-    implementation(libs.javaparser.core)
 
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter.api)
