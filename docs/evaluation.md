@@ -82,7 +82,7 @@ The eval is mandatory for releases. The `release` workflow runs **`external-eval
 as a **matrix** (Spring Framework and Guava × three `lineLength` values × three wrap styles);
 the publish job declares `needs: external-eval`, so a
 failed leg blocks publishing even on dry runs. See
-[RELEASING.md — External eval gate](https://github.com/agustafson/prince-of-space/blob/main/RELEASING.md#external-eval-gate-mandatory)
+[RELEASING — External eval gate](releasing.md#external-eval-gate-mandatory)
 on GitHub for recovery steps.
 
 A lighter **`external-eval-smoke`** matrix (`lineLength=120`, `wrapStyle=BALANCED` only) also runs on every

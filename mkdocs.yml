@@ -61,6 +61,7 @@ nav:
   - Contributing:
     - Architecture: architecture.md
     - Contributing Guide: contributing.md
+    - Releasing: releasing.md
     - Showroom Scenarios: showroom-scenarios.md
     - Evaluation: evaluation.md
     - Eval report (2026-04-17): eval-results/2026-04-17.md
