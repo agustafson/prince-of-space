@@ -9,10 +9,14 @@
     <module name="SuppressionFilter">
         <property name="file" value="${config_loc}/suppressions.xml"/>
     </module>
+    <module name="SuppressWarningsFilter"/>
     <module name="TreeWalker">
         <!-- Naming & structure only — avoid formatting rules that duplicate Spotless. -->
         <module name="OuterTypeFilename"/>
         <module name="IllegalTokenText"/>
+        <module name="IllegalImport">
+            <property name="illegalClasses" value="org.jetbrains.annotations.NotNull, org.jetbrains.annotations.Nullable"/>
+        </module>
         <module name="AvoidStarImport"/>
         <module name="RedundantImport"/>
         <module name="UnusedImports"/>
@@ -22,5 +26,6 @@
             <property name="ignoreAnnotation" value="true"/>
             <property name="ignoreFieldDeclaration" value="true"/>
         </module>
+        <module name="SuppressWarningsHolder"/>
     </module>
 </module>
