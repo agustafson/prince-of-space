@@ -15,6 +15,7 @@ on:
       - "examples/compare.html"
       - "scripts/generate-compare.py"
       - "mkdocs.yml"
+      - "build.gradle.kts"
       - "CHANGELOG.md"
   workflow_dispatch:
 
@@ -42,14 +43,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install MkDocs and dependencies
-        run: pip install -r docs/requirements.txt
-
-      - name: Regenerate compare.html from committed outputs
-        run: python3 scripts/generate-compare.py
-
-      - name: Build MkDocs site
-        run: mkdocs build --strict --site-dir _site
+      - name: Build docs site
+        run: ./gradlew generateCompareHtml docsSite --no-daemon
 
       - name: Bundle compare.html into site root
         run: cp examples/compare.html _site/compare.html

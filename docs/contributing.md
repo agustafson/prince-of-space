@@ -47,6 +47,22 @@ Use **JDK 21+** to run Gradle here: the **Error Prone** compiler plugin needs a 
 
 CI runs tests, Spotless, Checkstyle, SpotBugs, Error Prone, and dependency health. Keep `./gradlew build` green locally.
 
+## Docs checks
+
+Use one command for local docs verification (same entry point CI uses for GitHub Pages):
+
+```bash
+./gradlew docsSite
+```
+
+This task creates/updates a local docs virtualenv under `.venv-docs` and runs `mkdocs build --strict --site-dir _site`.
+
+To refresh the interactive comparator after output changes, run:
+
+```bash
+./gradlew generateCompareHtml
+```
+
 ## Dependency declarations
 
 - Do not use dynamic versions (`latest.release`, `+`, ranges).

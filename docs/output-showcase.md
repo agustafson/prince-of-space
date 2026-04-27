@@ -197,7 +197,7 @@ To regenerate after changing formatting behaviour:
 
 ```bash
 REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens
-python3 scripts/generate-compare.py
+./gradlew generateCompareHtml
 ```
 
 The second command re-embeds the updated outputs into `examples/compare.html`.

@@ -100,3 +100,44 @@ spotless {
         endWithNewline()
     }
 }
+
+val docsVenvDir = layout.projectDirectory.dir(".venv-docs")
+val docsRequirementsFile = layout.projectDirectory.file("docs/requirements.txt")
+
+val setupDocsToolchain by tasks.registering(Exec::class) {
+    group = "documentation"
+    description = "Create docs virtualenv and install MkDocs dependencies."
+    inputs.file(docsRequirementsFile)
+    outputs.file(docsVenvDir.file(".requirements-stamp"))
+    commandLine(
+        "sh",
+        "-lc",
+        """
+        set -eu
+        python3 -m venv .venv-docs
+        ./.venv-docs/bin/python -m pip install --upgrade pip
+        ./.venv-docs/bin/pip install -r docs/requirements.txt
+        touch .venv-docs/.requirements-stamp
+        """.trimIndent(),
+    )
+}
+
+val generateCompareHtml by tasks.registering(Exec::class) {
+    group = "documentation"
+    description = "Regenerate examples/compare.html from committed outputs."
+    dependsOn(setupDocsToolchain)
+    inputs.file(layout.projectDirectory.file("scripts/generate-compare.py"))
+    inputs.dir(layout.projectDirectory.dir("examples/outputs"))
+    outputs.file(layout.projectDirectory.file("examples/compare.html"))
+    commandLine("sh", "-lc", "set -eu; ./.venv-docs/bin/python scripts/generate-compare.py")
+}
+
+tasks.register<Exec>("docsSite") {
+    group = "documentation"
+    description = "Build docs site with strict MkDocs checks into _site."
+    dependsOn(setupDocsToolchain)
+    inputs.file(layout.projectDirectory.file("mkdocs.yml"))
+    inputs.dir(layout.projectDirectory.dir("docs"))
+    outputs.dir(layout.projectDirectory.dir("_site"))
+    commandLine("sh", "-lc", "set -eu; ./.venv-docs/bin/python -m mkdocs build --strict --site-dir _site")
+}
