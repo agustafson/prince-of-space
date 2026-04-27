@@ -35,6 +35,16 @@ subprojects {
     }
 }
 
+dependencyAnalysis {
+  issues {
+    all {
+      onAny {
+        severity("fail")
+      }
+    }
+  }
+}
+
 spotless {
     kotlinGradle {
         target("*.gradle.kts", "settings.gradle.kts")
