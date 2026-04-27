@@ -19,6 +19,7 @@ build/
 *.class
 hs_err_pid*
 replay_pid*
+*.hprof
 
 # jqwik property-based test cache
 .jqwik-database
@@ -32,7 +33,6 @@ replay_pid*
 
 # MkDocs (local `mkdocs build` output)
 _site/
-.venv-docs/
 
 # Claude Code
 .claude/settings.local.json

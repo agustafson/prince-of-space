@@ -55,7 +55,7 @@ Use one command for local docs verification (same entry point CI uses for GitHub
 ./gradlew docsSite
 ```
 
-This task creates/updates a local docs virtualenv under `.venv-docs` and runs `mkdocs build --strict --site-dir _site`.
+This task runs the Gradle MkDocs plugin (with dependencies from `docs/requirements.txt`) and performs `mkdocs build --strict --site-dir _site`.
 
 To refresh the interactive comparator after output changes, run:
 

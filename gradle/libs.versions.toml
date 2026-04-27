@@ -8,6 +8,7 @@ javaparser = "3.28.0"
 jqwik = "1.9.3"
 jspecify = "1.0.0"
 junit = "6.0.3"
+mkdocs-build = "4.0.1"
 nullaway = "0.13.4"
 picocli = "4.7.7"
 shadow = "9.4.1"
@@ -38,6 +39,7 @@ spotless-lib = { module = "com.diffplug.spotless:spotless-lib", version.ref = "s
 
 [plugins]
 errorprone = { id = "net.ltgt.errorprone", version.ref = "errorprone-plugin" }
+mkdocs-build = { id = "ru.vyarus.mkdocs-build", version.ref = "mkdocs-build" }
 shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
 spotbugs = { id = "com.github.spotbugs", version.ref = "spotbugs-gradle" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
