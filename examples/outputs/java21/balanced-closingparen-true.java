@@ -179,8 +179,7 @@ public class FormatterShowcase
             .collect(Collectors.groupingBy(
                     item -> String.valueOf(item.charAt(0)).toUpperCase(),
                     Collectors.mapping(String::toLowerCase, Collectors.toList())
-            )
-            );
+            ));
     }
 
     // Scenario 12: Try-with-resources
@@ -721,8 +720,7 @@ public class FormatterShowcase
                 new IllegalStateException("Bad thing happened and this diagnostic stack summary is also "
                 + "intentionally very long to force wrapping"
                 )
-        )
-        );
+        ));
     }
 
     // Scenario 53: Interface extends clause with many super-interfaces

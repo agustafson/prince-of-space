@@ -534,7 +534,7 @@ class WrappingFormattingTest {
     }
 
     @Test
-    void nestedWrappedCall_placesEachClosingParenOnOwnLineWhenEnabled() {
+    void nestedWrappedCall_compactsClosersForColineOpenersWhenEnabled() {
         Formatter f =
                 new Formatter(
                         FormatterConfig.builder()
@@ -562,7 +562,7 @@ class WrappingFormattingTest {
         assertThat(out).contains(".collect(Collectors.groupingBy(item -> key(item),\n");
         assertThat(out)
                 .contains("                Collectors.mapping(String::toLowerCase, Collectors.toList())\n");
-        assertThat(out).containsPattern("\\n\\s*\\)\\n\\s*\\);");
+        assertThat(out).containsPattern("\\n\\s*\\)\\);");
         assertThat(f.format(out)).isEqualTo(out);
     }
 
@@ -1539,7 +1539,7 @@ class WrappingFormattingTest {
     }
 
     @Test
-    void closingParen_singleNestedCall_onItsOwnLineWhenEnabled() {
+    void closingParen_singleNestedCall_compactsCloserRunWhenEnabled() {
         Formatter f =
                 new Formatter(
                         FormatterConfig.builder()
@@ -1563,8 +1563,8 @@ class WrappingFormattingTest {
                 """;
         String out = f.format(input);
         String callLine = lineContaining(out, "consume(");
-        String closingLine = lineContaining(out, ");");
-        assertThat(closingLine.stripLeading()).isEqualTo(");");
+        String closingLine = lineContaining(out, "));");
+        assertThat(closingLine.stripLeading()).isEqualTo("));");
         assertThat(leadingSpaces(closingLine)).isEqualTo(leadingSpaces(callLine));
         assertThat(f.format(out)).isEqualTo(out);
     }

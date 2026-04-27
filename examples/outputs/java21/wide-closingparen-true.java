@@ -163,8 +163,7 @@ public class FormatterShowcase
             .filter(item -> item != null && !item.isBlank())
             .collect(Collectors.groupingBy(item -> String.valueOf(item.charAt(0)).toUpperCase(),
                     Collectors.mapping(String::toLowerCase, Collectors.toList())
-            )
-            );
+            ));
     }
 
     // Scenario 12: Try-with-resources
@@ -652,8 +651,7 @@ public class FormatterShowcase
                 new IllegalStateException("Bad thing happened and this diagnostic stack summary is also "
                 + "intentionally very long to force wrapping"
                 )
-        )
-        );
+        ));
     }
 
     // Scenario 53: Interface extends clause with many super-interfaces
@@ -673,8 +671,7 @@ public class FormatterShowcase
     public void nestedWrappedCallInnerListContinuationScenario54(String issueKey) {
         auditLogSuccessWithMessageScenario54(i18nGetTextScenario54(UpdateALItemsConversationExecutionStatusScenario54.SUCCESS.getI18nKeyScenario54(),
                         resultGetNameScenario54(), issueKey
-                ), ""
-        );
+                ), "");
     }
 
     // Scenario 55: Consecutive line comments before first field in a type body (no blank line between comments)

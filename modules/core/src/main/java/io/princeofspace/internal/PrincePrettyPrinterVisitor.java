@@ -53,6 +53,8 @@ import io.princeofspace.model.WrapStyle;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -117,6 +119,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
      * so nested wrapped {@code (...)} lists stack R3 continuation correctly.
      */
     private int wrappedDelimitedListScopeDepth;
+    /** Tracks argument-list opener line numbers so nested co-line closers can compact to one closer run. */
+    private final Deque<Integer> argumentListOpenerLines = new ArrayDeque<>();
+    /** True while printing a co-line nested closer run like {@code ));} on a single closer line. */
+    private boolean compactArgumentCloserRunActive;
 
     PrincePrettyPrinterVisitor(PrinterConfiguration configuration, FormatterConfig fmt) {
         super(configuration);
@@ -720,37 +726,55 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     @Override
     protected <T extends Expression> void printArguments(NodeList<T> args, Void arg) {
+        int openerLine = printer.getCursor().line;
+        boolean nestedOpenersAreColine =
+                !argumentListOpenerLines.isEmpty() && argumentListOpenerLines.peek() == openerLine;
+        argumentListOpenerLines.push(openerLine);
         printer.print("(");
         boolean wrapped = false;
-        if (!isNullOrEmpty(args)) {
-            wrapped = argumentListFormatter.argsNeedWrap(args);
-            // Only push extra printer indents when this list itself uses explicit continuation lines.
-            // A single wrapped expression argument (e.g. new X("""...""".formatted(...))) must not
-            // activate the scope: inner chains/binary continuations still use printCont relative to the
-            // outer call indent.
-            boolean applyWrappedListIndent =
-                    wrapped
-                            && (args.size() > SINGLE_ITEM_COUNT
-                                    || (args.size() == SINGLE_ITEM_COUNT
-                                            && (commentUtils.hasLeadingLineOrBlockComment(args.get(0))
-                                                    || commentUtils.hasAnyLineOrBlockCommentOnLambda(
-                                                            args.get(0)))));
-            if (applyWrappedListIndent) {
-                enterWrappedDelimitedListScope();
-            }
-            try {
-                argumentListFormatter.printCommaSeparatedExprs(args, arg);
-            } finally {
+        try {
+            if (!isNullOrEmpty(args)) {
+                wrapped = argumentListFormatter.argsNeedWrap(args);
+                // Only push extra printer indents when this list itself uses explicit continuation lines.
+                // A single wrapped expression argument (e.g. new X("""...""".formatted(...))) must not
+                // activate the scope: inner chains/binary continuations still use printCont relative to the
+                // outer call indent.
+                boolean applyWrappedListIndent =
+                        wrapped
+                                && (args.size() > SINGLE_ITEM_COUNT
+                                        || (args.size() == SINGLE_ITEM_COUNT
+                                                && (commentUtils.hasLeadingLineOrBlockComment(args.get(0))
+                                                        || commentUtils.hasAnyLineOrBlockCommentOnLambda(
+                                                                args.get(0)))));
                 if (applyWrappedListIndent) {
-                    exitWrappedDelimitedListScope();
+                    enterWrappedDelimitedListScope();
+                }
+                try {
+                    argumentListFormatter.printCommaSeparatedExprs(args, arg);
+                } finally {
+                    if (applyWrappedListIndent) {
+                        exitWrappedDelimitedListScope();
+                    }
                 }
             }
+            // R8: when configured, closing ')' moves to its own line for wrapped argument lists.
+            if (fmt.closingParenOnNewLine() && wrapped) {
+                if (nestedOpenersAreColine) {
+                    if (!compactArgumentCloserRunActive) {
+                        printer.println();
+                        compactArgumentCloserRunActive = true;
+                    }
+                } else if (!compactArgumentCloserRunActive) {
+                    printer.println();
+                }
+            }
+            printer.print(")");
+        } finally {
+            argumentListOpenerLines.pop();
+            if (!nestedOpenersAreColine) {
+                compactArgumentCloserRunActive = false;
+            }
         }
-        // R8: when configured, closing ')' moves to its own line for wrapped argument lists.
-        if (fmt.closingParenOnNewLine() && wrapped) {
-            printer.println();
-        }
-        printer.print(")");
     }
 
     // Bodies, parameters, and type headers for declarations live in DeclarationFormatter (same rules;
