@@ -66,7 +66,7 @@ runs:
         export PRINCE_EVAL_LINE_LENGTH="${{ inputs.line_length }}"
         export PRINCE_EVAL_WRAP_STYLE="${{ inputs.wrap_style }}"
         export PRINCE_EVAL_MAX_OVER_LONG_SAMPLES="0"
-        ./gradlew :core:evalTest --no-configuration-cache --no-daemon
+        ./gradlew :core:evalTest --no-configuration-cache --no-build-cache --rerun-tasks --no-daemon
 
     - name: Save eval result cache
       if: success() && steps.eval-result-cache.outputs.cache-hit != 'true'
