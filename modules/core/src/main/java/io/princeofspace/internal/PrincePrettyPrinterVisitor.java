@@ -52,8 +52,8 @@ import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.WrapStyle;
 import org.jspecify.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
