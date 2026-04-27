@@ -1,5 +1,8 @@
 # External corpus checks: Spring Framework and Guava in parallel (matrix = one corpus per runner).
 # Requires network to clone upstream; does not commit reports to the branch (artifacts only).
+#
+# Eval result dedupe: shared implementation in .github/actions/eval-external-corpus (upstream HEAD +
+# github.sha). On cache hit, corpus checkout + Gradle eval are skipped.
 
 name: External eval
 
@@ -38,30 +41,14 @@ jobs:
       - name: Checkout Prince of Space
         uses: actions/checkout@v6
 
-      - name: Checkout ${{ matrix.corpus }}
-        uses: actions/checkout@v6
+      - name: Eval external corpus (smoke, cached)
+        uses: ./.github/actions/eval-external-corpus
         with:
+          corpus: ${{ matrix.corpus }}
           repository: ${{ matrix.repository }}
-          path: external/${{ matrix.corpus }}
-          fetch-depth: 1
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 21
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-
-      - name: Run eval (smoke — default-balanced only)
-        env:
-          PRINCE_EVAL_ROOTS: ${{ github.workspace }}/external/${{ matrix.corpus }}
-          PRINCE_EVAL_REPORT_SLUG: ${{ matrix.corpus }}
-          PRINCE_EVAL_CONFIG_NAMES: default-balanced
-          PRINCE_EVAL_MAX_HEAP: 5g
-          PRINCE_EVAL_MAX_OVER_LONG_SAMPLES: "0"
-        run: ./gradlew :core:evalTest --no-configuration-cache --no-daemon
+          cache_mode: smoke
+          eval_max_heap: 5g
+          eval_config_names: default-balanced
 
       - name: Upload eval report artifact
         if: always()
@@ -89,29 +76,13 @@ jobs:
       - name: Checkout Prince of Space
         uses: actions/checkout@v6
 
-      - name: Checkout ${{ matrix.corpus }}
-        uses: actions/checkout@v6
+      - name: Eval external corpus (full matrix, cached)
+        uses: ./.github/actions/eval-external-corpus
         with:
+          corpus: ${{ matrix.corpus }}
           repository: ${{ matrix.repository }}
-          path: external/${{ matrix.corpus }}
-          fetch-depth: 1
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 21
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-
-      - name: Run eval (full matrix — all configs)
-        env:
-          PRINCE_EVAL_ROOTS: ${{ github.workspace }}/external/${{ matrix.corpus }}
-          PRINCE_EVAL_REPORT_SLUG: ${{ matrix.corpus }}
-          PRINCE_EVAL_MAX_HEAP: 6g
-          PRINCE_EVAL_MAX_OVER_LONG_SAMPLES: "0"
-        run: ./gradlew :core:evalTest --no-configuration-cache --no-daemon
+          cache_mode: full
+          eval_max_heap: 6g
 
       - name: Upload eval report artifact
         if: always()

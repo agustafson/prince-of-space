@@ -38,6 +38,8 @@ jobs:
   # Pre-release gate: full 9-config eval per external corpus (matrix = parallel runners).
   # Blocks the publish job via `needs:` below. Hard-fails on any parse error or
   # idempotency failure (RealWorldEvalTest assertions). Runs on dry-run and full release alike.
+  #
+  # Eval result dedupe: composite .github/actions/eval-external-corpus (same keys as external-eval full).
   external-eval:
     name: External eval (${{ matrix.corpus }})
     runs-on: ubuntu-latest
@@ -54,27 +56,13 @@ jobs:
       - name: Checkout Prince of Space
         uses: actions/checkout@v6
 
-      - name: Checkout ${{ matrix.corpus }}
-        uses: actions/checkout@v6
+      - name: Eval external corpus (full matrix, cached)
+        uses: ./.github/actions/eval-external-corpus
         with:
+          corpus: ${{ matrix.corpus }}
           repository: ${{ matrix.repository }}
-          path: external/${{ matrix.corpus }}
-          fetch-depth: 1
-
-      - uses: actions/setup-java@v5
-        with:
-          java-version: "21"
-          distribution: "temurin"
-
-      - uses: gradle/actions/setup-gradle@v6
-
-      - name: Run eval (full matrix — must pass for release)
-        env:
-          PRINCE_EVAL_ROOTS: ${{ github.workspace }}/external/${{ matrix.corpus }}
-          PRINCE_EVAL_REPORT_SLUG: ${{ matrix.corpus }}
-          PRINCE_EVAL_MAX_HEAP: 6g
-          PRINCE_EVAL_MAX_OVER_LONG_SAMPLES: "0"
-        run: ./gradlew :core:evalTest --no-configuration-cache --no-daemon
+          cache_mode: full
+          eval_max_heap: 6g
 
       - name: Upload eval report artifact
         if: always()

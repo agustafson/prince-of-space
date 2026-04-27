@@ -1,0 +1,82 @@
+# Shared steps: resolve upstream HEAD, restore/save eval report cache (keyed by corpus +
+# upstream SHA + github.sha), conditional checkout + JDK + Gradle + :core:evalTest.
+name: Eval external corpus (result cache)
+description: >
+  Runs RealWorldEvalTest against a cloned corpus when no cached docs/eval-results exists
+  for this PoS commit and upstream default-branch HEAD.
+
+inputs:
+  corpus:
+    description: Short name (directory under external/, PRINCE_EVAL_REPORT_SLUG)
+    required: true
+  repository:
+    description: GitHub repo as owner/name (same as actions/checkout repository)
+    required: true
+  cache_mode:
+    description: Cache key segment — smoke (single config) or full (all configs); must match eval workload
+    required: true
+  eval_max_heap:
+    description: PRINCE_EVAL_MAX_HEAP for the Gradle test worker (e.g. 5g or 6g)
+    required: true
+  eval_config_names:
+    description: Optional; when non-empty, sets PRINCE_EVAL_CONFIG_NAMES (smoke uses default-balanced)
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve upstream corpus HEAD and eval result cache key
+      id: corpus-head
+      shell: bash
+      run: |
+        SHA="$(git ls-remote "https://github.com/${{ inputs.repository }}.git" HEAD | cut -f1)"
+        echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+        KEY="eval-result-${{ inputs.cache_mode }}-${{ inputs.corpus }}-${SHA}-${{ github.sha }}"
+        echo "EVAL_RESULT_CACHE_KEY=$KEY" >> "$GITHUB_ENV"
+
+    - name: Restore eval result cache
+      id: eval-result-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: docs/eval-results
+        key: ${{ env.EVAL_RESULT_CACHE_KEY }}
+
+    - name: Checkout corpus
+      if: steps.eval-result-cache.outputs.cache-hit != 'true'
+      uses: actions/checkout@v6
+      with:
+        repository: ${{ inputs.repository }}
+        path: external/${{ inputs.corpus }}
+        fetch-depth: 1
+
+    - name: Set up JDK 21
+      if: steps.eval-result-cache.outputs.cache-hit != 'true'
+      uses: actions/setup-java@v5
+      with:
+        distribution: temurin
+        java-version: 21
+
+    - name: Set up Gradle
+      if: steps.eval-result-cache.outputs.cache-hit != 'true'
+      uses: gradle/actions/setup-gradle@v6
+
+    - name: Run eval
+      if: steps.eval-result-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        export PRINCE_EVAL_ROOTS="${{ github.workspace }}/external/${{ inputs.corpus }}"
+        export PRINCE_EVAL_REPORT_SLUG="${{ inputs.corpus }}"
+        export PRINCE_EVAL_MAX_HEAP="${{ inputs.eval_max_heap }}"
+        export PRINCE_EVAL_MAX_OVER_LONG_SAMPLES="0"
+        if [ -n "${{ inputs.eval_config_names }}" ]; then
+          export PRINCE_EVAL_CONFIG_NAMES="${{ inputs.eval_config_names }}"
+        fi
+        ./gradlew :core:evalTest --no-configuration-cache --no-daemon
+
+    - name: Save eval result cache
+      if: success() && steps.eval-result-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: docs/eval-results
+        key: ${{ env.EVAL_RESULT_CACHE_KEY }}
