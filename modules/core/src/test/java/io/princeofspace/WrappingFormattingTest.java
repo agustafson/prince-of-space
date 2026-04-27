@@ -1539,7 +1539,7 @@ class WrappingFormattingTest {
     }
 
     @Test
-    void closingParen_singleNestedCall_compactsCloserRunWhenEnabled() {
+    void closingParen_singleNestedCall_breaksBeforeWrappedArgumentWhenEnabled() {
         Formatter f =
                 new Formatter(
                         FormatterConfig.builder()
@@ -1563,8 +1563,8 @@ class WrappingFormattingTest {
                 """;
         String out = f.format(input);
         String callLine = lineContaining(out, "consume(");
-        String closingLine = lineContaining(out, "));");
-        assertThat(closingLine.stripLeading()).isEqualTo("));");
+        String closingLine = lineContaining(out, ");");
+        assertThat(closingLine.stripLeading()).isEqualTo(");");
         assertThat(leadingSpaces(closingLine)).isEqualTo(leadingSpaces(callLine));
         assertThat(f.format(out)).isEqualTo(out);
     }
@@ -1678,7 +1678,8 @@ class WrappingFormattingTest {
                 """;
         String out = f.format(input);
         assertNoLineLongerThan(out, max);
-        assertThat(out).contains("throw new IllegalStateException(\"");
+        assertThat(out).contains("throw new IllegalStateException(\n");
+        assertThat(out).contains("\"Component scan for configuration class");
         assertThat(out).contains("+ \"");
         assertThat(out).contains(".formatted(\"a\", \"b\")");
         assertThat(f.format(out)).isEqualTo(out);

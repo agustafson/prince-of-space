@@ -379,7 +379,7 @@ should be an unambiguous improvement.
    Cases 0, 2, 3, 4 and most user-visible reports. ~1 small PR.
 2. [x] Land Stage 2 + Rule 3 doc refinement + Case 6/7 args-indent tests. ~1
    small PR; updates `LayoutContext`.
-3. [ ] Land Stage 3 + supersede TDR-017's single-arg carve-out, narrowing it to
+3. [x] Land Stage 3 + supersede TDR-017's single-arg carve-out, narrowing it to
    chain receivers only. ~1 small PR; updates `printArguments` /
    `printCommaSeparatedExprs`.
 

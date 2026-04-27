@@ -532,8 +532,9 @@ public class FormatterShowcase
 
     // Scenario 39b: Long string literal in method argument
     public void longExceptionMessage() {
-        throw new IllegalStateException("Component scan for configuration class [%s] could not be used with "
-                + "conditions in REGISTER_BEAN phase: %s".formatted(legacyField, items));
+        throw new IllegalStateException(
+                        "Component scan for configuration class [%s] could not be used with "
+                        + "conditions in REGISTER_BEAN phase: %s".formatted(legacyField, items));
     }
 
     // Scenario 39c: Text block with formatted arguments
@@ -668,41 +669,47 @@ public class FormatterShowcase
             .stream()
             .map(String::trim)
             .filter(s -> !s.isBlank())
-            .map(s -> s
-                .toLowerCase()
-                .chars()
-                .mapToObj(ch -> String.valueOf((char) ch))
-                .collect(Collectors.joining())
-                .trim())
-            .filter(s -> s.length() > 3)
-            .map(s -> Arrays
-                .stream(s.split("-"))
-                .map(String::trim)
-                .filter(part -> !part.isBlank())
-                .map(part -> part
-                    .toLowerCase()
-                    .replace("_", "")
-                    .replace(".", "")
-                    .substring(0, Math.min(part.length(), 12)))
-                .collect(Collectors.joining("-")))
-            .map(s -> Arrays
-                .stream(s.split(":"))
-                .map(segment -> segment.trim().toLowerCase())
-                .collect(Collectors.joining(":")))
-            .anyMatch(s -> s.contains(query.toLowerCase().trim())
-                    && s
+            .map(
+                    s -> s
+                        .toLowerCase()
                         .chars()
-                        .mapToObj(c -> String.valueOf((char) c))
+                        .mapToObj(ch -> String.valueOf((char) ch))
                         .collect(Collectors.joining())
-                        .startsWith(query.substring(0, Math.min(query.length(), 3)).toLowerCase()));
+                        .trim())
+            .filter(s -> s.length() > 3)
+            .map(
+                    s -> Arrays
+                        .stream(s.split("-"))
+                        .map(String::trim)
+                        .filter(part -> !part.isBlank())
+                        .map(
+                                part -> part
+                                    .toLowerCase()
+                                    .replace("_", "")
+                                    .replace(".", "")
+                                    .substring(0, Math.min(part.length(), 12)))
+                        .collect(Collectors.joining("-")))
+            .map(
+                    s -> Arrays
+                        .stream(s.split(":"))
+                        .map(segment -> segment.trim().toLowerCase())
+                        .collect(Collectors.joining(":")))
+            .anyMatch(
+                    s -> s.contains(query.toLowerCase().trim())
+                    && s
+                                .chars()
+                                .mapToObj(c -> String.valueOf((char) c))
+                                .collect(Collectors.joining())
+                                .startsWith(query.substring(0, Math.min(query.length(), 3)).toLowerCase()));
     }
 
     // Scenario 51: Nested lambda call should avoid dangling ')' before ';'
     public void nestedLambdaWarnCallWrapping() {
-        cappedLogNoCustomerData(l -> l.warn(
-                            "Bad thing happened and we have lots of information to tell you in this warning payload",
-                            new IllegalStateException("Bad thing happened and this diagnostic stack summary is also "
-                            + "intentionally very long to force wrapping")));
+        cappedLogNoCustomerData(
+                l -> l.warn(
+                        "Bad thing happened and we have lots of information to tell you in this warning payload",
+                        new IllegalStateException(
+                                "Bad thing happened and this diagnostic stack summary is also intentionally very long to force wrapping")));
     }
 
     // Scenario 53: Interface extends clause with many super-interfaces

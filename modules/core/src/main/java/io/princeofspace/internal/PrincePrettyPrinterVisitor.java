@@ -764,6 +764,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                                         || (args.size() == SINGLE_ITEM_COUNT
                                                 && (commentUtils.hasLeadingLineOrBlockComment(args.get(0))
                                                         || commentUtils.hasAnyLineOrBlockCommentOnLambda(
+                                                                args.get(0))
+                                                        || argumentListFormatter.shouldBreakBeforeSingleWrappedArg(
                                                                 args.get(0)))));
                 if (applyWrappedListIndent) {
                     enterWrappedDelimitedListScope();

@@ -4,6 +4,7 @@ import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.LambdaExpr;
+import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.ast.type.TypeParameter;
@@ -92,7 +93,12 @@ final class ArgumentListFormatter {
             return;
         }
         if (args.size() == SINGLE_ITEM_COUNT) {
-            ctx.accept(args.get(0), arg);
+            Expression only = args.get(0);
+            if (shouldBreakBeforeSingleWrappedArg(only)) {
+                ctx.println();
+                ctx.printCont();
+            }
+            ctx.accept(only, arg);
             return;
         }
         if (fmt.wrapStyle() == WrapStyle.WIDE) {
@@ -109,6 +115,13 @@ final class ArgumentListFormatter {
                 }
             }
         }
+    }
+
+    boolean shouldBreakBeforeSingleWrappedArg(Expression expression) {
+        if (expression instanceof MethodCallExpr methodCall && methodCall.getScope().isPresent()) {
+            return false;
+        }
+        return !(expression instanceof LambdaExpr lambda && lambda.getBody() instanceof BlockStmt);
     }
 
     private void printArgumentWithOptionalBlockLambdaIndent(Expression expression, Void arg) {
