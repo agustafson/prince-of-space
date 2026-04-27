@@ -8,7 +8,6 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import io.princeofspace.model.FormatResult;
 import io.princeofspace.model.FormatterConfig;
-import org.jspecify.annotations.Nullable;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
@@ -98,7 +97,7 @@ public final class FormattingEngine {
     }
 
     private static int resolveMaxConvergencePasses() {
-        @Nullable String raw = System.getProperty("prince.maxConvergencePasses");
+        String raw = System.getProperty("prince.maxConvergencePasses");
         if (raw == null || raw.isBlank()) {
             return DEFAULT_MAX_CONVERGENCE_PASSES;
         }
@@ -139,6 +138,7 @@ public final class FormattingEngine {
         return new FormatResult.Success(prettyPrinter.print(cu));
     }
 
+    @SuppressWarnings("ConstantConditions") // Void visitor arg is java.lang.Void; null is the only value
     private void transform(CompilationUnit cu) {
         new BraceEnforcer().visit(cu, null);
         new AnnotationArranger().visit(cu, null);

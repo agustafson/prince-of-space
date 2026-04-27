@@ -4,6 +4,7 @@ import io.princeofspace.Formatter;
 import io.princeofspace.FormatterException;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.JavaLanguageLevel;
+import org.jspecify.annotations.Nullable;
 import picocli.CommandLine;
 
 import java.io.BufferedReader;
@@ -32,7 +33,15 @@ import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 
 /**
  * Command-line entry for formatting Java sources. See {@code --help} for options.
+ *
+ * <p>Picocli assigns {@link CommandLine.Option}-annotated fields via reflection before {@link #call()};
+ * IntelliJ otherwise reports false positives (unused, local-variable, or final-field suggestions).
  */
+@SuppressWarnings({
+    "FieldCanBeLocal",
+    "CanBeFinal",
+    "unused"
+})
 @CommandLine.Command(
         name = "prince-of-space",
         mixinStandardHelpOptions = true,
@@ -68,7 +77,7 @@ public final class Main implements Callable<Integer> {
     private boolean verbose;
 
     @CommandLine.Parameters(arity = "0..*", paramLabel = "PATH", description = ".java files or directories")
-    private List<Path> paths = new ArrayList<>();
+    private final List<Path> paths = new ArrayList<>();
 
     public static void main(String[] args) {
         int code = new CommandLine(new Main()).execute(args);
@@ -94,10 +103,7 @@ public final class Main implements Callable<Integer> {
                 return 2;
             }
             return runBatch(formatter, files);
-        } catch (FormatterException e) {
-            System.err.println(e.getMessage());
-            return 2;
-        } catch (IOException e) {
+        } catch (FormatterException | IOException e) {
             System.err.println(e.getMessage());
             return 2;
         } catch (InterruptedException e) {
@@ -127,6 +133,7 @@ public final class Main implements Callable<Integer> {
         return 0;
     }
 
+    @SuppressWarnings("PMD.CloseResource")
     private int runBatch(Formatter formatter, List<Path> files)
             throws IOException, InterruptedException, ExecutionException {
         boolean anyChange = false;
@@ -167,6 +174,7 @@ public final class Main implements Callable<Integer> {
 
     private record BatchResult(Path path, boolean unchanged, String formatted) {}
 
+    @SuppressWarnings("ConstantConditions")
     static List<Path> collectJavaFiles(List<Path> paths, boolean recursive) throws IOException {
         List<Path> out = new ArrayList<>();
         for (Path p : paths) {
@@ -206,7 +214,7 @@ public final class Main implements Callable<Integer> {
      * Walk parents of {@code start} to find a directory containing {@code .git} (either a repository
      * directory or a {@code gitdir:} pointer file as used by linked worktrees).
      */
-    static Path findGitRoot(Path start) {
+    static @Nullable Path findGitRoot(Path start) {
         Path p = start.toAbsolutePath().normalize();
         while (p != null) {
             Path git = p.resolve(".git");
@@ -248,6 +256,13 @@ public final class Main implements Callable<Integer> {
             throw new IOException("git ls-files failed in " + repoRoot);
         }
         Path scopeNorm = scope.toAbsolutePath().normalize();
+        return javaFilesFromGitLsOutput(bytes, repoRoot, scopeNorm);
+    }
+
+    /**
+     * Parses {@code git ls-files -z} output: paths separated by NUL bytes.
+     */
+    private static List<Path> javaFilesFromGitLsOutput(byte[] bytes, Path repoRoot, Path scopeNorm) {
         List<Path> list = new ArrayList<>();
         int start = 0;
         for (int i = 0; i < bytes.length; i++) {

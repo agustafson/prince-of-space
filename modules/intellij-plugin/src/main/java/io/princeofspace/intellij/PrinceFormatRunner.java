@@ -11,7 +11,7 @@ import com.intellij.psi.PsiJavaFile;
 import io.princeofspace.Formatter;
 import io.princeofspace.FormatterException;
 import io.princeofspace.model.FormatterConfig;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.file.Path;
 
@@ -27,9 +27,9 @@ public final class PrinceFormatRunner {
      * parse/format failures show a modal; otherwise they are logged (used during save).
      */
     public static void format(
-            @NotNull Project project,
-            @NotNull PsiJavaFile javaFile,
-            @NotNull Document document,
+            Project project,
+            PsiJavaFile javaFile,
+            Document document,
             boolean showErrorDialog) {
         PsiDocumentManager.getInstance(project).commitDocument(document);
         String text = document.getText();
@@ -59,18 +59,7 @@ public final class PrinceFormatRunner {
         }
     }
 
-    static int intellijLanguageLevelToRelease(@NotNull com.intellij.pom.java.LanguageLevel ll) {
-        String n = ll.name();
-        if (n.startsWith("JDK_1_")) {
-            return Integer.parseInt(n.substring("JDK_1_".length()).replace("_", ""));
-        }
-        if (n.startsWith("JDK_")) {
-            return Integer.parseInt(n.substring(4).replace("_", ""));
-        }
-        return 17;
-    }
-
-    static Path javaNioPath(@NotNull VirtualFile vf) {
+    static @Nullable Path javaNioPath(VirtualFile vf) {
         try {
             if (vf.getFileSystem().getProtocol().equals("file")) {
                 return vf.toNioPath();

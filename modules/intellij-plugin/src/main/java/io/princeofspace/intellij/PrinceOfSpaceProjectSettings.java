@@ -8,151 +8,73 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.util.PsiUtil;
 import com.intellij.util.xmlb.XmlSerializerUtil;
+import io.princeofspace.intellij.PrinceOfSpaceState.ProjectState;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.JavaLanguageLevel;
 import io.princeofspace.model.WrapStyle;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.Objects;
 
 /**
  * Per-project Prince of Space options (workspace file). Mirrors {@link FormatterConfig} knobs plus
- * {@link #formatOnSave} and language-level source selection.
+ * {@link ProjectState#formatOnSave} and language-level source selection.
  */
 @State(
         name = "PrinceOfSpaceProjectSettings",
-        storages = @Storage(StoragePathMacros.WORKSPACE_FILE))
-public final class PrinceOfSpaceProjectSettings implements PersistentStateComponent<PrinceOfSpaceProjectSettings.State> {
+        storages = @Storage(StoragePathMacros.WORKSPACE_FILE)
+)
+public final class PrinceOfSpaceProjectSettings implements PersistentStateComponent<ProjectState> {
 
-    private State state = new State();
+    private ProjectState projectState = new ProjectState();
 
-    public static PrinceOfSpaceProjectSettings getInstance(@NotNull Project project) {
+    public static PrinceOfSpaceProjectSettings getInstance(Project project) {
         return project.getService(PrinceOfSpaceProjectSettings.class);
     }
 
     /** Builds a {@link FormatterConfig} from saved options and the given Java file (for language level). */
-    public @NotNull FormatterConfig toFormatterConfig(@NotNull PsiJavaFile javaFile) {
-        State s = state;
-        if (s.useGlobalFormatterSettings) {
+    public FormatterConfig toFormatterConfig(PsiJavaFile javaFile) {
+        PrinceOfSpaceState.CommonState state = projectState.commonState;
+        if (projectState.useGlobalFormatterSettings) {
             return PrinceOfSpaceGlobalSettings.getInstance().toFormatterConfig();
         }
-        IndentStyle indentStyle = IndentStyle.valueOf(s.indentStyle);
-        WrapStyle wrapStyle = WrapStyle.valueOf(s.wrapStyle);
-        int release = s.useProjectLanguageLevel
-                ? PrinceFormatRunner.intellijLanguageLevelToRelease(PsiUtil.getLanguageLevel(javaFile))
-                : s.javaRelease;
+        IndentStyle indentStyle = IndentStyle.valueOf(state.indentStyle);
+        WrapStyle wrapStyle = WrapStyle.valueOf(state.wrapStyle);
+        int release = projectState.useProjectLanguageLevel
+            ? PsiUtil.getLanguageLevel(javaFile).toJavaVersion().feature
+            : state.javaRelease;
         return FormatterConfig.builder()
                 .indentStyle(indentStyle)
-                .indentSize(s.indentSize)
-                .lineLength(s.lineLength)
+                .indentSize(state.indentSize)
+                .lineLength(state.lineLength)
                 .wrapStyle(wrapStyle)
-                .closingParenOnNewLine(s.closingParenOnNewLine)
-                .trailingCommas(s.trailingCommas)
+                .closingParenOnNewLine(state.closingParenOnNewLine)
+                .trailingCommas(state.trailingCommas)
                 .javaLanguageLevel(JavaLanguageLevel.of(release))
                 .build();
     }
 
     public boolean isFormatOnSave() {
-        return state.formatOnSave;
+        return projectState.formatOnSave;
     }
 
     public void setFormatOnSave(boolean formatOnSave) {
-        state.formatOnSave = formatOnSave;
+        projectState.formatOnSave = formatOnSave;
     }
 
     @Override
-    public @NotNull State getState() {
-        return state;
+    public ProjectState getState() {
+        return projectState;
     }
 
     @Override
-    public void loadState(@NotNull State loaded) {
-        XmlSerializerUtil.copyBean(loaded, state);
-        state.normalizeAfterLoad();
+    public void loadState(ProjectState loaded) {
+        XmlSerializerUtil.copyBean(loaded, projectState);
+        projectState.commonState.normalizeAfterLoad();
     }
 
     /** Replaces persisted state (e.g. from the settings UI) after validation. */
-    public void replaceState(@NotNull State newState) {
-        XmlSerializerUtil.copyBean(newState, state);
-        state.normalizeAfterLoad();
+    public void replaceState(ProjectState newProjectState) {
+        XmlSerializerUtil.copyBean(newProjectState, projectState);
+        projectState.commonState.normalizeAfterLoad();
     }
 
-    public static final class State {
-        /** Default on so new installs get save-time formatting without extra steps. */
-        public boolean formatOnSave = true;
-        /** If true, use IDE-global formatter settings instead of this project's formatter settings. */
-        public boolean useGlobalFormatterSettings = false;
-
-        public @NotNull String indentStyle = IndentStyle.SPACES.name();
-        public int indentSize = 4;
-        public int lineLength = 120;
-        public @NotNull String wrapStyle = WrapStyle.BALANCED.name();
-        public boolean closingParenOnNewLine = true;
-        public boolean trailingCommas = false;
-
-        /**
-         * When {@code true}, JavaParser's language level follows the IDE language level for the file. When
-         * {@code false}, {@link #javaRelease} is used.
-         */
-        public boolean useProjectLanguageLevel = true;
-
-        /** Feature-release number (e.g. 17, 21) when {@link #useProjectLanguageLevel} is false. */
-        public int javaRelease = 17;
-
-        void normalizeAfterLoad() {
-            if (indentStyle == null || indentStyle.isBlank()) {
-                indentStyle = IndentStyle.SPACES.name();
-            }
-            if (wrapStyle == null || wrapStyle.isBlank()) {
-                wrapStyle = WrapStyle.BALANCED.name();
-            }
-            indentSize = clamp(indentSize, 1, 32, 4);
-            lineLength = clamp(lineLength, 20, 500, 120);
-            javaRelease = clamp(javaRelease, 1, 25, 17);
-        }
-
-        private static int clamp(int value, int min, int max, int fallback) {
-            if (value <= 0) {
-                return fallback;
-            }
-            return Math.min(max, Math.max(min, value));
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            State state = (State) o;
-            return formatOnSave == state.formatOnSave
-                    && useGlobalFormatterSettings == state.useGlobalFormatterSettings
-                    && indentSize == state.indentSize
-                    && lineLength == state.lineLength
-                    && closingParenOnNewLine == state.closingParenOnNewLine
-                    && trailingCommas == state.trailingCommas
-                    && useProjectLanguageLevel == state.useProjectLanguageLevel
-                    && javaRelease == state.javaRelease
-                    && Objects.equals(indentStyle, state.indentStyle)
-                    && Objects.equals(wrapStyle, state.wrapStyle);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(
-                    formatOnSave,
-                    useGlobalFormatterSettings,
-                    indentStyle,
-                    indentSize,
-                    lineLength,
-                    wrapStyle,
-                    closingParenOnNewLine,
-                    trailingCommas,
-                    useProjectLanguageLevel,
-                    javaRelease);
-        }
-    }
 }

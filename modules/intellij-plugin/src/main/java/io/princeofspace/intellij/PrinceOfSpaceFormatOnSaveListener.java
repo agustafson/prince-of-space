@@ -10,7 +10,6 @@ import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.PsiManager;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Runs the Prince of Space formatter before a document is written to disk when
@@ -22,7 +21,7 @@ public final class PrinceOfSpaceFormatOnSaveListener implements FileDocumentMana
     private static final ThreadLocal<Boolean> FORMATTING = ThreadLocal.withInitial(() -> false);
 
     @Override
-    public void beforeDocumentSaving(@NotNull Document document) {
+    public void beforeDocumentSaving(Document document) {
         if (Boolean.TRUE.equals(FORMATTING.get())) {
             return;
         }

@@ -5,112 +5,53 @@ import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.util.xmlb.XmlSerializerUtil;
+import io.princeofspace.intellij.PrinceOfSpaceState.CommonState;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.JavaLanguageLevel;
 import io.princeofspace.model.WrapStyle;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.Objects;
 
 /** Application-wide Prince of Space formatter defaults shared across projects. */
-@State(name = "PrinceOfSpaceGlobalSettings", storages = @Storage("prince-of-space.xml"))
+@State(
+    name = "PrinceOfSpaceGlobalSettings",
+    storages = @Storage("prince-of-space.xml")
+)
 public final class PrinceOfSpaceGlobalSettings
-        implements PersistentStateComponent<PrinceOfSpaceGlobalSettings.State> {
+        implements PersistentStateComponent<CommonState> {
 
-    private State state = new State();
+    private CommonState commonState = new CommonState();
 
-    public static @NotNull PrinceOfSpaceGlobalSettings getInstance() {
+    public static PrinceOfSpaceGlobalSettings getInstance() {
         return ApplicationManager.getApplication().getService(PrinceOfSpaceGlobalSettings.class);
     }
 
-    public @NotNull FormatterConfig toFormatterConfig() {
-        State s = state;
-        IndentStyle indentStyle = IndentStyle.valueOf(s.indentStyle);
-        WrapStyle wrapStyle = WrapStyle.valueOf(s.wrapStyle);
+    public FormatterConfig toFormatterConfig() {
+        IndentStyle indentStyle = IndentStyle.valueOf(commonState.indentStyle);
+        WrapStyle wrapStyle = WrapStyle.valueOf(commonState.wrapStyle);
         return FormatterConfig.builder()
                 .indentStyle(indentStyle)
-                .indentSize(s.indentSize)
-                .lineLength(s.lineLength)
+                .indentSize(commonState.indentSize)
+                .lineLength(commonState.lineLength)
                 .wrapStyle(wrapStyle)
-                .closingParenOnNewLine(s.closingParenOnNewLine)
-                .trailingCommas(s.trailingCommas)
-                .javaLanguageLevel(JavaLanguageLevel.of(s.javaRelease))
+                .closingParenOnNewLine(commonState.closingParenOnNewLine)
+                .trailingCommas(commonState.trailingCommas)
+                .javaLanguageLevel(JavaLanguageLevel.of(commonState.javaRelease))
                 .build();
     }
 
     @Override
-    public @NotNull State getState() {
-        return state;
+    public CommonState getState() {
+        return commonState;
     }
 
     @Override
-    public void loadState(@NotNull State loaded) {
-        XmlSerializerUtil.copyBean(loaded, state);
-        state.normalizeAfterLoad();
+    public void loadState(CommonState loaded) {
+        XmlSerializerUtil.copyBean(loaded, commonState);
+        commonState.normalizeAfterLoad();
     }
 
-    public void replaceState(@NotNull State newState) {
-        XmlSerializerUtil.copyBean(newState, state);
-        state.normalizeAfterLoad();
-    }
-
-    public static final class State {
-        public @NotNull String indentStyle = IndentStyle.SPACES.name();
-        public int indentSize = 4;
-        public int lineLength = 120;
-        public @NotNull String wrapStyle = WrapStyle.BALANCED.name();
-        public boolean closingParenOnNewLine = true;
-        public boolean trailingCommas = false;
-        public int javaRelease = 17;
-
-        void normalizeAfterLoad() {
-            if (indentStyle == null || indentStyle.isBlank()) {
-                indentStyle = IndentStyle.SPACES.name();
-            }
-            if (wrapStyle == null || wrapStyle.isBlank()) {
-                wrapStyle = WrapStyle.BALANCED.name();
-            }
-            indentSize = clamp(indentSize, 1, 32, 4);
-            lineLength = clamp(lineLength, 20, 500, 120);
-            javaRelease = clamp(javaRelease, 1, 25, 17);
-        }
-
-        private static int clamp(int value, int min, int max, int fallback) {
-            if (value <= 0) {
-                return fallback;
-            }
-            return Math.min(max, Math.max(min, value));
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            State state = (State) o;
-            return indentSize == state.indentSize
-                    && lineLength == state.lineLength
-                    && closingParenOnNewLine == state.closingParenOnNewLine
-                    && trailingCommas == state.trailingCommas
-                    && javaRelease == state.javaRelease
-                    && Objects.equals(indentStyle, state.indentStyle)
-                    && Objects.equals(wrapStyle, state.wrapStyle);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(
-                    indentStyle,
-                    indentSize,
-                    lineLength,
-                    wrapStyle,
-                    closingParenOnNewLine,
-                    trailingCommas,
-                    javaRelease);
-        }
+    public void replaceState(CommonState newState) {
+        XmlSerializerUtil.copyBean(newState, commonState);
+        commonState.normalizeAfterLoad();
     }
 }

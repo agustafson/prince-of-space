@@ -7,25 +7,41 @@ import com.intellij.openapi.ui.ComboBox;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.util.ui.FormBuilder;
+import io.princeofspace.intellij.PrinceOfSpaceState.CommonState;
+import io.princeofspace.intellij.PrinceOfSpaceState.ProjectState;
 import io.princeofspace.internal.FormattingEngine;
 import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.WrapStyle;
 import org.jetbrains.annotations.Nls;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NullUnmarked;
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
 import java.util.Arrays;
 import java.util.stream.IntStream;
-import javax.swing.*;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.border.EmptyBorder;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Settings: <strong>Settings → Tools → Prince of Space</strong> — all {@link io.princeofspace.model.FormatterConfig}
  * knobs plus format-on-save and Java language level source.
  */
+@NullUnmarked
 public final class PrinceOfSpaceConfigurable implements Configurable {
 
+    public static final int JAVA_LEVEL_DEFAULT = 17;
+    public static final int JAVA_LEVEL_MIN = 1;
+    public static final int JAVA_LEVEL_MAX = 25;
     private final PrinceOfSpaceProjectSettings settings;
     private final PrinceOfSpaceGlobalSettings globalSettings;
 
@@ -41,27 +57,28 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
     private JBCheckBox closingParenOnNewLine;
     private JBCheckBox trailingCommas;
 
-    private PrinceOfSpaceProjectSettings.State baselineProject = new PrinceOfSpaceProjectSettings.State();
-    private PrinceOfSpaceGlobalSettings.State baselineGlobal = new PrinceOfSpaceGlobalSettings.State();
+    private ProjectState baselineProject = new ProjectState();
+    private CommonState baselineGlobal = new CommonState();
 
-    public PrinceOfSpaceConfigurable(@NotNull Project project) {
+    public PrinceOfSpaceConfigurable(Project project) {
         this.settings = PrinceOfSpaceProjectSettings.getInstance(project);
         this.globalSettings = PrinceOfSpaceGlobalSettings.getInstance();
     }
 
     @Override
-    public @Nls(capitalization = Nls.Capitalization.Title) @NotNull String getDisplayName() {
+    public @Nls(capitalization = Nls.Capitalization.Title) String getDisplayName() {
         return "Prince of Space";
     }
 
     @Override
-    public @Nullable JComponent createComponent() {
+    @SuppressWarnings("MagicNumber")
+    public JComponent createComponent() {
         formatOnSave = new JBCheckBox("Run Prince of Space formatter when saving Java files");
         useGlobalFormatterSettings =
                 new JBCheckBox("Use IDE-global formatter settings (shared across projects)");
         useProjectLanguageLevel =
                 new JBCheckBox("Use project / module Java language level for parsing (recommended)");
-        javaReleaseCombo = new ComboBox<>(IntStream.rangeClosed(1, 25).boxed().toArray(Integer[]::new));
+        javaReleaseCombo = new ComboBox<>(IntStream.rangeClosed(1, JAVA_LEVEL_MAX).boxed().toArray(Integer[]::new));
 
         indentStyleCombo = new ComboBox<>(Arrays.stream(IndentStyle.values()).map(Enum::name).toArray(String[]::new));
         indentSizeSpinner = new JSpinner(new SpinnerNumberModel(4, 1, 32, 1));
@@ -101,6 +118,31 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
 
         JPanel root = new JPanel(new BorderLayout());
         root.setBorder(new EmptyBorder(0, 0, 8, 0));
+        root.add(settingsHintLabel(), BorderLayout.NORTH);
+        JScrollPane scroll = new JScrollPane(form);
+        scroll.setPreferredSize(new Dimension(480, 420));
+        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        root.add(scroll, BorderLayout.CENTER);
+
+        JButton restore =
+                new JButton("Restore formatting defaults");
+        restore.addActionListener(
+                e -> {
+                    if (useGlobalFormatterSettings.isSelected()) {
+                        loadUiFromState(settings.getState(), new CommonState());
+                    } else {
+                        loadUiFromState(new ProjectState(), globalSettings.getState());
+                    }
+                });
+        root.add(restoreButtonPanel(restore), BorderLayout.SOUTH);
+
+        loadUiFromState(settings.getState(), globalSettings.getState());
+        baselineProject = copyProjectState(settings.getState());
+        baselineGlobal = copyGlobalState(globalSettings.getState());
+        return root;
+    }
+
+    private static JBLabel settingsHintLabel() {
         JBLabel hint =
                 new JBLabel(
                         "<html><body style='width:420px;'>"
@@ -113,33 +155,16 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
                                 + "settings."
                                 + "</body></html>");
         hint.setCopyable(true);
-        root.add(hint, BorderLayout.NORTH);
-        JScrollPane scroll = new JScrollPane(form);
-        scroll.setPreferredSize(new Dimension(480, 420));
-        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        root.add(scroll, BorderLayout.CENTER);
-
-        JButton restore =
-                new JButton("Restore formatting defaults");
-        restore.addActionListener(
-                e -> {
-                    if (useGlobalFormatterSettings.isSelected()) {
-                        loadUiFromState(settings.getState(), new PrinceOfSpaceGlobalSettings.State());
-                    } else {
-                        loadUiFromState(new PrinceOfSpaceProjectSettings.State(), globalSettings.getState());
-                    }
-                });
-        JPanel south = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        south.add(restore);
-        root.add(south, BorderLayout.SOUTH);
-
-        loadUiFromState(settings.getState(), globalSettings.getState());
-        baselineProject = copyProjectState(settings.getState());
-        baselineGlobal = copyGlobalState(globalSettings.getState());
-        return root;
+        return hint;
     }
 
-    private static @NotNull JBLabel boldSection(@NotNull String title) {
+    private static JPanel restoreButtonPanel(JButton restore) {
+        JPanel south = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        south.add(restore);
+        return south;
+    }
+
+    private static JBLabel boldSection(String title) {
         JBLabel label = new JBLabel(title);
         Font base = label.getFont();
         label.setFont(base.deriveFont(base.getStyle() | Font.BOLD));
@@ -158,24 +183,17 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         javaReleaseCombo.setEnabled(manual);
     }
 
-    private static PrinceOfSpaceProjectSettings.State copyProjectState(PrinceOfSpaceProjectSettings.State s) {
-        PrinceOfSpaceProjectSettings.State t = new PrinceOfSpaceProjectSettings.State();
+    private static ProjectState copyProjectState(ProjectState s) {
+        ProjectState t = new ProjectState();
+        t.commonState = copyGlobalState(s.commonState);
         t.formatOnSave = s.formatOnSave;
         t.useGlobalFormatterSettings = s.useGlobalFormatterSettings;
-        t.indentStyle = s.indentStyle;
-        t.indentSize = s.indentSize;
-        t.lineLength = s.lineLength;
-
-        t.wrapStyle = s.wrapStyle;
-        t.closingParenOnNewLine = s.closingParenOnNewLine;
-        t.trailingCommas = s.trailingCommas;
         t.useProjectLanguageLevel = s.useProjectLanguageLevel;
-        t.javaRelease = s.javaRelease;
         return t;
     }
 
-    private static PrinceOfSpaceGlobalSettings.State copyGlobalState(PrinceOfSpaceGlobalSettings.State s) {
-        PrinceOfSpaceGlobalSettings.State t = new PrinceOfSpaceGlobalSettings.State();
+    private static CommonState copyGlobalState(CommonState s) {
+        CommonState t = new CommonState();
         t.indentStyle = s.indentStyle;
         t.indentSize = s.indentSize;
         t.lineLength = s.lineLength;
@@ -188,109 +206,79 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
     }
 
     private void loadUiFromState(
-            PrinceOfSpaceProjectSettings.State projectState, PrinceOfSpaceGlobalSettings.State globalState) {
-        projectState.normalizeAfterLoad();
+        ProjectState projectState, CommonState globalState) {
+        projectState.commonState.normalizeAfterLoad();
         globalState.normalizeAfterLoad();
         formatOnSave.setSelected(projectState.formatOnSave);
         useGlobalFormatterSettings.setSelected(projectState.useGlobalFormatterSettings);
         if (projectState.useGlobalFormatterSettings) {
             useProjectLanguageLevel.setSelected(false);
-            indentStyleCombo.setSelectedItem(globalState.indentStyle);
-            indentSizeSpinner.setValue(globalState.indentSize);
-
-            lineLengthSpinner.setValue(globalState.lineLength);
-            wrapStyleCombo.setSelectedItem(globalState.wrapStyle);
-            closingParenOnNewLine.setSelected(globalState.closingParenOnNewLine);
-            trailingCommas.setSelected(globalState.trailingCommas);
-            javaReleaseCombo.setSelectedItem(globalState.javaRelease);
+            updateState(globalState);
         } else {
             useProjectLanguageLevel.setSelected(projectState.useProjectLanguageLevel);
-            indentStyleCombo.setSelectedItem(projectState.indentStyle);
-            indentSizeSpinner.setValue(projectState.indentSize);
-
-            lineLengthSpinner.setValue(projectState.lineLength);
-            wrapStyleCombo.setSelectedItem(projectState.wrapStyle);
-            closingParenOnNewLine.setSelected(projectState.closingParenOnNewLine);
-            trailingCommas.setSelected(projectState.trailingCommas);
-            javaReleaseCombo.setSelectedItem(projectState.javaRelease);
+            updateState(projectState.commonState);
         }
         syncLanguageControls();
     }
 
-    private PrinceOfSpaceProjectSettings.State readUiProjectState() {
-        PrinceOfSpaceProjectSettings.State s = new PrinceOfSpaceProjectSettings.State();
-        s.formatOnSave = formatOnSave.isSelected();
-        s.useGlobalFormatterSettings = useGlobalFormatterSettings.isSelected();
-        s.useProjectLanguageLevel = useProjectLanguageLevel.isSelected();
-        s.indentStyle = (String) indentStyleCombo.getSelectedItem();
-        s.indentSize = (Integer) indentSizeSpinner.getValue();
+    private void updateState(CommonState inputState) {
+        indentStyleCombo.setSelectedItem(inputState.indentStyle);
+        indentSizeSpinner.setValue(inputState.indentSize);
 
-        s.lineLength = (Integer) lineLengthSpinner.getValue();
-        s.wrapStyle = (String) wrapStyleCombo.getSelectedItem();
-        s.closingParenOnNewLine = closingParenOnNewLine.isSelected();
-        s.trailingCommas = trailingCommas.isSelected();
-        Object jr = javaReleaseCombo.getSelectedItem();
-        s.javaRelease = jr instanceof Integer ? (Integer) jr : 17;
-        s.normalizeAfterLoad();
+        lineLengthSpinner.setValue(inputState.lineLength);
+        wrapStyleCombo.setSelectedItem(inputState.wrapStyle);
+        closingParenOnNewLine.setSelected(inputState.closingParenOnNewLine);
+        trailingCommas.setSelected(inputState.trailingCommas);
+        javaReleaseCombo.setSelectedItem(inputState.javaRelease);
+    }
+
+    private ProjectState readUiProjectState() {
+        ProjectState projectState = new ProjectState();
+        projectState.formatOnSave = formatOnSave.isSelected();
+        projectState.useGlobalFormatterSettings = useGlobalFormatterSettings.isSelected();
+        projectState.useProjectLanguageLevel = useProjectLanguageLevel.isSelected();
+        readUiState(projectState.commonState);
+        return projectState;
+    }
+
+    private CommonState readUiGlobalState() {
+        CommonState s = new CommonState();
+        readUiState(s);
         return s;
     }
 
-    private PrinceOfSpaceGlobalSettings.State readUiGlobalState() {
-        PrinceOfSpaceGlobalSettings.State s = new PrinceOfSpaceGlobalSettings.State();
-        s.indentStyle = (String) indentStyleCombo.getSelectedItem();
+    private void readUiState(CommonState s) {
+        s.indentStyle = requireNonNull((String) indentStyleCombo.getSelectedItem(), "indent style");
         s.indentSize = (Integer) indentSizeSpinner.getValue();
 
         s.lineLength = (Integer) lineLengthSpinner.getValue();
-        s.wrapStyle = (String) wrapStyleCombo.getSelectedItem();
+        s.wrapStyle = requireNonNull((String) wrapStyleCombo.getSelectedItem(), "wrap style");
         s.closingParenOnNewLine = closingParenOnNewLine.isSelected();
         s.trailingCommas = trailingCommas.isSelected();
         Object jr = javaReleaseCombo.getSelectedItem();
-        s.javaRelease = jr instanceof Integer ? (Integer) jr : 17;
+        s.javaRelease = jr instanceof Integer i ? i : JAVA_LEVEL_DEFAULT;
         s.normalizeAfterLoad();
-        return s;
     }
 
-    private static void validateProjectState(PrinceOfSpaceProjectSettings.State s) throws ConfigurationException {
+    private static void validateCommonState(CommonState commonState) throws ConfigurationException {
         try {
-            IndentStyle.valueOf(s.indentStyle);
-            WrapStyle.valueOf(s.wrapStyle);
-        } catch (IllegalArgumentException | NullPointerException e) {
-            throw new ConfigurationException("Invalid indent or wrap style: " + e.getMessage());
-        }
-        if (s.indentSize <= 0) {
-            throw new ConfigurationException("Indent size must be positive.");
-        }
-        if (s.lineLength <= 0) {
-            throw new ConfigurationException("Line length must be positive.");
-        }
-        if (!s.useProjectLanguageLevel) {
-            try {
-                FormattingEngine.validateJavaReleaseForParser(s.javaRelease);
-            } catch (IllegalArgumentException e) {
-                throw new ConfigurationException(e.getMessage());
-            }
-        }
-    }
-
-    private static void validateGlobalState(PrinceOfSpaceGlobalSettings.State s) throws ConfigurationException {
-        try {
-            IndentStyle.valueOf(s.indentStyle);
-            WrapStyle.valueOf(s.wrapStyle);
-            FormattingEngine.validateJavaReleaseForParser(s.javaRelease);
+            IndentStyle.valueOf(commonState.indentStyle);
+            WrapStyle.valueOf(commonState.wrapStyle);
+            FormattingEngine.validateJavaReleaseForParser(commonState.javaRelease);
         } catch (IllegalArgumentException | NullPointerException e) {
             throw new ConfigurationException("Invalid global formatter setting: " + e.getMessage());
         }
-        if (s.indentSize <= 0) {
+        if (commonState.indentSize <= 0) {
             throw new ConfigurationException("Indent size must be positive.");
         }
-        if (s.lineLength <= 0) {
+        if (commonState.lineLength <= 0) {
             throw new ConfigurationException("Line length must be positive.");
         }
     }
 
     @Override
     public boolean isModified() {
-        PrinceOfSpaceProjectSettings.State uiProject = readUiProjectState();
+        ProjectState uiProject = readUiProjectState();
         if (!uiProject.equals(baselineProject)) {
             return true;
         }
@@ -302,14 +290,14 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
 
     @Override
     public void apply() throws ConfigurationException {
-        PrinceOfSpaceProjectSettings.State projectState = readUiProjectState();
+        ProjectState projectState = readUiProjectState();
         if (projectState.useGlobalFormatterSettings) {
-            PrinceOfSpaceGlobalSettings.State globalState = readUiGlobalState();
-            validateGlobalState(globalState);
+            CommonState globalState = readUiGlobalState();
+            validateCommonState(globalState);
             settings.replaceState(projectState);
             globalSettings.replaceState(globalState);
         } else {
-            validateProjectState(projectState);
+            validateCommonState(projectState.commonState);
             settings.replaceState(projectState);
         }
         baselineProject = copyProjectState(settings.getState());
@@ -325,7 +313,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
 
     @Override
     public void disposeUIResources() {
-        baselineProject = new PrinceOfSpaceProjectSettings.State();
-        baselineGlobal = new PrinceOfSpaceGlobalSettings.State();
+        baselineProject = new ProjectState();
+        baselineGlobal = new CommonState();
     }
 }
