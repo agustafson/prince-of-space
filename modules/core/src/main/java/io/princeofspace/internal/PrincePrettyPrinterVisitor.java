@@ -126,6 +126,16 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     /** Effective start column for a continuation line produced by printCont/printRawContinuation. */
     private int continuationLineStartColumn = -1;
 
+    /**
+     * Line number on which {@link #continuationLineStartColumn} was recorded. The recorded column is
+     * only meaningful for the immediately following nested wrapped {@code (...)} list on the same
+     * line; once the printer moves to a different line (a new statement, a regenerated continuation,
+     * or any inline newline) the stored column becomes stale and must not be consumed by
+     * {@link #enterWrappedDelimitedListScope()}, otherwise nested call indents stack two continuation
+     * units in one transition (see scenario 50 / Rule 3 max-jump property).
+     */
+    private int continuationLineStartLine = -1;
+
     PrincePrettyPrinterVisitor(PrinterConfiguration configuration, FormatterConfig fmt) {
         super(configuration);
         this.fmt = fmt;
@@ -145,7 +155,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     /** Pushes two logical indent levels for a wrapped {@code (...)} list body (R3). */
     void enterWrappedDelimitedListScope() {
-        if (continuationLineStartColumn >= 0) {
+        if (continuationLineStartColumn >= 0
+                && continuationLineStartLine == printer.getCursor().line) {
             int target = continuationLineStartColumn + fmt.continuationIndentSize();
             try {
                 printer.indentWithAlignTo(target);
@@ -155,6 +166,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 printer.indent();
             }
             continuationLineStartColumn = -1;
+            continuationLineStartLine = -1;
         } else {
             printer.indent();
             printer.indent();
@@ -175,6 +187,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     void markContinuationLineStartColumn(int column) {
         continuationLineStartColumn = column;
+        continuationLineStartLine = printer.getCursor().line;
     }
 
     void doPrintComment(Optional<Comment> comment, Void arg) {
@@ -564,6 +577,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.print(" ".repeat(fmt.continuationIndentSize()));
         }
         continuationLineStartColumn = printer.getCursor().column;
+        continuationLineStartLine = printer.getCursor().line;
     }
 
     @Override
@@ -764,6 +778,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                     // lambda body anchors its indent to the surrounding block, not to a leftover
                     // continuation column from an earlier statement.
                     continuationLineStartColumn = -1;
+                    continuationLineStartLine = -1;
                     argumentListFormatter.printTrailingLambdaLayout(args, arg);
                 } else {
                     // Only push extra printer indents when this list itself uses explicit continuation lines.
@@ -1309,7 +1324,12 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printOrphanCommentsEnding(n);
     }
 
-    // R8: when params wrap, optional closing ')' on its own line (pad back to paren column for stable layout).
+    // R8: when lambda params wrap, the closing ')' always goes on its own line so that the trailing
+    // ' ->' arrow reads as a continuation marker rather than disappearing into the tail of a long
+    // parameter line. The line aligns one block-indent step past the opener column rather than to
+    // the opener column itself, so the arrow segment is visually distinct from the parameter lines
+    // (see ContinuationIndentStepPropertyTest scenario 44). This is independent of
+    // closingParenOnNewLine, which controls non-lambda call/declaration parens.
     private void printLambdaParameters(LambdaExpr n, Void arg) {
         int openParenStartColumn = 0;
         if (n.isEnclosingParameters()) {
@@ -1324,10 +1344,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             boolean canWrapParams = n.isEnclosingParameters() && ps.size() > 1;
             if (canWrapParams && argumentListFormatter.paramsNeedWrap(ps)) {
                 argumentListFormatter.printParametersListForLambda(ps, arg, openParenStartColumn);
-                if (fmt.closingParenOnNewLine()) {
-                    printer.println();
-                    ctx.padToColumn0(openParenStartColumn);
-                }
+                printer.println();
+                ctx.padToColumn0(openParenStartColumn + fmt.indentSize());
             } else {
                 for (int i = 0; i < ps.size(); i++) {
                     ps.get(i).accept(this, arg);

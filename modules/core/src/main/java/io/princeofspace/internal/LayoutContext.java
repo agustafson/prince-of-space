@@ -69,12 +69,19 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
      * (0-based, per {@link com.github.javaparser.Position#getColumn}). Prefer this over
      * {@code indentWithAlignTo} when the printer is already inside a nested {@code indent()} scope
      * and alignment would otherwise throw or fall back to a one-level {@code indent()}.
+     *
+     * <p>Right after {@code println()}, {@link com.github.javaparser.printer.SourcePrinter} reports
+     * column 0 even though its next {@code print()} will lazily emit the current block-indent
+     * prefix; printing {@code targetColumn} raw spaces in that state would double-count the indent
+     * (yielding {@code blockIndent + targetColumn}). Force-materialize the auto-indent first by
+     * issuing an empty {@code print("")}, then measure {@link #column()} and pad the remainder.
      */
     void padToColumn0(int targetColumn) {
         if (fmt.indentStyle() == IndentStyle.TABS) {
             indentWithAlignToSafe(targetColumn);
             return;
         }
+        printer.print("");
         int c = column();
         if (targetColumn > c) {
             print(" ".repeat(targetColumn - c));

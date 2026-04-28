@@ -35,12 +35,12 @@ public class FormatterShowcase
 
     // Scenario 3: Constructor with many parameters
     public FormatterShowcase(
-                    String legacyField,
-                    List<String> items,
-                    Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField,
-                    boolean validateOnConstruction,
-                    String defaultLocale,
-                    ExecutorService executorService
+            String legacyField,
+            List<String> items,
+            Map<String, List<Optional<CompletableFuture<String>>>> complexGenericField,
+            boolean validateOnConstruction,
+            String defaultLocale,
+            ExecutorService executorService
     ) {
         this.legacyField = legacyField;
         this.items = items;
@@ -175,8 +175,8 @@ public class FormatterShowcase
             .stream()
             .filter(item -> item != null && !item.isBlank())
             .collect(Collectors.groupingBy(
-                        item -> String.valueOf(item.charAt(0)).toUpperCase(),
-                        Collectors.mapping(String::toLowerCase, Collectors.toList())
+                    item -> String.valueOf(item.charAt(0)).toUpperCase(),
+                    Collectors.mapping(String::toLowerCase, Collectors.toList())
             ));
     }
 
@@ -269,9 +269,9 @@ public class FormatterShowcase
 
     // Scenario 18: Complex generic method signature
     public <T extends Comparable<T> & java.io.Serializable, R extends List<? super T>> R transformAndCollect(
-                        List<T> source,
-                        Function<T, R> transformer,
-                        java.util.function.BinaryOperator<R> combiner
+            List<T> source,
+            Function<T, R> transformer,
+            java.util.function.BinaryOperator<R> combiner
     ) {
         return source
             .stream()
@@ -452,12 +452,12 @@ public class FormatterShowcase
     // Scenario 36: Constructor chaining with long argument list
     public FormatterShowcase(String legacyFieldOnly, List<String> itemsOnly, boolean validate) {
         this(
-                        legacyFieldOnly,
-                        itemsOnly,
-                        java.util.Collections.emptyMap(),
-                        validate,
-                        "en-US",
-                        java.util.concurrent.ForkJoinPool.commonPool()
+                legacyFieldOnly,
+                itemsOnly,
+                java.util.Collections.emptyMap(),
+                validate,
+                "en-US",
+                java.util.concurrent.ForkJoinPool.commonPool()
         );
     }
 
@@ -488,8 +488,8 @@ public class FormatterShowcase
     // Scenario 39b: Long string literal in method argument
     public void longExceptionMessage() {
         throw new IllegalStateException(
-                        "Component scan for configuration class [%s] could not be used with "
-                        + "conditions in REGISTER_BEAN phase: %s".formatted(legacyField, items)
+                "Component scan for configuration class [%s] could not be used with "
+                + "conditions in REGISTER_BEAN phase: %s".formatted(legacyField, items)
         );
     }
 
@@ -554,9 +554,9 @@ public class FormatterShowcase
                 java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>>,
                 Integer> cmp =
                 (
-                                java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> left,
-                                java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> right
-                        ) -> left.getKey().compareTo(right.getKey());
+                        java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> left,
+                        java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> right
+                    ) -> left.getKey().compareTo(right.getKey());
         cmp.apply(null, null);
     }
 
@@ -601,10 +601,10 @@ public class FormatterShowcase
     // Scenario 49: Wrapped argument alignment (continuation indent, not method-name alignment)
     public void wrappedArgumentAlignmentRegression() {
         saveWithVeryLongMethodNameForAlignmentRegression(
-                        "alpha-alpha-alpha-alpha",
-                        "beta-beta-beta-beta",
-                        "gamma-gamma-gamma-gamma",
-                        "delta-delta-delta-delta"
+                "alpha-alpha-alpha-alpha",
+                "beta-beta-beta-beta",
+                "gamma-gamma-gamma-gamma",
+                "delta-delta-delta-delta"
         );
         new VeryLongArgumentCarrierForAlignmentRegression(
                 "first-first-first",
@@ -679,12 +679,12 @@ public class FormatterShowcase
     // Scenario 54: Nested wrapped calls — inner ')' must stack continuation indent (not flush with outer call)
     public void nestedWrappedCallInnerListContinuationScenario54(String issueKey) {
         auditLogSuccessWithMessageScenario54(
-                    i18nGetTextScenario54(
-                            UpdateALItemsConversationExecutionStatusScenario54.SUCCESS.getI18nKeyScenario54(),
-                            resultGetNameScenario54(),
-                            issueKey
-                    ),
-                    ""
+                i18nGetTextScenario54(
+                        UpdateALItemsConversationExecutionStatusScenario54.SUCCESS.getI18nKeyScenario54(),
+                        resultGetNameScenario54(),
+                        issueKey
+                ),
+                ""
         );
     }
 

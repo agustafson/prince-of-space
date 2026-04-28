@@ -445,13 +445,16 @@ class WrappingFormattingTest {
                 """;
         String out = f.format(input);
         String closeLine = lineContaining(out, ") -> a");
-        int openParen = leadingSpaces(closeLine);
+        int closeParenCol = leadingSpaces(closeLine);
         String p1 = lineContaining(out, "com.example.VeryLongParameterTypeNameOne a,");
         String p2 = lineContaining(out, "com.example.VeryLongParameterTypeNameTwo b");
+        // Lambda params sit at openParen + continuationIndentSize (= 2 * indentSize) while the
+        // closing `) ->` lands at openParen + indentSize, so params are one block-indent unit
+        // (indentSize == 4 here) past the close line.
         Assertions.assertEquals(
-                openParen + 8,
+                closeParenCol + 4,
                 leadingSpaces(p1),
-                () -> "openParen column from `) ->`, full out:\n" + out);
+                () -> "params should be one indentSize step past `) ->`, full out:\n" + out);
         Assertions.assertEquals(leadingSpaces(p1), leadingSpaces(p2), out);
         assertThat(f.format(out)).isEqualTo(out);
     }
