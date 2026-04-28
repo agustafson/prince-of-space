@@ -319,6 +319,14 @@ public class FormatterShowcase
         });
     }
 
+    // Scenario 35b: Wrapped multi-arg call with trailing block lambda - TDR-021 (header inline, body wraps)
+    public String executeWithFallback() {
+        return retryRegistry.executeWithFallbackAndCircuitBreakerOnTimeout(longOperationContextDescriptor, () -> {
+            loadData();
+            return processData();
+        });
+    }
+
     // Scenario 36: Constructor chaining with long argument list
     public FormatterShowcase(String legacyFieldOnly, List<String> itemsOnly, boolean validate) {
         this(legacyFieldOnly, itemsOnly, java.util.Collections.emptyMap(), validate, "en-US",
