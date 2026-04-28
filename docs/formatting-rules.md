@@ -307,14 +307,30 @@ executor.submit(() -> {
 });
 
 // Trailing block lambda with preceding args - lambda header stays on the call line,
-// body wraps with block indent, "})" closes on a single line at the call's indent column
+// body wraps with block indent, "})" closes inline at the call's indent column
 // regardless of closingParenOnNewLine.
 String result = computeWithDefault(thisIsAVeryLongArgument, () -> {
     return loadDefault();
 });
+
+// Single-arg call where the argument is an expression-bodied lambda - the lambda header
+// "s ->" stays on the call line and the body wraps as a chain receiver.
+items.stream()
+    .map(s -> s
+        .toLowerCase()
+        .chars()
+        .mapToObj(ch -> String.valueOf((char) ch))
+        .collect(Collectors.joining())
+        .trim());
+
+// Trailing expression lambda in a multi-arg call.
+return computeFromInputData(thisIsAReasonablyLongArgument, value -> value
+        .transform()
+        .normalize()
+        .toString());
 ```
 
-Lambda arguments should NOT cause the opening paren to wrap to a new line (this is the google-java-format mistake that everyone dislikes). When the **last** argument of a wrapped call is a block-bodied lambda, the lambda header (`() -> {`, `(a, b) -> {`, …) is kept on the call line and only the lambda body wraps — matching palantir-java-format / Prettier / ktlint. This applies even if the resulting opener line slightly exceeds `lineLength`. See TDR-021.
+Lambda arguments should NOT cause the opening paren to wrap to a new line (this is the google-java-format mistake that everyone dislikes). When the **last** argument of a wrapped call is any lambda — block- or expression-bodied — the lambda header (`() -> {`, `(a, b) -> {`, `s ->`, `value ->`, …) is kept on the call line and the lambda body wraps according to its own rules: a block body uses its own block indent, an expression body wraps via the receiver chain or other inner wrap mechanic. The closing `)` always follows the lambda body inline, never on its own line. This matches palantir-java-format / Prettier / ktlint and applies even if the resulting opener line slightly exceeds `lineLength`. See TDR-021.
 
 ---
 

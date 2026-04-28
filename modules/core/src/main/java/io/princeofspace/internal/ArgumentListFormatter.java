@@ -53,21 +53,27 @@ final class ArgumentListFormatter {
     }
 
     /**
-     * R5 / R8 / TDR-016: when the last argument of a wrapped call is a block lambda, palantir-java-format
-     * / Prettier / ktlint keep the lambda header {@code () -> '{'} on the call line and let the lambda
-     * body wrap with its own block indent (matching how lambdas read in source). Returns {@code true}
-     * when the args list satisfies that pattern: at least one preceding arg, last arg is a block lambda,
-     * and the preceding args are themselves simple inline expressions (no leading comments and no other
-     * block-bodied lambdas). The single block-lambda argument case is already handled by the regular
-     * single-arg break path. Some line-length overflow on the call line is accepted as a soft tradeoff
-     * because the alternative (each arg on its own line) reads worse for the trailing-lambda idiom.
+     * R5 / R8 / TDR-021: when a wrapped call's last argument is a lambda — block- or expression-bodied —
+     * palantir-java-format / Prettier / ktlint keep the lambda header (e.g. {@code () -> '{'} or
+     * {@code s ->}) on the call line and let the lambda body wrap (block body via its own block indent;
+     * expression body via the receiver chain or other inner wrap mechanic). The closing {@code )}
+     * follows the lambda body inline, never on its own line, regardless of {@code closingParenOnNewLine}.
+     * Returns {@code true} when:
+     * <ul>
+     *   <li>the args list is non-empty,</li>
+     *   <li>the last arg is a {@code LambdaExpr} (any body),</li>
+     *   <li>no preceding arg is itself a block-bodied lambda (multiple block lambdas read worse inline), and</li>
+     *   <li>no preceding arg has comments that need to drive a line break.</li>
+     * </ul>
+     * Soft line-length overflow on the call line is accepted as a deliberate tradeoff — the
+     * alternative (lambda header on its own line) reads worse for the trailing-lambda idiom.
      */
     boolean shouldUseTrailingLambdaLayout(NodeList<? extends Expression> args) {
-        if (args == null || args.size() < 2) {
+        if (args == null || args.isEmpty()) {
             return false;
         }
         Expression last = args.get(args.size() - 1);
-        if (!(last instanceof LambdaExpr lambda) || !(lambda.getBody() instanceof BlockStmt)) {
+        if (!(last instanceof LambdaExpr)) {
             return false;
         }
         for (int i = 0; i < args.size() - 1; i++) {
@@ -83,11 +89,11 @@ final class ArgumentListFormatter {
     }
 
     /**
-     * Prints the leading arguments inline with {@code ", "} separators, then prints the trailing block
-     * lambda. The lambda visitor handles its own multi-line body and emits the closing {@code }} at
-     * the indent level active when the lambda was visited (which equals the call's block indent), so
-     * the caller can place the closing {@code )} directly after the lambda's {@code }} without
-     * inserting another newline.
+     * Prints the leading arguments inline with {@code ", "} separators, then prints the trailing
+     * lambda inline (no leading newline). For block-bodied lambdas the lambda visitor emits its own
+     * multi-line body and a {@code }} at the call-line indent; for expression-bodied lambdas any inner
+     * wrap (e.g. method-chain receiver) is driven by the body itself. In both cases the caller places
+     * {@code )} immediately after the lambda body without inserting another newline.
      */
     void printTrailingLambdaLayout(NodeList<? extends Expression> args, Void arg) {
         int last = args.size() - 1;

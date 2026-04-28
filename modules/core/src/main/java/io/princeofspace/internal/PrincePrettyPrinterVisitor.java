@@ -757,9 +757,13 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 wrapped = argumentListFormatter.argsNeedWrap(args);
                 trailingLambda = wrapped && argumentListFormatter.shouldUseTrailingLambdaLayout(args);
                 if (trailingLambda) {
-                    // TDR-016: trailing block-lambda keeps "() -> {" on the call line. The lambda
-                    // visitor emits its own multi-line body and a "}" at the call-line indent, so we
-                    // skip the wrapped-list indent scope and the closing-paren newline.
+                    // TDR-021: trailing-lambda keeps the lambda header on the call line. The lambda
+                    // visitor emits its own multi-line body and the closer follows it inline, so we
+                    // skip the wrapped-list indent scope and the closing-paren newline. We also
+                    // clear any stale continuationLineStartColumn so a wrapped inner call inside the
+                    // lambda body anchors its indent to the surrounding block, not to a leftover
+                    // continuation column from an earlier statement.
+                    continuationLineStartColumn = -1;
                     argumentListFormatter.printTrailingLambdaLayout(args, arg);
                 } else {
                     // Only push extra printer indents when this list itself uses explicit continuation lines.
@@ -1313,24 +1317,23 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.print("(");
         }
         NodeList<Parameter> ps = n.getParameters();
-        if (!isNullOrEmpty(ps) && argumentListFormatter.paramsNeedWrap(ps)) {
-            if (n.isEnclosingParameters()) {
+        // Unparenthesized lambda params (single param without parens) cannot wrap — there's no
+        // comma list and no enclosing delimiters to anchor a continuation. Single parenthesized
+        // params likewise have nothing to break on. Only multi-param parenthesized lists wrap.
+        if (!isNullOrEmpty(ps)) {
+            boolean canWrapParams = n.isEnclosingParameters() && ps.size() > 1;
+            if (canWrapParams && argumentListFormatter.paramsNeedWrap(ps)) {
                 argumentListFormatter.printParametersListForLambda(ps, arg, openParenStartColumn);
                 if (fmt.closingParenOnNewLine()) {
                     printer.println();
                     ctx.padToColumn0(openParenStartColumn);
                 }
             } else {
-                argumentListFormatter.printParametersList(ps, arg);
-                if (fmt.closingParenOnNewLine()) {
-                    printer.println();
-                }
-            }
-        } else {
-            for (int i = 0; i < ps.size(); i++) {
-                ps.get(i).accept(this, arg);
-                if (i < ps.size() - 1) {
-                    printer.print(", ");
+                for (int i = 0; i < ps.size(); i++) {
+                    ps.get(i).accept(this, arg);
+                    if (i < ps.size() - 1) {
+                        printer.print(", ");
+                    }
                 }
             }
         }

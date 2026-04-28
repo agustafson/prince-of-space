@@ -1512,7 +1512,9 @@ class WrappingFormattingTest {
     }
 
     @Test
-    void closingParen_singleBlockLambdaArg_onItsOwnLineWhenEnabled() {
+    void trailingLambda_singleBlockLambdaArg_keepsCloserInline_evenWithClosingParenOnNewLine() {
+        // TDR-021 (extended): single-arg trailing-lambda layout always closes with "});" inline,
+        // overriding closingParenOnNewLine. Matches palantir-java-format / Prettier convention.
         Formatter f =
                 new Formatter(
                         FormatterConfig.builder()
@@ -1533,8 +1535,7 @@ class WrappingFormattingTest {
         String out = f.format(input);
         assertThat(out)
                 .containsPattern(
-                        "runLaterWithVeryLongNameToForceWrapping\\(\\(\\) -> \\{\\n\\s*doWork\\(\\);\\n\\s*}\\n\\s*\\);");
-        assertThat(out).contains("\n        );\n");
+                        "runLaterWithVeryLongNameToForceWrapping\\(\\(\\) -> \\{\\n\\s*doWork\\(\\);\\n\\s*}\\);");
         assertThat(f.format(out)).isEqualTo(out);
     }
 
@@ -1597,6 +1598,90 @@ class WrappingFormattingTest {
                         "        String x = computeWithDefault(thisIsAVeryLongArgument, () -> {\n");
         assertThat(out).contains("            return loadDefault();\n");
         assertThat(out).contains("        });\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void trailingLambda_singleArgExpressionLambda_keepsHeaderOnCallLine_closingParenTrue() {
+        // TDR-021 (extended): single-arg call where the argument is a lambda — block or expression
+        // bodied — keeps the lambda header on the call line. Mirrors palantir-java-format / Prettier:
+        // .map(s -> s
+        //         .chain()
+        //         ...)
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(60)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .closingParenOnNewLine(true)
+                                .build());
+        String input =
+                """
+                class T {
+                    java.util.stream.Stream<String> m(java.util.stream.Stream<String> items) {
+                        return items.map(s -> s.toLowerCase().trim().replace("a", "b").replace("c", "d").substring(0, 4));
+                    }
+                }
+                """;
+        String out = f.format(input);
+        assertThat(out).doesNotContain(".map(\n");
+        assertThat(out).containsPattern("\\.map\\(s -> s\\b");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void trailingLambda_singleArgBlockLambda_keepsHeaderOnCallLine() {
+        // TDR-021 (extended): single-arg call whose argument is a block lambda also keeps the
+        // header on the call line. Body indents one block deeper, closer is "})".
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(60)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .closingParenOnNewLine(true)
+                                .build());
+        String input =
+                """
+                class T {
+                    void m() {
+                        registerHandlerForLongDescriptiveName(eventContext -> { processEvent(eventContext); });
+                    }
+
+                    void registerHandlerForLongDescriptiveName(java.util.function.Consumer<String> h) {}
+                    void processEvent(String e) {}
+                }
+                """;
+        String out = f.format(input);
+        assertThat(out).contains("registerHandlerForLongDescriptiveName(eventContext -> {\n");
+        assertThat(out).contains("        });\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void trailingLambda_multiArgExpressionLambda_keepsHeaderOnCallLine() {
+        // TDR-021 (extended): multi-arg call whose last argument is an expression-bodied lambda
+        // keeps the lambda header on the call line. The body wraps as a chain receiver.
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(60)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .closingParenOnNewLine(true)
+                                .build());
+        String input =
+                """
+                class T {
+                    String m() {
+                        return computeFromInputData(thisIsAReasonablyLongArgument, value -> value.transform().normalize().toString());
+                    }
+
+                    String computeFromInputData(String a, java.util.function.Function<String, String> fn) { return ""; }
+                }
+                """;
+        String out = f.format(input);
+        assertThat(out)
+                .containsPattern(
+                        "computeFromInputData\\(thisIsAReasonablyLongArgument, value -> value\\b");
         assertThat(f.format(out)).isEqualTo(out);
     }
 
