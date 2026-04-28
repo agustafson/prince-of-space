@@ -1539,6 +1539,68 @@ class WrappingFormattingTest {
     }
 
     @Test
+    void trailingBlockLambda_keepsLambdaHeaderOnCallLine_closingParenTrue() {
+        // R5 + R8 / TDR-016: when the last argument of a wrapped call is a block lambda,
+        // the lambda header "() -> {" should stay inline with the opener so the body opens on
+        // the call line — matching palantir-java-format / Prettier / ktlint conventions instead of
+        // the previous "() ->" on its own line.
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(60)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .closingParenOnNewLine(true)
+                                .build());
+        String input =
+                """
+                class T {
+                    void m() {
+                        String x = computeWithDefault(thisIsAVeryLongArgument, () -> { return loadDefault(); });
+                    }
+
+                    String computeWithDefault(String a, java.util.function.Supplier<String> s) { return ""; }
+                    String loadDefault() { return ""; }
+                }
+                """;
+        String out = f.format(input);
+        assertThat(out)
+                .contains(
+                        "        String x = computeWithDefault(thisIsAVeryLongArgument, () -> {\n");
+        assertThat(out).contains("            return loadDefault();\n");
+        assertThat(out).contains("        });\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void trailingBlockLambda_keepsLambdaHeaderOnCallLine_closingParenFalse() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(60)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .closingParenOnNewLine(false)
+                                .build());
+        String input =
+                """
+                class T {
+                    void m() {
+                        String x = computeWithDefault(thisIsAVeryLongArgument, () -> { return loadDefault(); });
+                    }
+
+                    String computeWithDefault(String a, java.util.function.Supplier<String> s) { return ""; }
+                    String loadDefault() { return ""; }
+                }
+                """;
+        String out = f.format(input);
+        assertThat(out)
+                .contains(
+                        "        String x = computeWithDefault(thisIsAVeryLongArgument, () -> {\n");
+        assertThat(out).contains("            return loadDefault();\n");
+        assertThat(out).contains("        });\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
     void closingParen_singleNestedCall_breaksBeforeWrappedArgumentWhenEnabled() {
         Formatter f =
                 new Formatter(

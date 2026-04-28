@@ -305,9 +305,16 @@ executor.submit(() -> {
     doWork();
     cleanup();
 });
+
+// Trailing block lambda with preceding args - lambda header stays on the call line,
+// body wraps with block indent, "})" closes on a single line at the call's indent column
+// regardless of closingParenOnNewLine.
+String result = computeWithDefault(thisIsAVeryLongArgument, () -> {
+    return loadDefault();
+});
 ```
 
-Lambda arguments should NOT cause the opening paren to wrap to a new line (this is the google-java-format mistake that everyone dislikes).
+Lambda arguments should NOT cause the opening paren to wrap to a new line (this is the google-java-format mistake that everyone dislikes). When the **last** argument of a wrapped call is a block-bodied lambda, the lambda header (`() -> {`, `(a, b) -> {`, …) is kept on the call line and only the lambda body wraps — matching palantir-java-format / Prettier / ktlint. This applies even if the resulting opener line slightly exceeds `lineLength`. See TDR-021.
 
 ---
 

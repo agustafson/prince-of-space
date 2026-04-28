@@ -751,35 +751,45 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         argumentListOpenerLines.push(openerLine);
         printer.print("(");
         boolean wrapped = false;
+        boolean trailingLambda = false;
         try {
             if (!isNullOrEmpty(args)) {
                 wrapped = argumentListFormatter.argsNeedWrap(args);
-                // Only push extra printer indents when this list itself uses explicit continuation lines.
-                // A single wrapped expression argument (e.g. new X("""...""".formatted(...))) must not
-                // activate the scope: inner chains/binary continuations still use printCont relative to the
-                // outer call indent.
-                boolean applyWrappedListIndent =
-                        wrapped
-                                && (args.size() > SINGLE_ITEM_COUNT
-                                        || (args.size() == SINGLE_ITEM_COUNT
-                                                && (commentUtils.hasLeadingLineOrBlockComment(args.get(0))
-                                                        || commentUtils.hasAnyLineOrBlockCommentOnLambda(
-                                                                args.get(0))
-                                                        || argumentListFormatter.shouldBreakBeforeSingleWrappedArg(
-                                                                args.get(0)))));
-                if (applyWrappedListIndent) {
-                    enterWrappedDelimitedListScope();
-                }
-                try {
-                    argumentListFormatter.printCommaSeparatedExprs(args, arg);
-                } finally {
+                trailingLambda = wrapped && argumentListFormatter.shouldUseTrailingLambdaLayout(args);
+                if (trailingLambda) {
+                    // TDR-016: trailing block-lambda keeps "() -> {" on the call line. The lambda
+                    // visitor emits its own multi-line body and a "}" at the call-line indent, so we
+                    // skip the wrapped-list indent scope and the closing-paren newline.
+                    argumentListFormatter.printTrailingLambdaLayout(args, arg);
+                } else {
+                    // Only push extra printer indents when this list itself uses explicit continuation lines.
+                    // A single wrapped expression argument (e.g. new X("""...""".formatted(...))) must not
+                    // activate the scope: inner chains/binary continuations still use printCont relative to the
+                    // outer call indent.
+                    boolean applyWrappedListIndent =
+                            wrapped
+                                    && (args.size() > SINGLE_ITEM_COUNT
+                                            || (args.size() == SINGLE_ITEM_COUNT
+                                                    && (commentUtils.hasLeadingLineOrBlockComment(args.get(0))
+                                                            || commentUtils.hasAnyLineOrBlockCommentOnLambda(
+                                                                    args.get(0))
+                                                            || argumentListFormatter.shouldBreakBeforeSingleWrappedArg(
+                                                                    args.get(0)))));
                     if (applyWrappedListIndent) {
-                        exitWrappedDelimitedListScope();
+                        enterWrappedDelimitedListScope();
+                    }
+                    try {
+                        argumentListFormatter.printCommaSeparatedExprs(args, arg);
+                    } finally {
+                        if (applyWrappedListIndent) {
+                            exitWrappedDelimitedListScope();
+                        }
                     }
                 }
             }
             // R8: when configured, closing ')' moves to its own line for wrapped argument lists.
-            if (fmt.closingParenOnNewLine() && wrapped) {
+            // TDR-016 exception: trailing-lambda layout always closes "})" to match palantir-java-format.
+            if (fmt.closingParenOnNewLine() && wrapped && !trailingLambda) {
                 if (nestedOpenersAreColine) {
                     if (!compactArgumentCloserRunActive) {
                         printer.println();

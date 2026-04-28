@@ -53,6 +53,52 @@ final class ArgumentListFormatter {
     }
 
     /**
+     * R5 / R8 / TDR-016: when the last argument of a wrapped call is a block lambda, palantir-java-format
+     * / Prettier / ktlint keep the lambda header {@code () -> '{'} on the call line and let the lambda
+     * body wrap with its own block indent (matching how lambdas read in source). Returns {@code true}
+     * when the args list satisfies that pattern: at least one preceding arg, last arg is a block lambda,
+     * and the preceding args are themselves simple inline expressions (no leading comments and no other
+     * block-bodied lambdas). The single block-lambda argument case is already handled by the regular
+     * single-arg break path. Some line-length overflow on the call line is accepted as a soft tradeoff
+     * because the alternative (each arg on its own line) reads worse for the trailing-lambda idiom.
+     */
+    boolean shouldUseTrailingLambdaLayout(NodeList<? extends Expression> args) {
+        if (args == null || args.size() < 2) {
+            return false;
+        }
+        Expression last = args.get(args.size() - 1);
+        if (!(last instanceof LambdaExpr lambda) || !(lambda.getBody() instanceof BlockStmt)) {
+            return false;
+        }
+        for (int i = 0; i < args.size() - 1; i++) {
+            Expression e = args.get(i);
+            if (e instanceof LambdaExpr leadingLambda && leadingLambda.getBody() instanceof BlockStmt) {
+                return false;
+            }
+            if (commentUtils.hasLineOrBlockComment(e) || commentUtils.hasLeadingLineOrBlockComment(e)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Prints the leading arguments inline with {@code ", "} separators, then prints the trailing block
+     * lambda. The lambda visitor handles its own multi-line body and emits the closing {@code }} at
+     * the indent level active when the lambda was visited (which equals the call's block indent), so
+     * the caller can place the closing {@code )} directly after the lambda's {@code }} without
+     * inserting another newline.
+     */
+    void printTrailingLambdaLayout(NodeList<? extends Expression> args, Void arg) {
+        int last = args.size() - 1;
+        for (int i = 0; i < last; i++) {
+            ctx.accept(args.get(i), arg);
+            ctx.print(", ");
+        }
+        ctx.accept(args.get(last), arg);
+    }
+
+    /**
      * Prints a comma-separated list of expressions, applying the same wrapping rules as method
      * call arguments (including comment-aware and greedy wide wrapping).
      */
