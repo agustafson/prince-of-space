@@ -401,6 +401,21 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
         private static final int FLAGS_SCENARIO55 = 1;
     }
 
+    // Scenario 56: Wrapped call with comments interleaved in argument list
+    public String scenario56WrappedCommentsInArgumentList() {
+        return mergeSymbolicScenario56Arguments(
+                "showroom-scenario-56-arg-alpha-long-symbolic-prefix",
+                // Comment between positional arguments anchors ordering across format(format(x)) passes
+                "showroom-scenario-56-arg-bravo-long-symbolic-middle",
+                "showroom-scenario-56-arg-charlie-long-symbolic-near-tail",
+                // Trailing-arg comment anchors the delimiter region before closing paren formatting
+                "showroom-scenario-56-arg-delta-long-symbolic-suffix");
+    }
+
+    private String mergeSymbolicScenario56Arguments(String alpha, String bravo, String charlie, String delta) {
+        return alpha + bravo + charlie + delta;
+    }
+
     enum UpdateALItemsConversationExecutionStatusScenario54 {
         SUCCESS;
         String getI18nKeyScenario54() {
