@@ -981,6 +981,31 @@ public class FormatterShowcase
         return "-showroom-scenario63-nested-tail-extra-long-symbolic-handle";
     }
 
+    // Scenario 64: Try / catch / finally with commentary between resources and handlers
+    public void scenario64TryCatchFinallyWithComments(Path source, Path destination) throws IOException {
+        try (// scenario64 head comment anchors the try-with-resources open layout across trees
+        FileInputStream scenario64Input = new FileInputStream(source.toFile());
+                /*
+                 * scenario64 spacer between declarators stresses wrapped resource indentation.
+                 */
+        FileOutputStream scenario64Output = new FileOutputStream(destination.toFile());
+                BufferedInputStream scenario64Buffered = new BufferedInputStream(scenario64Input)
+        ) {
+            byte[] buffer = new byte[4096];
+            int copied;
+            while ((copied = scenario64Buffered.read(buffer)) != -1) {
+                scenario64Output.write(buffer, 0, copied);
+            }
+        } catch (IOException | IllegalStateException e) {
+            logError("scenario64-io-state-extra-long-handle", e);
+        } catch (RuntimeException e) {
+            throw e;
+        } finally {
+            // scenario64 tail commentary anchors finally clause separation from catch blocks above
+            loadData();
+        }
+    }
+
     enum UpdateALItemsConversationExecutionStatusScenario54 {
         SUCCESS;
         String getI18nKeyScenario54() {
