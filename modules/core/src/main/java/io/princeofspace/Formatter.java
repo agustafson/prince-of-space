@@ -61,6 +61,20 @@ public final class Formatter {
     }
 
     /**
+     * Validates that {@code release} is a Java feature-release number supported by the bundled parser.
+     *
+     * <p>Throws {@link IllegalArgumentException} for releases the bundled JavaParser has no
+     * {@code LanguageLevel} constant for. This can be used by UIs to gate input before constructing a
+     * {@link io.princeofspace.model.FormatterConfig}.
+     *
+     * @param release Java feature-release number (e.g. {@code 17}, {@code 21})
+     * @throws IllegalArgumentException if the release is not supported
+     */
+    public static void validateJavaRelease(int release) {
+        FormattingEngine.validateJavaReleaseForParser(release);
+    }
+
+    /**
      * Formats the given Java source code, prefixing failure messages with {@code filePath}.
      *
      * @param sourceCode the Java source to format
