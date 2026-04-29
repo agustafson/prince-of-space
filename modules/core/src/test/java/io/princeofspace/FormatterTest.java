@@ -5,7 +5,6 @@ import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.JavaLanguageLevel;
 import io.princeofspace.model.WrapStyle;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -1102,9 +1101,6 @@ class FormatterTest {
     }
 
     @Test
-    @Disabled(
-            "Known flake: second format can duplicate inter-argument line comments in this pattern; "
-                    + "tracked separately from literal-chunk idempotency (RealWorldEval idempotency is the gate).")
     void idempotency_commentsInterspersedInMethodArguments_doNotReorder() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()
