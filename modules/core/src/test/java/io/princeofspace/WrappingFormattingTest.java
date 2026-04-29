@@ -798,6 +798,29 @@ class WrappingFormattingTest {
     }
 
     @Test
+    void arrayInitializer_wide_trailingCommas_addsCommaBeforeClosingBraceWhenMultiline() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(70)
+                                .wrapStyle(WrapStyle.WIDE)
+                                .trailingCommas(true)
+                                .build());
+        String input =
+                """
+                class T {
+                    static final String[] DEFAULT_COLUMNS = {"id", "name", "email", "created_at", "updated_at", "status", "role", "department"};
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("\"department\",\n");
+        assertThat(out).contains("\n    };\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
     void arrayInitializer_balanced_putsEachElementOnItsOwnLine() {
         Formatter f =
                 new Formatter(
