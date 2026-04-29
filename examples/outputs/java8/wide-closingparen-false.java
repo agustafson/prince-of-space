@@ -528,6 +528,25 @@ public class FormatterShowcase
         return alpha + bravo + charlie + delta;
     }
 
+    @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+    @java.lang.annotation.Target({java.lang.annotation.ElementType.METHOD})
+    private @interface Scenario57Shelf {
+        /**
+         * Token bucket with long literals that stress-wrap inside annotation parentheses.
+         */
+        String[] descriptors();
+    }
+
+    // Scenario 57: Annotation declarations, nested members, arrays, mixed comments inside array literals
+    @Scenario57Shelf(descriptors = {"showroom-scenario57-descriptor-alpha-symbolic-handle",
+            /*
+                     * Annotation array element block commentary must stay anchored when lists wrap across lines.
+                     */
+    "showroom-scenario57-descriptor-bravo-symbolic-handle", "showroom-scenario57-descriptor-charlie-symbolic-handle"})
+    @SuppressWarnings({"deprecation", "unchecked", "rawtypes", "unused"})
+    public void scenario57AnnotatedMethodWithBuckets() {
+    }
+
     enum UpdateALItemsConversationExecutionStatusScenario54 {
         SUCCESS;
         String getI18nKeyScenario54() {
