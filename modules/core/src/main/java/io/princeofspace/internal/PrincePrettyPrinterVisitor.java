@@ -634,6 +634,12 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (isNullOrEmpty(args)) {
             return;
         }
+        if (args.size() == SINGLE_ITEM_COUNT) {
+            printer.print("<");
+            args.get(0).accept(this, arg);
+            printer.print(">");
+            return;
+        }
         if (!argumentListFormatter.typeArgumentsNeedWrap(args)) {
             printer.print("<");
             for (Iterator<Type> i = args.iterator(); i.hasNext(); ) {

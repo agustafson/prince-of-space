@@ -245,6 +245,26 @@ class WrappingFormattingTest {
     }
 
     @Test
+    void implementsClause_balanced_keepsSingleGenericTypeArgumentAttached() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(90)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .build());
+        String input =
+                "class T implements java.util.function.Predicate<Scenario59PipelineStage>, java.util.concurrent.Callable<Scenario59PipelineStage>, java.util.Comparator<Scenario59PipelineStage> {}";
+
+        String out = f.format(input);
+
+        assertThat(out).contains("implements java.util.function.Predicate<Scenario59PipelineStage>,\n");
+        assertThat(out).contains("java.util.concurrent.Callable<Scenario59PipelineStage>,\n");
+        assertThat(out).doesNotContain("Predicate<\n");
+        assertThat(out).doesNotContain("Callable<\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
     void extendsClause_balanced_wrapsEachInterface() {
         Formatter f =
                 new Formatter(

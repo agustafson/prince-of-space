@@ -812,9 +812,7 @@ public class FormatterShowcase
     };
 
     // Scenario 59: Enum with long implements list (additional Java 17+ record echoes implements clause in sibling trees)
-    enum Scenario59PipelineStage implements Runnable, java.util.function.Supplier<String>, java.util.function.Predicate<
-            Scenario59PipelineStage>, java.util.function.Consumer<Object>, java.util.concurrent.Callable<
-            Scenario59PipelineStage>, java.util.Comparator<Scenario59PipelineStage> {
+    enum Scenario59PipelineStage implements Runnable, java.util.function.Supplier<String>, java.util.function.Predicate<Scenario59PipelineStage>, java.util.function.Consumer<Object>, java.util.concurrent.Callable<Scenario59PipelineStage>, java.util.Comparator<Scenario59PipelineStage> {
         ALPHA,
         BRAVA;
         @Override
@@ -846,8 +844,7 @@ public class FormatterShowcase
 
     record Scenario59ShipmentLedger(
             java.util.Optional<String> ledgerKeyPlaceholderExtraLongSymbolicHandle,
-            java.time.Instant capturedAtSymbolicInstantHandlePlaceholderExtraTail) implements Comparable<
-            Scenario59ShipmentLedger>, java.io.Serializable, java.util.function.Supplier<String>, Runnable {
+            java.time.Instant capturedAtSymbolicInstantHandlePlaceholderExtraTail) implements Comparable<Scenario59ShipmentLedger>, java.io.Serializable, java.util.function.Supplier<String>, Runnable {
         @Override
         public int compareTo(Scenario59ShipmentLedger peer) {
             return ledgerKeyPlaceholderExtraLongSymbolicHandle
