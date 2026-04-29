@@ -32,10 +32,12 @@ final class ArrayInitializerFormatter {
     void format(ArrayInitializerExpr n, Void arg) {
         ctx.printOrphanCommentsBeforeThisChildNode(n);
         ctx.printComment(n.getComment(), arg);
+        int openBraceColumn = ctx.column();
         ctx.print("{");
         if (!isNullOrEmpty(n.getValues())) {
             int arrayFlat = ctx.column() + methodChainFormatter.argsFlatWidth(n.getValues()) + 2;
             boolean multi = arrayFlat > fmt.lineLength();
+            boolean nestedArrayInitializer = n.getParentNode().map(parent -> parent instanceof ArrayInitializerExpr).orElse(false);
             if (multi) {
                 if (fmt.wrapStyle() == WrapStyle.WIDE) {
                     // R5 wide: greedily pack until line full (same list policy as other wide lists).
@@ -46,7 +48,7 @@ final class ArrayInitializerFormatter {
                     }
                     ctx.print("}");
                 } else {
-                    printTallInitializer(n, arg);
+                    printTallInitializer(n, arg, openBraceColumn, nestedArrayInitializer);
                 }
             } else {
                 printInlineInitializer(n, arg);
@@ -58,22 +60,38 @@ final class ArrayInitializerFormatter {
         ctx.printOrphanCommentsEnding(n);
     }
 
-    private void printTallInitializer(ArrayInitializerExpr n, Void arg) {
+    private void printTallInitializer(
+            ArrayInitializerExpr n,
+            Void arg,
+            int openBraceColumn,
+            boolean alignToNestedArrayBrace) {
+        int nestedElementColumn = openBraceColumn + fmt.continuationIndentSize();
         ctx.println();
-        ctx.printCont();
+        if (alignToNestedArrayBrace) {
+            ctx.padToColumn0(nestedElementColumn);
+        } else {
+            ctx.printCont();
+        }
         for (Iterator<Expression> i = n.getValues().iterator(); i.hasNext(); ) {
             Expression expr = i.next();
             ctx.accept(expr, arg);
             if (i.hasNext()) {
                 ctx.print(",");
                 ctx.println();
-                ctx.printCont();
+                if (alignToNestedArrayBrace) {
+                    ctx.padToColumn0(nestedElementColumn);
+                } else {
+                    ctx.printCont();
+                }
             }
         }
         if (fmt.trailingCommas()) {
             ctx.print(",");
         }
         ctx.println();
+        if (alignToNestedArrayBrace) {
+            ctx.padToColumn0(openBraceColumn);
+        }
         ctx.print("}");
     }
 
