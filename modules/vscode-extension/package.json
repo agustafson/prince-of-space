@@ -45,6 +45,38 @@
           "type": "number",
           "default": 17,
           "description": "Java language level passed as --java-version to the CLI."
+        },
+        "princeOfSpace.indentStyle": {
+          "type": "string",
+          "enum": ["SPACES", "TABS"],
+          "default": "SPACES",
+          "description": "Indent style: SPACES or TABS."
+        },
+        "princeOfSpace.indentSize": {
+          "type": "number",
+          "default": 4,
+          "description": "Indent units per block level."
+        },
+        "princeOfSpace.lineLength": {
+          "type": "number",
+          "default": 120,
+          "description": "Target line length for wrapping."
+        },
+        "princeOfSpace.wrapStyle": {
+          "type": "string",
+          "enum": ["NARROW", "BALANCED", "WIDE"],
+          "default": "BALANCED",
+          "description": "Wrap style: NARROW, BALANCED, or WIDE."
+        },
+        "princeOfSpace.closingParenOnNewLine": {
+          "type": "boolean",
+          "default": true,
+          "description": "Place closing ')' on its own line when argument lists wrap."
+        },
+        "princeOfSpace.trailingCommas": {
+          "type": "boolean",
+          "default": false,
+          "description": "Emit trailing commas in multi-line enums and array literals."
         }
       }
     },

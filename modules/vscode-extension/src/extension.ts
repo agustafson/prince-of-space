@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { formatJavaSource, resolveCliJar } from "./formatter";
+import { FormatterOptions } from "./cliArgs";
 
 async function formatJavaDocument(
   document: vscode.TextDocument,
@@ -17,9 +18,17 @@ async function formatJavaDocument(
     return [];
   }
   const javaBin = cfg.get<string>("javaExecutable") ?? "java";
-  const javaVersion = cfg.get<number>("javaVersion") ?? 17;
+  const opts: FormatterOptions = {
+    javaVersion: cfg.get<number>("javaVersion") ?? 17,
+    indentStyle: cfg.get<string>("indentStyle") ?? "SPACES",
+    indentSize: cfg.get<number>("indentSize") ?? 4,
+    lineLength: cfg.get<number>("lineLength") ?? 120,
+    wrapStyle: cfg.get<string>("wrapStyle") ?? "BALANCED",
+    closingParenOnNewLine: cfg.get<boolean>("closingParenOnNewLine") ?? true,
+    trailingCommas: cfg.get<boolean>("trailingCommas") ?? false,
+  };
   try {
-    const formatted = await formatJavaSource(javaBin, jar, javaVersion, document.getText(), token);
+    const formatted = await formatJavaSource(javaBin, jar, opts, document.getText(), token);
     const full = new vscode.Range(document.positionAt(0), document.positionAt(document.getText().length));
     return [vscode.TextEdit.replace(full, formatted)];
   } catch (e) {
