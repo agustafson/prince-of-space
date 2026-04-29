@@ -627,6 +627,26 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
                         () -> new java.util.TreeSet<>(comparatorForScenario61ExtraLongSymbolicTail)));
     }
 
+    // Scenario 62: Chained instanceof guards with explicit casts (pattern-matching overload appears on Java 17+ trees)
+    public boolean scenario62InstanceofCastBooleanChain(Object maybeText, Number maybeCardinality) {
+        return maybeText instanceof String
+                && maybeCardinality instanceof Integer
+                && legacyField != null
+                && ((String) maybeText).startsWith("showroom-scenario62-prefix-extra-long-symbolic-handle")
+                && ((Integer) maybeCardinality).intValue() > ((String) maybeText).length()
+                && ((String) maybeText).regionMatches(0, legacyField, 0, Math.min(legacyField.length(), 9));
+    }
+
+    // Scenario 62b: Pattern matching instanceof inside long boolean chains (Java 17+ syntax)
+    public boolean scenario62PatternInstanceofBooleanChain(Object maybeText, Object maybeNumeric) {
+        return maybeText instanceof String text
+                && maybeNumeric instanceof Integer count
+                && legacyField != null
+                && text.regionMatches(0, legacyField, 0, Math.min(legacyField.length(), 9))
+                && count > text.length()
+                && text.lines().count() >= 1L;
+    }
+
     enum UpdateALItemsConversationExecutionStatusScenario54 {
         SUCCESS;
         String getI18nKeyScenario54() {

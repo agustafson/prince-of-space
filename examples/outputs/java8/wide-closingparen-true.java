@@ -648,6 +648,14 @@ public class FormatterShowcase
             )));
     }
 
+    // Scenario 62: Chained instanceof guards with explicit casts (pattern-matching overload appears on Java 17+ trees)
+    public boolean scenario62InstanceofCastBooleanChain(Object maybeText, Number maybeCardinality) {
+        return maybeText instanceof String && maybeCardinality instanceof Integer && legacyField != null
+                && ((String) maybeText).startsWith("showroom-scenario62-prefix-extra-long-symbolic-handle")
+                && ((Integer) maybeCardinality).intValue() > ((String) maybeText).length()
+                && ((String) maybeText).regionMatches(0, legacyField, 0, Math.min(legacyField.length(), 9));
+    }
+
     enum UpdateALItemsConversationExecutionStatusScenario54 {
         SUCCESS;
         String getI18nKeyScenario54() {
