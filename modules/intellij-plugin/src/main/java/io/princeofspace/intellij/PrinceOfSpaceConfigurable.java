@@ -7,9 +7,9 @@ import com.intellij.openapi.ui.ComboBox;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.util.ui.FormBuilder;
+import io.princeofspace.Formatter;
 import io.princeofspace.intellij.PrinceOfSpaceState.CommonState;
 import io.princeofspace.intellij.PrinceOfSpaceState.ProjectState;
-import io.princeofspace.internal.FormattingEngine;
 import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.WrapStyle;
 import org.jetbrains.annotations.Nls;
@@ -20,7 +20,6 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.util.Arrays;
-import java.util.stream.IntStream;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
@@ -41,14 +40,13 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
 
     public static final int JAVA_LEVEL_DEFAULT = 17;
     public static final int JAVA_LEVEL_MIN = 1;
-    public static final int JAVA_LEVEL_MAX = 25;
     private final PrinceOfSpaceProjectSettings settings;
     private final PrinceOfSpaceGlobalSettings globalSettings;
 
     private JBCheckBox formatOnSave;
     private JBCheckBox useGlobalFormatterSettings;
     private JBCheckBox useProjectLanguageLevel;
-    private ComboBox<Integer> javaReleaseCombo;
+    private JSpinner javaReleaseSpinner;
 
     private ComboBox<String> indentStyleCombo;
     private JSpinner indentSizeSpinner;
@@ -78,7 +76,8 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
                 new JBCheckBox("Use IDE-global formatter settings (shared across projects)");
         useProjectLanguageLevel =
                 new JBCheckBox("Use project / module Java language level for parsing (recommended)");
-        javaReleaseCombo = new ComboBox<>(IntStream.rangeClosed(1, JAVA_LEVEL_MAX).boxed().toArray(Integer[]::new));
+        javaReleaseSpinner = new JSpinner(
+                new SpinnerNumberModel(Integer.valueOf(JAVA_LEVEL_DEFAULT), Integer.valueOf(JAVA_LEVEL_MIN), null, Integer.valueOf(1)));
 
         indentStyleCombo = new ComboBox<>(Arrays.stream(IndentStyle.values()).map(Enum::name).toArray(String[]::new));
         indentSizeSpinner = new JSpinner(new SpinnerNumberModel(4, 1, 32, 1));
@@ -100,7 +99,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
                         .addVerticalGap(8)
                         .addComponent(boldSection("Java language level (JavaParser)"))
                         .addComponent(useProjectLanguageLevel)
-                        .addLabeledComponent("Fixed language level (when not using project level):", javaReleaseCombo)
+                        .addLabeledComponent("Fixed language level (when not using project level):", javaReleaseSpinner)
                         .addVerticalGap(8)
                         .addComponent(boldSection("Indentation"))
                         .addLabeledComponent("Indent style:", indentStyleCombo)
@@ -175,12 +174,12 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         if (useGlobalFormatterSettings.isSelected()) {
             useProjectLanguageLevel.setSelected(false);
             useProjectLanguageLevel.setEnabled(false);
-            javaReleaseCombo.setEnabled(true);
+            javaReleaseSpinner.setEnabled(true);
             return;
         }
         useProjectLanguageLevel.setEnabled(true);
         boolean manual = !useProjectLanguageLevel.isSelected();
-        javaReleaseCombo.setEnabled(manual);
+        javaReleaseSpinner.setEnabled(manual);
     }
 
     private static ProjectState copyProjectState(ProjectState s) {
@@ -229,7 +228,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         wrapStyleCombo.setSelectedItem(inputState.wrapStyle);
         closingParenOnNewLine.setSelected(inputState.closingParenOnNewLine);
         trailingCommas.setSelected(inputState.trailingCommas);
-        javaReleaseCombo.setSelectedItem(inputState.javaRelease);
+        javaReleaseSpinner.setValue(inputState.javaRelease);
     }
 
     private ProjectState readUiProjectState() {
@@ -255,8 +254,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         s.wrapStyle = requireNonNull((String) wrapStyleCombo.getSelectedItem(), "wrap style");
         s.closingParenOnNewLine = closingParenOnNewLine.isSelected();
         s.trailingCommas = trailingCommas.isSelected();
-        Object jr = javaReleaseCombo.getSelectedItem();
-        s.javaRelease = jr instanceof Integer i ? i : JAVA_LEVEL_DEFAULT;
+        s.javaRelease = (Integer) javaReleaseSpinner.getValue();
         s.normalizeAfterLoad();
     }
 
@@ -264,7 +262,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         try {
             IndentStyle.valueOf(commonState.indentStyle);
             WrapStyle.valueOf(commonState.wrapStyle);
-            FormattingEngine.validateJavaReleaseForParser(commonState.javaRelease);
+            Formatter.validateJavaRelease(commonState.javaRelease);
         } catch (IllegalArgumentException | NullPointerException e) {
             throw new ConfigurationException("Invalid global formatter setting: " + e.getMessage());
         }

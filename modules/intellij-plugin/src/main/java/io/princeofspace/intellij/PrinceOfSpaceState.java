@@ -6,7 +6,6 @@ import io.princeofspace.model.WrapStyle;
 import java.util.Objects;
 
 import static io.princeofspace.intellij.PrinceOfSpaceConfigurable.JAVA_LEVEL_DEFAULT;
-import static io.princeofspace.intellij.PrinceOfSpaceConfigurable.JAVA_LEVEL_MAX;
 import static io.princeofspace.intellij.PrinceOfSpaceConfigurable.JAVA_LEVEL_MIN;
 
 interface PrinceOfSpaceState {
@@ -36,7 +35,7 @@ interface PrinceOfSpaceState {
             }
             indentSize = clamp(indentSize, INDENT_SIZE_MIN, INDENT_SIZE_MAX, INDENT_SIZE_DEFAULT);
             lineLength = clamp(lineLength, LINE_LENGTH_MIN, LINE_LENGTH_MAX, LINE_LENGTH_DEFAULT);
-            javaRelease = clamp(javaRelease, JAVA_LEVEL_MIN, JAVA_LEVEL_MAX, JAVA_LEVEL_DEFAULT);
+            javaRelease = javaRelease >= JAVA_LEVEL_MIN ? javaRelease : JAVA_LEVEL_DEFAULT;
         }
 
         private static int clamp(int value, int min, int max, int fallback) {
