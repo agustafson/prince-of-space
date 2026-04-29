@@ -730,6 +730,26 @@ public class FormatterShowcase
         }
     }
 
+    // Scenario 66: Fluent stream chains stretched across wide nested ternary branches
+    public long scenario66FluentStreamsInsideTernary(boolean prioritizeLegacy) {
+        return prioritizeLegacy
+                ? (legacyField != null
+                ? items
+            .stream()
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .map(String::toLowerCase)
+            .distinct()
+            .count()
+                : 0L)
+                : items
+            .parallelStream()
+            .map(String::trim)
+            .sorted(String.CASE_INSENSITIVE_ORDER.reversed())
+            .mapToLong(String::hashCode)
+            .sum();
+    }
+
     enum UpdateALItemsConversationExecutionStatusScenario54 {
         SUCCESS;
         String getI18nKeyScenario54() {
