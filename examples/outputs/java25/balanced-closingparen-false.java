@@ -823,6 +823,60 @@ public class FormatterShowcase
     }
     };
 
+    // Scenario 59: Enum with long implements list (additional Java 17+ record echoes implements clause in sibling trees)
+    enum Scenario59PipelineStage implements Runnable, java.util.function.Supplier<String>, java.util.function.Predicate<
+            Scenario59PipelineStage>, java.util.function.Consumer<Object>, java.util.concurrent.Callable<
+            Scenario59PipelineStage>, java.util.Comparator<Scenario59PipelineStage> {
+        ALPHA,
+        BRAVA;
+        @Override
+        public void run() {}
+
+        @Override
+        public String get() {
+            return name();
+        }
+
+        @Override
+        public boolean test(Scenario59PipelineStage candidate) {
+            return candidate != null && candidate.ordinal() >= ordinal();
+        }
+
+        @Override
+        public void accept(Object ignored) {}
+
+        @Override
+        public Scenario59PipelineStage call() {
+            return ALPHA;
+        }
+
+        @Override
+        public int compare(Scenario59PipelineStage lhs, Scenario59PipelineStage rhs) {
+            return Integer.compare(lhs.ordinal(), rhs.ordinal());
+        }
+    }
+
+    record Scenario59ShipmentLedger(
+            java.util.Optional<String> ledgerKeyPlaceholderExtraLongSymbolicHandle,
+            java.time.Instant capturedAtSymbolicInstantHandlePlaceholderExtraTail) implements Comparable<
+            Scenario59ShipmentLedger>, java.io.Serializable, java.util.function.Supplier<String>, Runnable {
+        @Override
+        public int compareTo(Scenario59ShipmentLedger peer) {
+            return ledgerKeyPlaceholderExtraLongSymbolicHandle
+                .orElse("")
+                .compareTo(peer.ledgerKeyPlaceholderExtraLongSymbolicHandle.orElse(""));
+        }
+
+        @Override
+        public String get() {
+            return ledgerKeyPlaceholderExtraLongSymbolicHandle.orElse("")
+                    + capturedAtSymbolicInstantHandlePlaceholderExtraTail.toString();
+        }
+
+        @Override
+        public void run() {}
+    }
+
     enum UpdateALItemsConversationExecutionStatusScenario54 {
         SUCCESS;
         String getI18nKeyScenario54() {
