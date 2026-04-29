@@ -774,6 +774,33 @@ public class FormatterShowcase
         public void run() {}
     }
 
+    static abstract class Scenario60LongCtorHeadroom {
+        Scenario60LongCtorHeadroom(String alphaExtraLongSymbolicHandle, String bravoExtraLongSymbolicHandle,
+                String charlieExtraLongSymbolicHandle, String deltaExtraLongSymbolicHandle,
+                String echoExtraLongSymbolicHandle, String foxtrotExtraLongSymbolicHandle,
+                String golfExtraLongSymbolicHandle, String hotelExtraLongSymbolicHandle
+        ) {
+        }
+
+        abstract void touch();
+    }
+
+    // Scenario 60: Anonymous subclass with a very long super(...) argument list
+    public Scenario60LongCtorHeadroom scenario60AnonymousSubclassWithLongCtorArgumentList() {
+        return new Scenario60LongCtorHeadroom("showroom-scenario60-alpha-extra-long-symbolic-handle-tail",
+                "showroom-scenario60-bravo-extra-long-symbolic-handle-tail",
+                "showroom-scenario60-charlie-extra-long-symbolic-handle-tail",
+                "showroom-scenario60-delta-extra-long-symbolic-handle-tail",
+                "showroom-scenario60-echo-extra-long-symbolic-handle-tail",
+                "showroom-scenario60-foxtrot-extra-long-symbolic-handle-tail",
+                "showroom-scenario60-golf-extra-long-symbolic-handle-tail",
+                "showroom-scenario60-hotel-extra-long-symbolic-handle-tail"
+        ) {
+            @Override
+            void touch() {}
+        };
+    }
+
     enum UpdateALItemsConversationExecutionStatusScenario54 {
         SUCCESS;
         String getI18nKeyScenario54() {
