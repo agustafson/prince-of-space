@@ -1,5 +1,8 @@
 package com.example.showcase;
 
+// Scenario 67: Import-section commentary anchors (stable diff markers before import list)
+/* Block comment variant for scenario67 so both line and block commentary near imports are formatted. */
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
