@@ -870,7 +870,8 @@ public class FormatterShowcase
 
     // Scenario 64: Try / catch / finally with commentary between resources and handlers
     public void scenario64TryCatchFinallyWithComments(Path source, Path destination) throws IOException {
-        try (// scenario64 head comment anchors the try-with-resources open layout across trees
+        try (
+                // scenario64 head comment anchors the try-with-resources open layout across trees
         FileInputStream scenario64Input = new FileInputStream(source.toFile());
                 /*
                  * scenario64 spacer between declarators stresses wrapped resource indentation.

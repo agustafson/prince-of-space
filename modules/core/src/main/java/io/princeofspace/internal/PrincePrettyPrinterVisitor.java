@@ -318,7 +318,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 toPrint.add(c);
             }
         }
-        boolean keepContinuationAfterOrphanComment = isAnnotationArrayValueContext(parent);
+        boolean keepContinuationAfterOrphanComment =
+                isAnnotationArrayValueContext(parent)
+                        || isTryResourceContext(parent, node);
         for (Comment c : toPrint) {
             if (keepContinuationAfterOrphanComment && c instanceof BlockComment blockComment) {
                 printNormalizedAnnotationArrayBlockComment(blockComment);
@@ -341,6 +343,13 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         return parent.getParentNode()
                 .map(ancestor -> ancestor instanceof MemberValuePair || ancestor instanceof SingleMemberAnnotationExpr)
                 .orElse(false);
+    }
+
+    private static boolean isTryResourceContext(Node parent, Node node) {
+        if (!(parent instanceof TryStmt tryStmt) || !(node instanceof Expression expression)) {
+            return false;
+        }
+        return tryStmt.getResources().contains(expression);
     }
 
     private void printNormalizedAnnotationArrayBlockComment(BlockComment blockComment) {
@@ -466,8 +475,15 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (!n.getResources().isEmpty()) {
             printer.print("(");
             Iterator<Expression> resources = n.getResources().iterator();
+            boolean first = true;
             while (resources.hasNext()) {
-                resources.next().accept(this, arg);
+                Expression resource = resources.next();
+                if (first && commentUtils.hasLeadingLineOrBlockComment(resource)) {
+                    printer.println();
+                    printCont();
+                }
+                resource.accept(this, arg);
+                first = false;
                 if (resources.hasNext()) {
                     printer.print(";");
                     printer.println();
