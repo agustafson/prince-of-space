@@ -90,6 +90,20 @@ class ContinuationIndentStepPropertyTest {
                 .isEqualTo(openIndent);
     }
 
+    @Property(tries = 80)
+    void rule3_nestedLambdaChainIndentIncrease_neverExceedsTwoIndentSteps(
+            @ForAll(IDENTIFIER_FORALL) String identifier,
+            @ForAll("indentSizes") int indentSize,
+            @ForAll("closingParenOnNewLine") boolean closingParenOnNewLine) {
+        String source = nestedLambdaChainSource(identifier);
+        Formatter formatter = formatter(90, WrapStyle.BALANCED, closingParenOnNewLine, indentSize, JavaLanguageLevel.of(25));
+        String once = formatter.format(source);
+        String twice = formatter.format(once);
+        assertThat(twice).as("idempotency").isEqualTo(once);
+
+        assertConsecutiveIndentIncreasesBounded(once, indentSize);
+    }
+
     private static void assertConsecutiveIndentIncreasesBounded(String formatted, int indentSize) {
         String[] lines = formatted.split("\\R", -1);
         int maxStep = 2 * indentSize;
@@ -136,6 +150,26 @@ class ContinuationIndentStepPropertyTest {
                 }
                 """
                 .formatted(identifier, identifier, identifier, identifier, identifier, identifier);
+    }
+
+    private static String nestedLambdaChainSource(String identifier) {
+        return """
+                import java.util.List;
+                import java.util.concurrent.ExecutorService;
+
+                class C_%s {
+                    private List<String> items;
+                    private ExecutorService executorService;
+
+                    void m_%s() {
+                        items.forEach(outerLine -> executorService.submit(() -> items.stream().filter(inner -> inner != null && inner.compareTo(outerLine) != 0).forEach(innerLine -> {
+                            Runnable scoped = () -> System.out.println(innerLine + outerLine + "showroom-scenario63-nested-tail-extra-long-symbolic-handle-%s");
+                            scoped.run();
+                        })));
+                    }
+                }
+                """
+                .formatted(identifier, identifier, identifier);
     }
 
     @Provide

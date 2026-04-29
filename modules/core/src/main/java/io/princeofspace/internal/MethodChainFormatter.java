@@ -199,7 +199,6 @@ final class MethodChainFormatter {
      * {@link #isSimpleBase simple} receiver stays {@code receiver.method(...)} on one line.
      */
     void printChainBalancedOrNarrow(Expression base, List<MethodCallExpr> calls, Void arg) {
-        int lineStartColumn = ctx.column();
         Optional<Comment> hoistedBaseComment = comments.hoistableWrappedChainBaseComment(base);
         if (hoistedBaseComment.isPresent()) {
             printExpressionWithoutOwnComment(base, arg);
@@ -245,7 +244,7 @@ final class MethodChainFormatter {
             ctx.printTypeArgs(mc, arg);
             ctx.print(mc.getNameAsString());
             if (comments.hasBlockLambdaArgument(mc.getArguments())) {
-                ctx.indentWithAlignToSafe(Math.max(contCol, lineStartColumn + ctx.config().continuationIndentSize()));
+                ctx.indentWithAlignToSafe(contCol);
                 try {
                     ctx.printArguments(mc.getArguments(), arg);
                 } finally {

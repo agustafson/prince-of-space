@@ -764,11 +764,9 @@ public class FormatterShowcase
             .stream()
             .filter(inner -> inner != null && inner.compareTo(outerLine) != 0)
             .forEach(innerLine -> {
-                                                                            Runnable scoped =
-                                                                                    () -> System.out.println(
-                                                                                            innerLine + outerLine + showroomScenario63Tail());
-                                                                            scoped.run();
-                                                                        })));
+                Runnable scoped = () -> System.out.println(innerLine + outerLine + showroomScenario63Tail());
+                scoped.run();
+            })));
     }
 
     private static String showroomScenario63Tail() {
