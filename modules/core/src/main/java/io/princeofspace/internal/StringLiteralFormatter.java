@@ -1,5 +1,6 @@
 package io.princeofspace.internal;
 
+import com.github.javaparser.ast.comments.BlockComment;
 import com.github.javaparser.ast.expr.ArrayAccessExpr;
 import com.github.javaparser.ast.expr.ArrayInitializerExpr;
 import com.github.javaparser.ast.expr.BinaryExpr;
@@ -95,7 +96,11 @@ final class StringLiteralFormatter {
     void formatStringLiteral(StringLiteralExpr n, Void arg) {
         ctx.printOrphanCommentsBeforeThisChildNode(n);
         int anchorColumn = ctx.column();
-        ctx.printComment(n.getComment(), arg);
+        if (isLeadingCommentInsideArrayInitializer(n) && n.getComment().orElse(null) instanceof BlockComment blockComment) {
+            printNormalizedLeadingBlockComment(blockComment, anchorColumn);
+        } else {
+            ctx.printComment(n.getComment(), arg);
+        }
         if (isLeadingCommentInsideArrayInitializer(n)) {
             ctx.padToColumn0(anchorColumn);
         }
@@ -123,6 +128,35 @@ final class StringLiteralFormatter {
             return false;
         }
         return n.getParentNode().isPresent() && n.getParentNode().get() instanceof ArrayInitializerExpr;
+    }
+
+    private void printNormalizedLeadingBlockComment(BlockComment blockComment, int anchorColumn) {
+        String[] lines = blockComment.getContent().split("\\R", -1);
+        ctx.print("/*");
+        ctx.println();
+        boolean printedContentLine = false;
+        for (String line : lines) {
+            String trimmed = line.stripLeading();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            ctx.padToColumn0(anchorColumn);
+            if (trimmed.startsWith("*")) {
+                ctx.print(" " + trimmed);
+            } else {
+                ctx.print(" * " + trimmed);
+            }
+            ctx.println();
+            printedContentLine = true;
+        }
+        if (!printedContentLine) {
+            ctx.padToColumn0(anchorColumn);
+            ctx.print(" *");
+            ctx.println();
+        }
+        ctx.padToColumn0(anchorColumn);
+        ctx.print(" */");
+        ctx.println();
     }
 
     /**

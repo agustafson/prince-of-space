@@ -636,8 +636,8 @@ public class FormatterShowcase
     @Scenario57Shelf(descriptors = {
             "showroom-scenario57-descriptor-alpha-symbolic-handle",
             /*
-                     * Annotation array element block commentary must stay anchored when lists wrap across lines.
-                     */
+             * Annotation array element block commentary must stay anchored when lists wrap across lines.
+             */
             "showroom-scenario57-descriptor-bravo-symbolic-handle",
             "showroom-scenario57-descriptor-charlie-symbolic-handle"
     })
@@ -655,7 +655,9 @@ public class FormatterShowcase
             {
                     // row comment before first cell keeps row grouping visible when initializer wraps
                     "showroom-scenario58-r1-c0-extra-long-handle",
-                    /* intra-row block anchors between cells when commas wrap independently */
+                    /*
+                     * intra-row block anchors between cells when commas wrap independently 
+                     */
                     "showroom-scenario58-r1-c1-extra-long-handle",
                     "showroom-scenario58-r1-c2-extra-long-handle"
             }
