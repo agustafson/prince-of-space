@@ -1023,7 +1023,7 @@ class WrappingFormattingTest {
     }
 
     @Test
-    void stringConcatenation_wide_wrappedChain_oneOperandPerLine() {
+    void stringConcatenation_wide_wrappedChain_greedilyPacksOperands() {
         Formatter f =
                 new Formatter(
                         FormatterConfig.builder()
@@ -1043,10 +1043,11 @@ class WrappingFormattingTest {
 
         String out = f.format(input);
 
-        assertThat(out).contains("        var traditional = \"Hello \"\n");
-        assertThat(out).contains(EXPECTED_PLUS_LEGACY_FIELD_LINE);
-        assertThat(out).contains(EXPECTED_PLUS_YOU_HAVE_LITERAL_LINE);
-        assertThat(out).contains(EXPECTED_PLUS_ITEMS_SIZE_LINE);
+        assertThat(out).contains("        var traditional = \"Hello \" + legacyField + \", you have \" + items.size()");
+        assertThat(out).doesNotContain(EXPECTED_PLUS_LEGACY_FIELD_LINE);
+        assertThat(out).doesNotContain(EXPECTED_PLUS_YOU_HAVE_LITERAL_LINE);
+        assertThat(out).doesNotContain(EXPECTED_PLUS_ITEMS_SIZE_LINE);
+        assertThat(out).contains("                + \"Please review them at your earliest convenience. \"\n");
         assertThat(f.format(out)).isEqualTo(out);
     }
 

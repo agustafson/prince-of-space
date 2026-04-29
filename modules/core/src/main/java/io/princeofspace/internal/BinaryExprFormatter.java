@@ -166,12 +166,11 @@ final class BinaryExprFormatter {
                 }
                 return;
             }
-            // R1: WIDE greedy packing for + was column-based and could fail to reach a fixed point
-            // (e.g. Spring withMessage with +// continuations, long annotation args). For non-inline
-            // + chains, use the same one-infix-per-line layout as BALANCED (see
-            // printPlusChainOnePerLineWithPlusSpine javadoc). Greedy remains for other operators
-            // (e.g. &&) under WIDE.
             List<BinaryExpr> plusOrphanSplits = listLeftAssociativePlusSplitNodes(n);
+            if (ctx.config().wrapStyle() == WrapStyle.WIDE && plusSpineHasNoOrphanComments(plusOrphanSplits)) {
+                printBinaryGreedy(parts, "+", arg);
+                return;
+            }
             printPlusChainOnePerLineWithPlusSpine(parts, arg, plusOrphanSplits);
             return;
         }
@@ -361,6 +360,15 @@ final class BinaryExprFormatter {
             cur = parent;
         }
         return fromBottom;
+    }
+
+    private static boolean plusSpineHasNoOrphanComments(List<BinaryExpr> plusOrphanSplits) {
+        for (BinaryExpr split : plusOrphanSplits) {
+            if (!split.getOrphanComments().isEmpty()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private boolean printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(
