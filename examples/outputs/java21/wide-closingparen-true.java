@@ -801,6 +801,21 @@ public class FormatterShowcase
         };
     }
 
+    // Scenario 61: Explicit generic instantiation combined with cascaded method references
+    public java.util.SortedSet<String> scenario61ParameterizedCallsAndMethodRefs() {
+        java.util.Comparator<String> comparatorForScenario61ExtraLongSymbolicTail = java.util.Comparator
+            .<String>nullsFirst(String::compareToIgnoreCase)
+            .thenComparing(String::length)
+            .thenComparingInt(String::hashCode);
+        return items
+            .parallelStream()
+            .<String>map(Function.<String, String>identity().andThen(String::trim))
+            .filter(s -> s != null && !s.trim().isEmpty())
+            .collect(java.util.stream.Collectors.<String, java.util.TreeSet<String>>toCollection(() -> new java.util.TreeSet<>(
+                    comparatorForScenario61ExtraLongSymbolicTail
+            )));
+    }
+
     enum UpdateALItemsConversationExecutionStatusScenario54 {
         SUCCESS;
         String getI18nKeyScenario54() {
