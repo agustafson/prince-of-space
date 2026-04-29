@@ -19,6 +19,12 @@ class WrappingFormattingTest {
     private static final String EXPECTED_PLUS_LEGACY_FIELD_LINE = "            + legacyField\n";
     private static final String EXPECTED_PLUS_YOU_HAVE_LITERAL_LINE = "            + \", you have \"\n";
     private static final String EXPECTED_PLUS_ITEMS_SIZE_LINE = "            + items.size()\n";
+    private static final String ARRAY_COLUMNS_INPUT =
+            """
+            class T {
+                static final String[] DEFAULT_COLUMNS = {"id", "name", "email", "created_at", "updated_at", "status", "role", "department"};
+            }
+            """;
 
     @Test
     void throwsClause_balanced_wrapsEachExceptionType() {
@@ -783,12 +789,7 @@ class WrappingFormattingTest {
                                 .lineLength(120)
                                 .wrapStyle(WrapStyle.WIDE)
                                 .build());
-        String input =
-                """
-                class T {
-                    static final String[] DEFAULT_COLUMNS = {"id", "name", "email", "created_at", "updated_at", "status", "role", "department"};
-                }
-                """;
+        String input = ARRAY_COLUMNS_INPUT;
 
         String out = f.format(input);
 
@@ -806,12 +807,7 @@ class WrappingFormattingTest {
                                 .wrapStyle(WrapStyle.WIDE)
                                 .trailingCommas(true)
                                 .build());
-        String input =
-                """
-                class T {
-                    static final String[] DEFAULT_COLUMNS = {"id", "name", "email", "created_at", "updated_at", "status", "role", "department"};
-                }
-                """;
+        String input = ARRAY_COLUMNS_INPUT;
 
         String out = f.format(input);
 
@@ -828,12 +824,7 @@ class WrappingFormattingTest {
                                 .lineLength(70)
                                 .wrapStyle(WrapStyle.BALANCED)
                                 .build());
-        String input =
-                """
-                class T {
-                    static final String[] DEFAULT_COLUMNS = {"id", "name", "email", "created_at", "updated_at", "status", "role", "department"};
-                }
-                """;
+        String input = ARRAY_COLUMNS_INPUT;
 
         String out = f.format(input);
 
@@ -852,12 +843,7 @@ class WrappingFormattingTest {
                                 .lineLength(70)
                                 .wrapStyle(WrapStyle.NARROW)
                                 .build());
-        String input =
-                """
-                class T {
-                    static final String[] DEFAULT_COLUMNS = {"id", "name", "email", "created_at", "updated_at", "status", "role", "department"};
-                }
-                """;
+        String input = ARRAY_COLUMNS_INPUT;
 
         String out = f.format(input);
 
