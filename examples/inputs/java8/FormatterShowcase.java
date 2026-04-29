@@ -476,6 +476,24 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
                 && ((String) maybeText).regionMatches(0, legacyField, 0, Math.min(legacyField.length(), 9));
     }
 
+    // Scenario 63: Nested lambdas crossing scheduling and per-element iteration
+    public void scenario63NestedLambdasFanout() {
+        items.forEach(
+                outerLine ->
+                        executorService.submit(() ->
+                                items.stream()
+                                        .filter(inner -> inner != null && inner.compareTo(outerLine) != 0)
+                                        .forEach(innerLine -> {
+                                            Runnable scoped = () ->
+                                                    System.out.println(innerLine + outerLine + showroomScenario63Tail());
+                                            scoped.run();
+                                        })));
+    }
+
+    private static String showroomScenario63Tail() {
+        return "-showroom-scenario63-nested-tail-extra-long-symbolic-handle";
+    }
+
     enum UpdateALItemsConversationExecutionStatusScenario54 {
         SUCCESS;
         String getI18nKeyScenario54() {
