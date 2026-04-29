@@ -449,12 +449,12 @@ class WrappingFormattingTest {
         String p1 = lineContaining(out, "com.example.VeryLongParameterTypeNameOne a,");
         String p2 = lineContaining(out, "com.example.VeryLongParameterTypeNameTwo b");
         // Lambda params sit at openParen + continuationIndentSize (= 2 * indentSize) while the
-        // closing `) ->` lands at openParen + indentSize, so params are one block-indent unit
-        // (indentSize == 4 here) past the close line.
+        // closing `) ->` aligns to the opener `(` column (Rule 8), so params are one continuation
+        // step (2 * indentSize == 8 here) past the close line.
         Assertions.assertEquals(
-                closeParenCol + 4,
+                closeParenCol + 8,
                 leadingSpaces(p1),
-                () -> "params should be one indentSize step past `) ->`, full out:\n" + out);
+                () -> "params should be one continuation step past `) ->`, full out:\n" + out);
         Assertions.assertEquals(leadingSpaces(p1), leadingSpaces(p2), out);
         assertThat(f.format(out)).isEqualTo(out);
     }

@@ -53,12 +53,12 @@ class ContinuationIndentStepPropertyTest {
     /**
      * Regression shape matching showroom scenario 44: wrapped generic {@link java.util.function.BiFunction}
      * with line-broken type arguments, assignment RHS starts with {@code (} on its own line, long
-     * parameter lines, then {@code ) -> ...}. The closing {@code ) ->} line must align one {@link
-     * FormatterConfig#indentSize()} step past the standalone {@code '('} line (not an extra {@code
-     * indentSize} deeper than that baseline).
+     * parameter lines, then {@code ) -> ...}. The closing {@code ) ->} line must align to the
+     * standalone {@code '('} line (Rule 8: closing delimiter on its own line at the opener's
+     * indentation column).
      */
     @Property(tries = 80)
-    void rule3_parenthesizedLambdaClosing_paren_arrow_aligns_openParen_plus_indentUnit(
+    void rule8_parenthesizedLambdaClosing_paren_arrow_aligns_openParenLine(
             @ForAll(IDENTIFIER_FORALL) String identifier,
             @ForAll("indentSizes") int indentSize,
             @ForAll("closingParenOnNewLine") boolean closingParenOnNewLine) {
@@ -86,9 +86,8 @@ class ContinuationIndentStepPropertyTest {
         int closeIndent = leadingSpaces(lines[closeArrowLine]);
         assertThat(closeIndent)
                 .as(
-                        "') ->' indent must equal '(' line indent + indentSize (%d); see showroom Java 25 scenario 44",
-                        indentSize)
-                .isEqualTo(openIndent + indentSize);
+                        "') ->' indent must equal '(' line indent (Rule 8); see showroom Java 25 scenario 44")
+                .isEqualTo(openIndent);
     }
 
     private static void assertConsecutiveIndentIncreasesBounded(String formatted, int indentSize) {

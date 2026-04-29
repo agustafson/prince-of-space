@@ -556,7 +556,7 @@ public class FormatterShowcase
                 (
                         java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> left,
                         java.util.Map.Entry<String, java.util.List<Optional<CompletableFuture<String>>>> right
-                    ) -> left.getKey().compareTo(right.getKey());
+                ) -> left.getKey().compareTo(right.getKey());
         cmp.apply(null, null);
     }
 

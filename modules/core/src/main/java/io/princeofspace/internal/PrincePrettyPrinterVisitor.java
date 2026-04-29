@@ -1326,10 +1326,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     // R8: when lambda params wrap, the closing ')' always goes on its own line so that the trailing
     // ' ->' arrow reads as a continuation marker rather than disappearing into the tail of a long
-    // parameter line. The line aligns one block-indent step past the opener column rather than to
-    // the opener column itself, so the arrow segment is visually distinct from the parameter lines
-    // (see ContinuationIndentStepPropertyTest scenario 44). This is independent of
-    // closingParenOnNewLine, which controls non-lambda call/declaration parens.
+    // parameter line. The line aligns to the opener '(' column so the closer matches the standard
+    // Rule 8 placement (closing delimiter on its own line at the opener's indentation column). This
+    // is independent of closingParenOnNewLine, which controls non-lambda call/declaration parens.
     private void printLambdaParameters(LambdaExpr n, Void arg) {
         int openParenStartColumn = 0;
         if (n.isEnclosingParameters()) {
@@ -1345,7 +1344,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             if (canWrapParams && argumentListFormatter.paramsNeedWrap(ps)) {
                 argumentListFormatter.printParametersListForLambda(ps, arg, openParenStartColumn);
                 printer.println();
-                ctx.padToColumn0(openParenStartColumn + fmt.indentSize());
+                ctx.padToColumn0(openParenStartColumn);
             } else {
                 for (int i = 0; i < ps.size(); i++) {
                     ps.get(i).accept(this, arg);
