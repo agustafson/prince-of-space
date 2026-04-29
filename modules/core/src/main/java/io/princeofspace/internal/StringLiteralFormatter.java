@@ -7,9 +7,7 @@ import com.github.javaparser.ast.expr.CharLiteralExpr;
 import com.github.javaparser.ast.expr.EnclosedExpr;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.LambdaExpr;
-import com.github.javaparser.ast.expr.MemberValuePair;
 import com.github.javaparser.ast.expr.MethodCallExpr;
-import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.expr.TextBlockLiteralExpr;
 import com.github.javaparser.utils.StringEscapeUtils;
@@ -98,7 +96,7 @@ final class StringLiteralFormatter {
         ctx.printOrphanCommentsBeforeThisChildNode(n);
         int anchorColumn = ctx.column();
         ctx.printComment(n.getComment(), arg);
-        if (isLeadingCommentInsideAnnotationArray(n)) {
+        if (isLeadingCommentInsideArrayInitializer(n)) {
             ctx.padToColumn0(anchorColumn);
         }
         int quotedLen = StringEscapeUtils.escapeJava(n.getValue()).length() + 2;
@@ -115,7 +113,7 @@ final class StringLiteralFormatter {
         ctx.printOrphanCommentsEnding(n);
     }
 
-    private static boolean isLeadingCommentInsideAnnotationArray(StringLiteralExpr n) {
+    private static boolean isLeadingCommentInsideArrayInitializer(StringLiteralExpr n) {
         if (n.getComment().isEmpty()
                 || n.getComment().get().getRange().isEmpty()
                 || n.getRange().isEmpty()) {
@@ -124,12 +122,7 @@ final class StringLiteralFormatter {
         if (n.getComment().get().getRange().get().begin.line >= n.getRange().get().begin.line) {
             return false;
         }
-        if (n.getParentNode().isEmpty() || !(n.getParentNode().get() instanceof ArrayInitializerExpr arrayInitializer)) {
-            return false;
-        }
-        return arrayInitializer.getParentNode()
-                .map(parent -> parent instanceof MemberValuePair || parent instanceof SingleMemberAnnotationExpr)
-                .orElse(false);
+        return n.getParentNode().isPresent() && n.getParentNode().get() instanceof ArrayInitializerExpr;
     }
 
     /**

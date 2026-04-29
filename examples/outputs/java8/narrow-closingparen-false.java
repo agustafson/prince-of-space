@@ -640,9 +640,9 @@ public class FormatterShowcase
             },
             {
                     // row comment before first cell keeps row grouping visible when initializer wraps
-    "showroom-scenario58-r1-c0-extra-long-handle",
+                    "showroom-scenario58-r1-c0-extra-long-handle",
                     /* intra-row block anchors between cells when commas wrap independently */
-    "showroom-scenario58-r1-c1-extra-long-handle",
+                    "showroom-scenario58-r1-c1-extra-long-handle",
                     "showroom-scenario58-r1-c2-extra-long-handle"
             }
     };
@@ -755,11 +755,11 @@ public class FormatterShowcase
     public void scenario64TryCatchFinallyWithComments(Path source, Path destination) throws IOException {
         try (
                 // scenario64 head comment anchors the try-with-resources open layout across trees
-        FileInputStream scenario64Input = new FileInputStream(source.toFile());
+                FileInputStream scenario64Input = new FileInputStream(source.toFile());
                 /*
                  * scenario64 spacer between declarators stresses wrapped resource indentation.
                  */
-        FileOutputStream scenario64Output = new FileOutputStream(destination.toFile());
+                FileOutputStream scenario64Output = new FileOutputStream(destination.toFile());
                 BufferedInputStream scenario64Buffered = new BufferedInputStream(scenario64Input)) {
             byte[] buffer = new byte[4096];
             int copied;

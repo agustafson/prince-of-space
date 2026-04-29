@@ -667,9 +667,9 @@ public class FormatterShowcase
     public static final String[][] SCENARIO58_TABLE = new String[][] {{"showroom-scenario58-r0-c0-extra-long-handle",
             "showroom-scenario58-r0-c1-extra-long-handle", "showroom-scenario58-r0-c2-extra-long-handle"},
             {// row comment before first cell keeps row grouping visible when initializer wraps
-    "showroom-scenario58-r1-c0-extra-long-handle",
+             "showroom-scenario58-r1-c0-extra-long-handle",
             /* intra-row block anchors between cells when commas wrap independently */
-    "showroom-scenario58-r1-c1-extra-long-handle", "showroom-scenario58-r1-c2-extra-long-handle"}};
+            "showroom-scenario58-r1-c1-extra-long-handle", "showroom-scenario58-r1-c2-extra-long-handle"}};
 
     // Scenario 59: Enum with long implements list (additional Java 17+ record echoes implements clause in sibling trees)
     enum Scenario59PipelineStage implements Runnable, java.util.function.Supplier<String>, java.util.function.Predicate<Scenario59PipelineStage>, java.util.function.Consumer<Object>, java.util.concurrent.Callable<Scenario59PipelineStage>, java.util.Comparator<Scenario59PipelineStage> {
@@ -798,11 +798,11 @@ public class FormatterShowcase
     public void scenario64TryCatchFinallyWithComments(Path source, Path destination) throws IOException {
         try (
                 // scenario64 head comment anchors the try-with-resources open layout across trees
-        FileInputStream scenario64Input = new FileInputStream(source.toFile());
+                FileInputStream scenario64Input = new FileInputStream(source.toFile());
                 /*
                  * scenario64 spacer between declarators stresses wrapped resource indentation.
                  */
-        FileOutputStream scenario64Output = new FileOutputStream(destination.toFile());
+                FileOutputStream scenario64Output = new FileOutputStream(destination.toFile());
                 BufferedInputStream scenario64Buffered = new BufferedInputStream(scenario64Input)
         ) {
             byte[] buffer = new byte[4096];

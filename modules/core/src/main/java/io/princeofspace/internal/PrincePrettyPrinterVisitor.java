@@ -482,7 +482,18 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                     printer.println();
                     printCont();
                 }
-                resource.accept(this, arg);
+                if (commentUtils.hasLeadingLineOrBlockComment(resource) && resource.getComment().isPresent()) {
+                    printComment(resource.getComment(), arg);
+                    printCont();
+                    Expression resourceWithoutLeadingComment = resource.clone();
+                    resourceWithoutLeadingComment.removeComment();
+                    for (Comment nestedComment : new ArrayList<>(resourceWithoutLeadingComment.getAllContainedComments())) {
+                        nestedComment.remove();
+                    }
+                    resourceWithoutLeadingComment.accept(this, arg);
+                } else {
+                    resource.accept(this, arg);
+                }
                 first = false;
                 if (resources.hasNext()) {
                     printer.print(";");
