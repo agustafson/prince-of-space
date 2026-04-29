@@ -3,7 +3,9 @@ package io.princeofspace.cli;
 import io.princeofspace.Formatter;
 import io.princeofspace.FormatterException;
 import io.princeofspace.model.FormatterConfig;
+import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.JavaLanguageLevel;
+import io.princeofspace.model.WrapStyle;
 import org.jspecify.annotations.Nullable;
 import picocli.CommandLine;
 
@@ -63,6 +65,27 @@ public final class Main implements Callable<Integer> {
             defaultValue = "17")
     private int javaVersion;
 
+    @CommandLine.Option(names = "--indent-style", description = "Indent style: SPACES or TABS.", defaultValue = "SPACES")
+    private IndentStyle indentStyle = IndentStyle.SPACES;
+
+    @CommandLine.Option(names = "--indent-size", description = "Indent units per block level.", defaultValue = "4")
+    private int indentSize = 4;
+
+    @CommandLine.Option(names = "--line-length", description = "Target line length for wrapping.", defaultValue = "120")
+    private int lineLength = 120;
+
+    @CommandLine.Option(names = "--wrap-style", description = "Wrap style: NARROW, BALANCED, or WIDE.", defaultValue = "BALANCED")
+    private WrapStyle wrapStyle = WrapStyle.BALANCED;
+
+    @CommandLine.Option(
+            names = "--closing-paren-on-new-line",
+            negatable = true,
+            description = "Place closing ')' on its own line when argument lists wrap (default: true).")
+    private boolean closingParenOnNewLine = true;
+
+    @CommandLine.Option(names = "--trailing-commas", description = "Emit trailing commas in multi-line enums and array literals.")
+    private boolean trailingCommas;
+
     @CommandLine.Option(
             names = "--stdin",
             description = "Read Java source from stdin; write formatted result to stdout.")
@@ -89,7 +112,15 @@ public final class Main implements Callable<Integer> {
         try {
             Formatter formatter =
                     new Formatter(
-                            FormatterConfig.builder().javaLanguageLevel(JavaLanguageLevel.of(javaVersion)).build());
+                            FormatterConfig.builder()
+                                    .javaLanguageLevel(JavaLanguageLevel.of(javaVersion))
+                                    .indentStyle(indentStyle)
+                                    .indentSize(indentSize)
+                                    .lineLength(lineLength)
+                                    .wrapStyle(wrapStyle)
+                                    .closingParenOnNewLine(closingParenOnNewLine)
+                                    .trailingCommas(trailingCommas)
+                                    .build());
             if (stdin) {
                 return runStdin(formatter);
             }
