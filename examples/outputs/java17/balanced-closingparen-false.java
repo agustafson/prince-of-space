@@ -714,6 +714,22 @@ public class FormatterShowcase
     @SuppressWarnings({"deprecation", "unchecked", "rawtypes", "unused"})
     public void scenario57AnnotatedMethodWithBuckets() {}
 
+    // Scenario 58: Nested array initializers with line and block comments between elements
+    public static final String[][] SCENARIO58_TABLE = new String[][] {
+            {
+            "showroom-scenario58-r0-c0-extra-long-handle",
+            "showroom-scenario58-r0-c1-extra-long-handle",
+            "showroom-scenario58-r0-c2-extra-long-handle"
+    },
+            {
+            // row comment before first cell keeps row grouping visible when initializer wraps
+    "showroom-scenario58-r1-c0-extra-long-handle",
+            /* intra-row block anchors between cells when commas wrap independently */
+    "showroom-scenario58-r1-c1-extra-long-handle",
+            "showroom-scenario58-r1-c2-extra-long-handle"
+    }
+    };
+
     enum UpdateALItemsConversationExecutionStatusScenario54 {
         SUCCESS;
         String getI18nKeyScenario54() {
