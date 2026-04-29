@@ -47,11 +47,13 @@ These rules define output shape for Java formatting in `modules/core`.
 
 ### Rule 5: WrapStyle must be construct-uniform
 
-`wrapStyle` semantics are uniform across all wrapped constructs (arguments, parameters, type clauses, type parameters, chain segments, binary chains, array initializers, enum constants, and similar lists):
+`wrapStyle` semantics are uniform across all wrapped constructs (arguments, parameters, type clauses, type parameters, chain segments, binary chains, array initializers, and similar lists):
 
 - `wide`: greedily pack items while respecting width. An item that carries a line comment (`//`) forces a line break after it, since the comment claims the rest of the line.
 - `balanced`: either fully inline if it fits, or one item/operator segment per continuation line.
 - `narrow`: always one item/operator segment per continuation line once in wrapped form.
+
+**Enum constant lists (explicit exception):** `enum` constant declarations are never collapsed onto a shared line (`{ A, B, C }` on one line never appears; `wrapStyle` does **not** apply greedy packing across constants). Each constant occupies its own line after the enum’s `{` (comma-separated, then `;` when declarations follow). Empty enums remain `enum E { }` compatible with Rule 9 (no blank lines inside empty blocks beyond what the formatter already coalesces). See **TDR-023**.
 
 ### Rule 6: Wrapped binary/operator chains
 

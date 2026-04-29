@@ -14,7 +14,6 @@ import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import io.princeofspace.model.FormatterConfig;
-import io.princeofspace.model.WrapStyle;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -33,7 +32,6 @@ import static com.github.javaparser.utils.Utils.isNullOrEmpty;
 @SuppressWarnings({"UnrecognisedJavadocTag", "VoidUsed"})
 final class DeclarationFormatter {
     private static final int JAVA8_RELEASE = 8;
-    private static final int ENUM_HEADER_AND_BRACE_WIDTH = 3 + 2; // " { " + " }"/line-end allowance
 
     private final LayoutContext ctx;
     private final FormatterConfig fmt;
@@ -377,8 +375,8 @@ final class DeclarationFormatter {
     }
 
     /**
-     * Prints an {@code enum} declaration, choosing one-line vs multiline layout and wide greedy
-     * packing of constants when configured.
+     * Prints an {@code enum} declaration. Enum constants are never collapsed: the body always uses a
+     * multiline brace block with one constant per line ({@code wrapStyle} does not pack constants).
      */
     void formatEnum(EnumDeclaration n, Void arg) {
         ctx.printOrphanCommentsBeforeThisChildNode(n);
@@ -398,30 +396,12 @@ final class DeclarationFormatter {
             }
         }
         boolean hasMembers = !n.getMembers().isEmpty();
-        boolean hasBodies = n.getEntries().stream().anyMatch(e -> !e.getClassBody().isEmpty());
-        int flatWidth = enumConstantsFlatWidth(n.getEntries());
-        int oneLineEnum = ctx.column() + ENUM_HEADER_AND_BRACE_WIDTH + flatWidth;
-        boolean fitsOneLine =
-                oneLineEnum <= fmt.lineLength()
-                        && !hasBodies
-                        && !hasMembers;
-        if (fitsOneLine && n.getEntries().isNonEmpty()) {
-            ctx.print(" { ");
-            for (Iterator<EnumConstantDeclaration> i = n.getEntries().iterator(); i.hasNext(); ) {
-                ctx.accept(i.next(), arg);
-                if (i.hasNext()) {
-                    ctx.print(", ");
-                }
-            }
-            ctx.print(" }");
-            return;
-        }
         ctx.print(" {");
         ctx.println();
         ctx.indent();
         drainOrphanCommentsBeforeFirstBodyElement(n, n.getMembers(), n.getEntries(), arg);
         if (n.getEntries().isNonEmpty()) {
-            printEnumConstants(n, arg, hasBodies);
+            printEnumConstants(n, arg);
         }
         if (hasMembers) {
             ctx.print(";");
@@ -434,84 +414,16 @@ final class DeclarationFormatter {
         ctx.print("}");
     }
 
-    /** Enum constant list: greedy inline (wide) or one per line. */
-    private void printEnumConstants(EnumDeclaration n, Void arg, boolean hasBodies) {
-        if (fmt.wrapStyle() == WrapStyle.WIDE && !hasBodies) {
-            boolean first = true;
-            boolean prevHadLineComment = false;
-            int budget = fmt.lineLength();
-            for (EnumConstantDeclaration e : n.getEntries()) {
-                int need = enumConstantNameWidth(e) + (first ? 0 : 2);
-                if (!first
-                        && (prevHadLineComment
-                                || ctx.column() + need > budget
-                                || argumentListFormatter.wouldExceedLineLength(need))) {
-                    ctx.print(",");
-                    ctx.println();
-                } else if (!first) {
-                    ctx.print(", ");
-                }
-                ctx.accept(e, arg);
-                prevHadLineComment = commentUtils.hasAnyLineOrBlockComment(e);
-                first = false;
-            }
-            if (fmt.trailingCommas() && !n.getEntries().isEmpty()) {
+    /** Enum constants: always one per line; {@code wrapStyle} does not pack multiple constants onto a line. */
+    private void printEnumConstants(EnumDeclaration n, Void arg) {
+        for (Iterator<EnumConstantDeclaration> i = n.getEntries().iterator(); i.hasNext(); ) {
+            ctx.accept(i.next(), arg);
+            if (i.hasNext()) {
+                ctx.print(",");
+                ctx.println();
+            } else if (fmt.trailingCommas()) {
                 ctx.print(",");
             }
-        } else {
-            for (Iterator<EnumConstantDeclaration> i = n.getEntries().iterator(); i.hasNext(); ) {
-                ctx.accept(i.next(), arg);
-                if (i.hasNext()) {
-                    ctx.print(",");
-                    ctx.println();
-                } else if (fmt.trailingCommas()) {
-                    ctx.print(",");
-                }
-            }
         }
-    }
-
-    /** Sum of constant text widths plus {@code ", "} separators, used for one-line enum layout. */
-    private int enumConstantsFlatWidth(NodeList<EnumConstantDeclaration> entries) {
-        int w = 0;
-        boolean first = true;
-        for (EnumConstantDeclaration e : entries) {
-            if (!first) {
-                w += 2;
-            }
-            first = false;
-            w += e.toString().length();
-        }
-        return w;
-    }
-
-    /**
-     * Width of an enum constant name (plus annotations and arguments if any), excluding any
-     * attached comments.  {@code EnumConstantDeclaration.toString()} includes trailing line comments,
-     * which inflates the width and causes the greedy packer to oscillate when JavaParser re-attributes
-     * comments across passes.
-     */
-    private static int enumConstantNameWidth(EnumConstantDeclaration e) {
-        int w = e.getNameAsString().length();
-        if (!isNullOrEmpty(e.getAnnotations())) {
-            for (AnnotationExpr a : e.getAnnotations()) {
-                w += a.toString().length() + 1;
-            }
-        }
-        if (!isNullOrEmpty(e.getArguments())) {
-            w += 2;
-            boolean first = true;
-            for (var arg : e.getArguments()) {
-                if (!first) {
-                    w += 2;
-                }
-                first = false;
-                w += arg.toString().length();
-            }
-        }
-        if (!e.getClassBody().isEmpty()) {
-            w += " { ... }".length();
-        }
-        return w;
     }
 }

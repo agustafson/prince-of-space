@@ -35,7 +35,7 @@ class EnumConstantWrappingTest {
     }
 
     @Test
-    void enumConstants_wide_greedyPacking() {
+    void enumConstants_wide_oneConstantPerLine_neverCollapsed() {
         Formatter formatter =
                 new Formatter(
                         FormatterConfig.builder()
@@ -45,9 +45,9 @@ class EnumConstantWrappingTest {
 
         String out = formatter.format(INPUT);
 
-        assertThat(out)
-                .contains(
-                        "        OK(200, \"OK\"), CREATED(201, \"Created\"), BAD_REQUEST(400, \"Bad Request\"), UNAUTHORIZED(401, \"Unauthorized\"),\n");
+        assertThat(out).contains("        OK(200, \"OK\"),\n");
+        assertThat(out).contains("        CREATED(201, \"Created\"),\n");
+        assertThat(out).doesNotContain("OK(200, \"OK\"), CREATED");
         assertThat(formatter.format(out)).isEqualTo(out);
     }
 

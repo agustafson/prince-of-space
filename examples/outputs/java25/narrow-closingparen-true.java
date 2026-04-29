@@ -227,7 +227,12 @@ public class FormatterShowcase
     public static final int[] SMALL_ARRAY = {1, 2, 3};
 
     // Scenario 15: Enum declarations
-    enum Priority { LOW, MEDIUM, HIGH, CRITICAL }
+    enum Priority {
+        LOW,
+        MEDIUM,
+        HIGH,
+        CRITICAL
+    }
 
     enum HttpStatus {
         OK(200, "OK"),
@@ -828,7 +833,7 @@ public class FormatterShowcase
             /*
                      * Annotation array element block commentary must stay anchored when lists wrap across lines.
                      */
-    "showroom-scenario57-descriptor-bravo-symbolic-handle",
+            "showroom-scenario57-descriptor-bravo-symbolic-handle",
             "showroom-scenario57-descriptor-charlie-symbolic-handle"
     })
     @SuppressWarnings({"deprecation", "unchecked", "rawtypes", "unused"})

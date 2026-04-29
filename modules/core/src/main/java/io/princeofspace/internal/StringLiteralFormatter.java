@@ -1,12 +1,15 @@
 package io.princeofspace.internal;
 
 import com.github.javaparser.ast.expr.ArrayAccessExpr;
+import com.github.javaparser.ast.expr.ArrayInitializerExpr;
 import com.github.javaparser.ast.expr.BinaryExpr;
 import com.github.javaparser.ast.expr.CharLiteralExpr;
 import com.github.javaparser.ast.expr.EnclosedExpr;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.LambdaExpr;
+import com.github.javaparser.ast.expr.MemberValuePair;
 import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.expr.TextBlockLiteralExpr;
 import com.github.javaparser.utils.StringEscapeUtils;
@@ -93,7 +96,11 @@ final class StringLiteralFormatter {
     // concat chain (parent BinaryExpr+ handles the tree). R1: do not use super — it reprints comments.
     void formatStringLiteral(StringLiteralExpr n, Void arg) {
         ctx.printOrphanCommentsBeforeThisChildNode(n);
+        int anchorColumn = ctx.column();
         ctx.printComment(n.getComment(), arg);
+        if (isLeadingCommentInsideAnnotationArray(n)) {
+            ctx.padToColumn0(anchorColumn);
+        }
         int quotedLen = StringEscapeUtils.escapeJava(n.getValue()).length() + 2;
         int lineLen = fmt.lineLength();
         boolean shouldChunk = !isInsideStringConcatChain(n) && ctx.column() + quotedLen > lineLen;
@@ -106,6 +113,23 @@ final class StringLiteralFormatter {
             ctx.print("\"");
         }
         ctx.printOrphanCommentsEnding(n);
+    }
+
+    private static boolean isLeadingCommentInsideAnnotationArray(StringLiteralExpr n) {
+        if (n.getComment().isEmpty()
+                || n.getComment().get().getRange().isEmpty()
+                || n.getRange().isEmpty()) {
+            return false;
+        }
+        if (n.getComment().get().getRange().get().begin.line >= n.getRange().get().begin.line) {
+            return false;
+        }
+        if (n.getParentNode().isEmpty() || !(n.getParentNode().get() instanceof ArrayInitializerExpr arrayInitializer)) {
+            return false;
+        }
+        return arrayInitializer.getParentNode()
+                .map(parent -> parent instanceof MemberValuePair || parent instanceof SingleMemberAnnotationExpr)
+                .orElse(false);
     }
 
     /**

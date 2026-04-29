@@ -10,8 +10,10 @@ import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.VariableDeclarator;
+import com.github.javaparser.ast.comments.BlockComment;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.github.javaparser.ast.expr.ArrayInitializerExpr;
 import com.github.javaparser.ast.expr.BinaryExpr;
 import com.github.javaparser.ast.expr.ConditionalExpr;
 import com.github.javaparser.ast.expr.EnclosedExpr;
@@ -316,12 +318,50 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 toPrint.add(c);
             }
         }
+        boolean keepContinuationAfterOrphanComment = isAnnotationArrayValueContext(parent);
         for (Comment c : toPrint) {
-            c.accept(this, null);
+            if (keepContinuationAfterOrphanComment && c instanceof BlockComment blockComment) {
+                printNormalizedAnnotationArrayBlockComment(blockComment);
+            } else {
+                c.accept(this, null);
+            }
+            if (keepContinuationAfterOrphanComment) {
+                printCont();
+            }
             if (c.isOrphan()) {
                 c.remove();
             }
         }
+    }
+
+    private static boolean isAnnotationArrayValueContext(Node parent) {
+        if (!(parent instanceof ArrayInitializerExpr)) {
+            return false;
+        }
+        return parent.getParentNode()
+                .map(ancestor -> ancestor instanceof MemberValuePair || ancestor instanceof SingleMemberAnnotationExpr)
+                .orElse(false);
+    }
+
+    private void printNormalizedAnnotationArrayBlockComment(BlockComment blockComment) {
+        String[] lines = blockComment.getContent().split("\\R", -1);
+        printer.print("/*");
+        printer.println();
+        for (int i = 0; i < lines.length; i++) {
+            String normalized = lines[i].stripLeading();
+            if (normalized.isEmpty() && i == lines.length - 1) {
+                continue;
+            }
+            if (normalized.isEmpty()) {
+                printer.print(" *");
+            } else if (normalized.startsWith("*")) {
+                printer.print(" " + normalized);
+            } else {
+                printer.print(" * " + normalized);
+            }
+            printer.println();
+        }
+        printer.print(" */");
     }
 
     @Override

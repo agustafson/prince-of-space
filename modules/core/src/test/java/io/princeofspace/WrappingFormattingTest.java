@@ -855,7 +855,7 @@ class WrappingFormattingTest {
     }
 
     @Test
-    void enumConstants_wide_accountForDeclarationColumnWhenGreedyPacking() {
+    void enumConstants_wide_alwaysOneConstantPerLine_beforeMembers() {
         Formatter f =
                 new Formatter(
                         FormatterConfig.builder()
@@ -876,43 +876,9 @@ class WrappingFormattingTest {
 
         String out = f.format(input);
 
-        assertThat(out)
-                .contains(
-                        "        OK(200, \"OK\"), CREATED(201, \"Created\"), BAD_REQUEST(400, \"Bad Request\"), UNAUTHORIZED(401, \"Unauthorized\"),\n");
-        assertThat(out)
-                .contains(
-                        "        FORBIDDEN(403, \"Forbidden\"), NOT_FOUND(404, \"Not Found\"), INTERNAL_SERVER_ERROR(500, \"Internal Server Error\");\n");
-        assertThat(f.format(out)).isEqualTo(out);
-    }
-
-    @Test
-    void enumConstants_wide_cont8_keepThreeConstantsOnSecondLine() {
-        Formatter f =
-                new Formatter(
-                        FormatterConfig.builder()
-                                .lineLength(120)
-                                .wrapStyle(WrapStyle.WIDE)
-                                .build());
-        String input =
-                """
-                class T {
-                    enum HttpStatus {
-                        OK(200, "OK"), CREATED(201, "Created"), BAD_REQUEST(400, "Bad Request"), UNAUTHORIZED(401, "Unauthorized"), FORBIDDEN(403, "Forbidden"), NOT_FOUND(404, "Not Found"), INTERNAL_SERVER_ERROR(500, "Internal Server Error");
-                        private final int code;
-                        private final String message;
-                        HttpStatus(int code, String message) { this.code = code; this.message = message; }
-                    }
-                }
-                """;
-
-        String out = f.format(input);
-
-        assertThat(out)
-                .contains(
-                        "        OK(200, \"OK\"), CREATED(201, \"Created\"), BAD_REQUEST(400, \"Bad Request\"), UNAUTHORIZED(401, \"Unauthorized\"),\n");
-        assertThat(out)
-                .contains(
-                        "        FORBIDDEN(403, \"Forbidden\"), NOT_FOUND(404, \"Not Found\"), INTERNAL_SERVER_ERROR(500, \"Internal Server Error\");\n");
+        assertThat(out).contains("        OK(200, \"OK\"),\n");
+        assertThat(out).contains("        FORBIDDEN(403, \"Forbidden\"),\n");
+        assertThat(out).doesNotContain("OK(200, \"OK\"), CREATED");
         assertThat(f.format(out)).isEqualTo(out);
     }
 

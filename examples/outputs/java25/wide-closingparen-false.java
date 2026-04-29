@@ -195,11 +195,21 @@ public class FormatterShowcase
     public static final int[] SMALL_ARRAY = {1, 2, 3};
 
     // Scenario 15: Enum declarations
-    enum Priority { LOW, MEDIUM, HIGH, CRITICAL }
+    enum Priority {
+        LOW,
+        MEDIUM,
+        HIGH,
+        CRITICAL
+    }
 
     enum HttpStatus {
-        OK(200, "OK"), CREATED(201, "Created"), BAD_REQUEST(400, "Bad Request"), UNAUTHORIZED(401, "Unauthorized"),
-        FORBIDDEN(403, "Forbidden"), NOT_FOUND(404, "Not Found"), INTERNAL_SERVER_ERROR(500, "Internal Server Error");
+        OK(200, "OK"),
+        CREATED(201, "Created"),
+        BAD_REQUEST(400, "Bad Request"),
+        UNAUTHORIZED(401, "Unauthorized"),
+        FORBIDDEN(403, "Forbidden"),
+        NOT_FOUND(404, "Not Found"),
+        INTERNAL_SERVER_ERROR(500, "Internal Server Error");
         private final int code;
         private final String message;
 
@@ -720,7 +730,8 @@ public class FormatterShowcase
             /*
                      * Annotation array element block commentary must stay anchored when lists wrap across lines.
                      */
-    "showroom-scenario57-descriptor-bravo-symbolic-handle", "showroom-scenario57-descriptor-charlie-symbolic-handle"})
+            "showroom-scenario57-descriptor-bravo-symbolic-handle",
+            "showroom-scenario57-descriptor-charlie-symbolic-handle"})
     @SuppressWarnings({"deprecation", "unchecked", "rawtypes", "unused"})
     public void scenario57AnnotatedMethodWithBuckets() {}
 
@@ -736,7 +747,8 @@ public class FormatterShowcase
     enum Scenario59PipelineStage implements Runnable, java.util.function.Supplier<String>, java.util.function.Predicate<
             Scenario59PipelineStage>, java.util.function.Consumer<Object>, java.util.concurrent.Callable<
             Scenario59PipelineStage>, java.util.Comparator<Scenario59PipelineStage> {
-        ALPHA, BRAVA;
+        ALPHA,
+        BRAVA;
         @Override
         public void run() {}
 

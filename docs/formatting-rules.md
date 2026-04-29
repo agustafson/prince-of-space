@@ -80,7 +80,7 @@ When wrapping is triggered, how do we distribute elements across lines?
 
 The `balanced` strategy (Prettier's approach) avoids the messy middle ground where some args are on one line and others on the next. Either it all fits, or each gets its own line.
 
-**Uniform “list-like” shape:** the same `wrapStyle` semantics apply everywhere the formatter breaks a delimited list (method/constructor arguments, `implements` / `extends` / `permits` lists, `enum` constants, array initializers, `for` loop headers, `try`-with-resources, multi-`case` labels, generic type parameters/arguments, and so on). In short: **`wide`** greedily packs elements until a line is full, then continues; **`balanced`** and **`narrow`** use the fit-or-tall pattern—if the whole list does not fit on the remainder of the line, each element is placed on its own continuation line (with `narrow` sometimes using deeper continuation indent where the engine already does so for other constructs).
+**Uniform “list-like” shape:** the same `wrapStyle` semantics apply everywhere the formatter breaks a delimited list (method/constructor arguments, `implements` / `extends` / `permits` lists, array initializers, `for` loop headers, `try`-with-resources, multi-`case` labels, generic type parameters/arguments, and so on)—**except [enum constants](#enum-constants)**, which are always one-per-line regardless of wrap style.** In short for those lists: **`wide`** greedily packs elements until a line is full, then continues; **`balanced`** and **`narrow`** use the fit-or-tall pattern—if the whole list does not fit on the remainder of the line, each element is placed on its own continuation line (with `narrow` sometimes using deeper continuation indent where the engine already does so for other constructs).
 
 ---
 
@@ -459,11 +459,15 @@ String[] names = {
 
 ### Enum Constants
 
-```java
-// Simple enum with few constants - one line
-enum Color { RED, GREEN, BLUE }
+Enum constants are **always** formatted one per line (the formatter never emits `{ RED, GREEN, BLUE }` on a single header line), regardless of `lineLength`, `wrapStyle`, or constant count:
 
-// Many constants or long names - one per line
+```java
+enum Color {
+    RED,
+    GREEN,
+    BLUE
+}
+
 enum Status {
     ACTIVE,
     INACTIVE,
@@ -471,7 +475,7 @@ enum Status {
     DELETED
 }
 
-// Enum with bodies - always one per line
+// Enum constants with constructors or anonymous bodies still one constant per line
 enum Planet {
     EARTH(5.976e+24, 6.37814e6),
     MARS(6.421e+23, 3.3972e6);
