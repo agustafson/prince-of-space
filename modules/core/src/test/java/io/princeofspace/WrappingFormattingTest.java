@@ -265,6 +265,26 @@ class WrappingFormattingTest {
     }
 
     @Test
+    void enumImplementsClause_balanced_wrapsEachInterfaceWhenLong() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(110)
+                                .wrapStyle(WrapStyle.BALANCED)
+                                .build());
+        String input =
+                "enum Scenario59PipelineStage implements Runnable, java.util.function.Supplier<String>, java.util.function.Predicate<Scenario59PipelineStage>, java.util.function.Consumer<Object>, java.util.concurrent.Callable<Scenario59PipelineStage>, java.util.Comparator<Scenario59PipelineStage> { ALPHA, BRAVA; }";
+
+        String out = f.format(input);
+
+        assertThat(out).contains("implements Runnable,\n");
+        assertThat(out).contains("java.util.function.Supplier<String>,\n");
+        assertThat(out).contains("java.util.function.Predicate<Scenario59PipelineStage>,\n");
+        assertThat(out).doesNotContain("Runnable, java.util.function.Supplier<String>");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
     void extendsClause_balanced_wrapsEachInterface() {
         Formatter f =
                 new Formatter(

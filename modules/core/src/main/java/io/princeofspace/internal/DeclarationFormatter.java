@@ -386,14 +386,7 @@ final class DeclarationFormatter {
         ctx.print("enum ");
         ctx.accept(n.getName(), arg);
         if (!n.getImplementedTypes().isEmpty()) {
-            ctx.print(" implements ");
-            for (Iterator<ClassOrInterfaceType> i = n.getImplementedTypes().iterator(); i.hasNext(); ) {
-                ClassOrInterfaceType c = i.next();
-                ctx.accept(c, arg);
-                if (i.hasNext()) {
-                    ctx.print(", ");
-                }
-            }
+            typeClauseFormatter.printImplementsClause(n.getImplementedTypes(), arg);
         }
         boolean hasMembers = !n.getMembers().isEmpty();
         ctx.print(" {");
