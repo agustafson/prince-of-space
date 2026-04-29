@@ -699,6 +699,37 @@ public class FormatterShowcase
         }
     }
 
+    // Scenario 65: Classic switch statements (switch expressions live on Java 17+ trees only)
+    public String scenario65ClassicEnumSwitch(Priority scenario65Priority) {
+        switch (scenario65Priority) {
+            case LOW:
+                return "low-showroom-scenario65-classic-enum-extra-long-symbolic-handle";
+            case MEDIUM:
+                return "medium-showroom-scenario65-classic-enum-extra-long-symbolic-handle";
+            case HIGH:
+                return "high-showroom-scenario65-classic-enum-extra-long-symbolic-handle";
+            case CRITICAL:
+                return "critical-showroom-scenario65-classic-enum-extra-long-symbolic-handle";
+            default:
+                throw new IllegalStateException("showroom-scenario65-enum-default-extra-long-symbolic-handle");
+        }
+    }
+
+    public int scenario65ClassicIntSwitch(int scenario65StatusCode) {
+        switch (scenario65StatusCode) {
+            case 100:
+                return 1;
+            case 200:
+                return 2;
+            case 404:
+                return 4;
+            case 503:
+                return 5;
+            default:
+                return 0;
+        }
+    }
+
     enum UpdateALItemsConversationExecutionStatusScenario54 {
         SUCCESS;
         String getI18nKeyScenario54() {
