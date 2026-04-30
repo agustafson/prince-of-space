@@ -388,11 +388,17 @@ final class DeclarationFormatter {
         ctx.printModifiers(n.getModifiers());
         ctx.print("enum ");
         ctx.accept(n.getName(), arg);
+        boolean typeClauseWrapped = false;
         if (!n.getImplementedTypes().isEmpty()) {
-            typeClauseFormatter.printImplementsClause(n.getImplementedTypes(), arg);
+            typeClauseWrapped = typeClauseFormatter.printImplementsClause(n.getImplementedTypes(), arg);
         }
         boolean hasMembers = !n.getMembers().isEmpty();
-        ctx.print(" {");
+        if (typeClauseWrapped && fmt.closingParenOnNewLine()) {
+            ctx.println();
+            ctx.print("{");
+        } else {
+            ctx.print(" {");
+        }
         ctx.println();
         ctx.indent();
         drainOrphanCommentsBeforeFirstBodyElement(n, n.getMembers(), n.getEntries(), arg);

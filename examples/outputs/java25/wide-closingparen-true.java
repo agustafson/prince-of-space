@@ -766,7 +766,8 @@ public class FormatterShowcase
     enum Scenario59PipelineStage
             implements Runnable, java.util.function.Supplier<String>,
             java.util.function.Predicate<Scenario59PipelineStage>, java.util.function.Consumer<Object>,
-            java.util.concurrent.Callable<Scenario59PipelineStage>, java.util.Comparator<Scenario59PipelineStage> {
+            java.util.concurrent.Callable<Scenario59PipelineStage>, java.util.Comparator<Scenario59PipelineStage>
+    {
         ALPHA,
         BRAVA;
         @Override
