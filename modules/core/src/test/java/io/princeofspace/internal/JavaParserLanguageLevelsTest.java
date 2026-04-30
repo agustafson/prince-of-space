@@ -10,10 +10,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class JavaParserLanguageLevelsTest {
 
     @Test
-    void fromRelease_mapsLegacyAndModern() {
-        assertThat(JavaParserLanguageLevels.fromRelease(1)).isEqualTo(LanguageLevel.JAVA_1_0);
+    void fromRelease_mapsModernReleases() {
         assertThat(JavaParserLanguageLevels.fromRelease(8)).isEqualTo(LanguageLevel.JAVA_8);
+        assertThat(JavaParserLanguageLevels.fromRelease(17)).isEqualTo(LanguageLevel.JAVA_17);
         assertThat(JavaParserLanguageLevels.fromRelease(25)).isEqualTo(LanguageLevel.JAVA_25);
+    }
+
+    @Test
+    void fromRelease_belowMinimumThrows() {
+        assertThatThrownBy(() -> JavaParserLanguageLevels.fromRelease(7))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("minimum supported release is 8");
     }
 
     @Test
@@ -30,12 +37,6 @@ class JavaParserLanguageLevelsTest {
         assertThat(JavaParserLanguageLevels.toLanguageLevel(JavaLanguageLevel.of(17))).isEqualTo(LanguageLevel.JAVA_17);
         assertThat(JavaParserLanguageLevels.toLanguageLevel(JavaLanguageLevel.of(21))).isEqualTo(LanguageLevel.JAVA_21);
         assertThat(JavaParserLanguageLevels.toLanguageLevel(JavaLanguageLevel.of(25))).isEqualTo(LanguageLevel.JAVA_25);
-    }
-
-    @Test
-    void toLanguageLevel_legacyReleases() {
-        assertThat(JavaParserLanguageLevels.toLanguageLevel(JavaLanguageLevel.of(1))).isEqualTo(LanguageLevel.JAVA_1_0);
-        assertThat(JavaParserLanguageLevels.toLanguageLevel(JavaLanguageLevel.of(7))).isEqualTo(LanguageLevel.JAVA_7);
     }
 
     @Test

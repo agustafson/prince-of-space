@@ -39,7 +39,7 @@ import static java.util.Objects.requireNonNull;
 public final class PrinceOfSpaceConfigurable implements Configurable {
 
     public static final int JAVA_LEVEL_DEFAULT = 17;
-    public static final int JAVA_LEVEL_MIN = 1;
+    public static final int JAVA_LEVEL_MIN = 8;
     private final PrinceOfSpaceProjectSettings settings;
     private final PrinceOfSpaceGlobalSettings globalSettings;
 

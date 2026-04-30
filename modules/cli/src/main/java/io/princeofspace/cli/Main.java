@@ -60,7 +60,7 @@ public final class Main implements Callable<Integer> {
     @CommandLine.Option(
             names = "--java-version",
             description =
-                    "Java language level for parsing (1–7 legacy, 8+ maps to JavaParser LanguageLevel.JAVA_N; "
+                    "Java language level for parsing (8+ maps to JavaParser LanguageLevel.JAVA_N; "
                             + "newer releases work when the bundled JavaParser defines the enum constant)",
             defaultValue = "17")
     private int javaVersion;

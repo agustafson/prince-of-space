@@ -110,11 +110,11 @@ public final class FormattingEngine {
 
     /**
      * Throws if the bundled JavaParser has no {@code LanguageLevel} for the given raw feature
-     * release number (legacy 1–7 or modern 8+). Intended for tooling (for example IDE settings
-     * validation) so callers do not depend on JavaParser types.
+     * release number (8+). Intended for tooling (for example IDE settings validation) so callers
+     * do not depend on JavaParser types.
      *
      * @param release Java feature-release number as in {@link io.princeofspace.model.JavaLanguageLevel#level()}
-     * @throws IllegalArgumentException if unsupported
+     * @throws IllegalArgumentException if unsupported (release {@code < 8} or unknown to bundled JavaParser)
      */
     public static void validateJavaReleaseForParser(int release) {
         JavaParserLanguageLevels.fromRelease(release);

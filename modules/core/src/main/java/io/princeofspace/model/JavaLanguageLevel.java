@@ -14,16 +14,17 @@ import java.io.Serializable;
  * {@link io.princeofspace.internal.FormattingEngine}; unsupported combinations fail with
  * {@link IllegalArgumentException}.
  *
- * @param level   Java feature-release number (e.g. {@code 17} for Java 17, {@code 1}–{@code 7} for legacy)
+ * @param level   Java feature-release number (e.g. {@code 17} for Java 17). Minimum supported release is {@code 8}.
  * @param preview whether to enable JavaParser's preview-language-feature parsing
  */
 public record JavaLanguageLevel(int level, boolean preview) implements Serializable {
-    private static final int MIN_SUPPORTED_LEVEL = 1;
+    /** Minimum Java feature-release number this formatter supports. */
+    public static final int MIN_SUPPORTED_LEVEL = 8;
 
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /** Validates that {@code level} is a positive integer. */
+    /** Validates that {@code level} is at least {@link #MIN_SUPPORTED_LEVEL}. */
     public JavaLanguageLevel {
         if (level < MIN_SUPPORTED_LEVEL) {
             throw new IllegalArgumentException("level must be >= " + MIN_SUPPORTED_LEVEL + ", got: " + level);

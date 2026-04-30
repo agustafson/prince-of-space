@@ -22,12 +22,6 @@ class JavaParserLanguageLevelsPropertyTest {
                 .isEqualTo(JavaParserLanguageLevels.fromRelease(release));
     }
 
-    @Property
-    void legacyPreviewFlag_doesNotChangeLegacyMapping(@ForAll("legacyReleases") int release) {
-        assertThat(JavaParserLanguageLevels.toLanguageLevel(JavaLanguageLevel.of(release, true)))
-                .isEqualTo(JavaParserLanguageLevels.fromRelease(release));
-    }
-
     @Provide
     Arbitrary<Integer> supportedReleases() {
         Set<Integer> releases = new LinkedHashSet<>();
@@ -36,20 +30,13 @@ class JavaParserLanguageLevelsPropertyTest {
             if (name.endsWith("_PREVIEW")) {
                 continue;
             }
-            if (name.matches("JAVA_1_[0-7]")) {
-                int minor = Integer.parseInt(name.substring("JAVA_1_".length()));
-                releases.add(minor + 1);
-                continue;
-            }
             if (name.matches("JAVA_[0-9]+")) {
-                releases.add(Integer.parseInt(name.substring("JAVA_".length())));
+                int n = Integer.parseInt(name.substring("JAVA_".length()));
+                if (n >= JavaParserLanguageLevels.MIN_SUPPORTED_RELEASE) {
+                    releases.add(n);
+                }
             }
         }
         return Arbitraries.of(releases);
-    }
-
-    @Provide
-    Arbitrary<Integer> legacyReleases() {
-        return Arbitraries.integers().between(1, 7);
     }
 }
