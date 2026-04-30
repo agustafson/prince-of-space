@@ -12,7 +12,6 @@ import com.github.javaparser.ast.body.RecordDeclaration;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
-import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import io.princeofspace.model.FormatterConfig;
 import org.jspecify.annotations.Nullable;
 
@@ -287,21 +286,25 @@ final class DeclarationFormatter {
             ctx.println();
         }
         ctx.print(")");
+        boolean typeClauseWrapped = false;
         if (!n.getImplementedTypes().isEmpty()) {
-            ctx.print(" implements ");
-            for (Iterator<ClassOrInterfaceType> i = n.getImplementedTypes().iterator(); i.hasNext(); ) {
-                ClassOrInterfaceType c = i.next();
-                ctx.accept(c, arg);
-                if (i.hasNext()) {
-                    ctx.print(", ");
-                }
-            }
+            typeClauseWrapped = typeClauseFormatter.printImplementsClause(n.getImplementedTypes(), arg);
         }
         if (isNullOrEmpty(n.getMembers())) {
-            ctx.print(" {}");
+            if (typeClauseWrapped && fmt.closingParenOnNewLine()) {
+                ctx.println();
+                ctx.print("{}");
+            } else {
+                ctx.print(" {}");
+            }
             return;
         }
-        ctx.print(" {");
+        if (typeClauseWrapped && fmt.closingParenOnNewLine()) {
+            ctx.println();
+            ctx.print("{");
+        } else {
+            ctx.print(" {");
+        }
         ctx.println();
         ctx.indent();
         drainOrphanCommentsBeforeFirstBodyElement(n, n.getMembers(), arg);

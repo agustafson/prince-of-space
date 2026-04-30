@@ -865,7 +865,12 @@ public class FormatterShowcase
     record Scenario59ShipmentLedger(
             java.util.Optional<String> ledgerKeyPlaceholderExtraLongSymbolicHandle,
             java.time.Instant capturedAtSymbolicInstantHandlePlaceholderExtraTail
-    ) implements Comparable<Scenario59ShipmentLedger>, java.io.Serializable, java.util.function.Supplier<String>, Runnable {
+    )
+            implements Comparable<Scenario59ShipmentLedger>,
+            java.io.Serializable,
+            java.util.function.Supplier<String>,
+            Runnable
+    {
         @Override
         public int compareTo(Scenario59ShipmentLedger peer) {
             return ledgerKeyPlaceholderExtraLongSymbolicHandle
