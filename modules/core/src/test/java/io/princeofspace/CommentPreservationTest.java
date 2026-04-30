@@ -124,4 +124,28 @@ class CommentPreservationTest {
         assertThat(out).contains("String s()");
         assertThat(DEFAULT.format(out)).isEqualTo(out);
     }
+
+    @Test
+    void leadingBlockCommentInArrayInitializer_preservesInternalBlankLines() {
+        String input =
+                """
+                class T {
+                    static final String[] ITEMS = {
+                        /*
+                         * first paragraph
+                         *
+                         * second paragraph
+                         */
+                        "alpha",
+                        "beta"
+                    };
+                }
+                """;
+        String out = DEFAULT.format(input);
+        assertThat(out).contains("first paragraph");
+        assertThat(out).contains("second paragraph");
+        // Internal blank line in the leading block comment must survive as a bare ` *` separator line.
+        assertThat(out).containsPattern("\\* first paragraph\\R\\s*\\*\\R\\s*\\* second paragraph");
+        assertThat(DEFAULT.format(out)).isEqualTo(out);
+    }
 }
