@@ -179,6 +179,51 @@ class FormatterTest {
     }
 
     @Test
+    void switchExpression_colonStyleWithYield_preservesStatements() {
+        Formatter f = new Formatter(
+                FormatterConfig.builder().javaLanguageLevel(JavaLanguageLevel.of(21)).build());
+        String input = """
+                class T {
+                    int m(int x) {
+                        return switch (x) {
+                            case 1: yield 100;
+                            case 2: yield 200;
+                            default: yield 0;
+                        };
+                    }
+                }
+                """;
+
+        String output = f.format(input);
+
+        assertThat(output).contains("yield 100;");
+        assertThat(output).contains("yield 200;");
+        assertThat(output).contains("yield 0;");
+        assertThat(f.format(output)).isEqualTo(output);
+    }
+
+    @Test
+    void switchExpression_caseNullDefault_preservesTailLabel() {
+        Formatter f = new Formatter(
+                FormatterConfig.builder().javaLanguageLevel(JavaLanguageLevel.of(21)).build());
+        String input = """
+                class T {
+                    String m(String s) {
+                        return switch (s) {
+                            case null, default -> "fallback";
+                            case "a" -> "alpha";
+                        };
+                    }
+                }
+                """;
+
+        String output = f.format(input);
+
+        assertThat(output).contains("case null, default -> \"fallback\";");
+        assertThat(f.format(output)).isEqualTo(output);
+    }
+
+    @Test
     void textBlock_preservesContentIndent_andFormattedStaysOnClosingDelimiterLine() {
         Formatter f =
                 new Formatter(

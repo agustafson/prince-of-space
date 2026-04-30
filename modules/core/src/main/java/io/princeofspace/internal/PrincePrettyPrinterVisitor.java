@@ -1127,7 +1127,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         stringLiteralFormatter.formatStringLiteral(n, arg);
     }
 
-    // Switch expressions: one path uses printSwitchEntry (arrow-style); R4/R5 in ArgumentListFormatter for labels.
+    // Switch expressions: route entries through the shared printSwitchEntry helper.
     @Override
     public void visit(SwitchExpr n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
@@ -1137,10 +1137,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printer.println(") {");
         printer.indent();
         for (SwitchEntry entry : n.getEntries()) {
-            printer.println();
             printSwitchEntry(entry, arg);
         }
-        printer.println();
         printer.unindent();
         printer.print("}");
         printOrphanCommentsEnding(n);
@@ -1164,32 +1162,13 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printOrphanCommentsEnding(n);
     }
 
-    // Classic switch entry (colon) vs arrow — JavaParser encodes both; R5 for case label lists.
+    // Both switch statements (colon-style by tradition, arrow-style since 14) and switch
+    // expressions (typically arrow-style; colon-style with `yield` is JLS-legal) route through
+    // the same printSwitchEntry helper so STATEMENT_GROUP statements are emitted and
+    // `case A, default ->` tail labels are rendered uniformly.
     @Override
     public void visit(SwitchEntry n, Void arg) {
-        printOrphanCommentsBeforeThisChildNode(n);
-        printComment(n.getComment(), arg);
-        String separator = n.getType() == SwitchEntry.Type.STATEMENT_GROUP ? ":" : " ->";
-        if (isNullOrEmpty(n.getLabels())) {
-            printer.print("default" + separator);
-        } else {
-            printer.print("case ");
-            argumentListFormatter.printCommaSeparatedExprs(n.getLabels(), arg);
-            if (n.getLabels().isNonEmpty() && n.isDefault()) {
-                printer.print(", default");
-            }
-            n.getGuard().ifPresent(guard -> printSwitchWhenGuard(guard, arg));
-            printer.print(separator);
-        }
-        printer.println();
-        printer.indent();
-        if (n.getStatements() != null) {
-            for (Statement s : n.getStatements()) {
-                s.accept(this, arg);
-                printer.println();
-            }
-        }
-        printer.unindent();
+        printSwitchEntry(n, arg);
     }
 
     // R4: ' when ' on same line if it fits; else R3 continuation with 'when' at margin.
@@ -1206,41 +1185,49 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
     }
 
+    /**
+     * Prints one {@link SwitchEntry} including a trailing newline, regardless of body shape.
+     * STATEMENT_GROUP (colon-style) bodies are always multi-line; arrow-style bodies inline a
+     * single statement when there is no leading comment, otherwise multi-line. Callers must NOT
+     * print extra newlines around the call.
+     */
     private void printSwitchEntry(SwitchEntry entry, Void arg) {
         printOrphanCommentsBeforeThisChildNode(entry);
         printComment(entry.getComment(), arg);
-        if (entry.getLabels().isEmpty()) {
+        boolean colonStyle = entry.getType() == SwitchEntry.Type.STATEMENT_GROUP;
+        NodeList<Expression> labels = entry.getLabels();
+        if (isNullOrEmpty(labels)) {
             printer.print("default");
         } else {
             printer.print("case ");
-            NodeList<Expression> labels = entry.getLabels();
-            // R4 + R5: same ArgumentListFormatter path as call arguments and type args.
             argumentListFormatter.printCommaSeparatedExprs(labels, arg);
+            if (entry.isDefault()) {
+                printer.print(", default");
+            }
         }
         entry.getGuard().ifPresent(guard -> printSwitchWhenGuard(guard, arg));
-        if (entry.getType() == SwitchEntry.Type.STATEMENT_GROUP) {
-            printer.print(":");
-            return;
-        }
-        printer.print(" ->");
+        printer.print(colonStyle ? ":" : " ->");
         NodeList<Statement> stmts = entry.getStatements();
-        if (stmts.isEmpty()) {
+        if (stmts == null || stmts.isEmpty()) {
+            printer.println();
             return;
         }
-        boolean multilineBody =
-                stmts.size() > 1 || commentUtils.hasLeadingLineOrBlockComment(stmts.get(0));
-        if (multilineBody) {
-            printer.println();
-            printer.indent();
-            for (Statement s : stmts) {
-                s.accept(this, arg);
-                printer.println();
-            }
-            printer.unindent();
-        } else {
+        boolean inlineArrow = !colonStyle
+                && stmts.size() == SINGLE_ITEM_COUNT
+                && !commentUtils.hasLeadingLineOrBlockComment(stmts.get(0));
+        if (inlineArrow) {
             printer.print(" ");
             stmts.get(0).accept(this, arg);
+            printer.println();
+            return;
         }
+        printer.println();
+        printer.indent();
+        for (Statement s : stmts) {
+            s.accept(this, arg);
+            printer.println();
+        }
+        printer.unindent();
     }
 
 }
