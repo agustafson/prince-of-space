@@ -418,6 +418,17 @@ class FormatterTest {
     }
 
     @Test
+    void enum_emptyBody_collapsesToSingleLine() {
+        String input = """
+                enum E {}
+                """;
+        String out = DEFAULT.format(input);
+        assertThat(out).contains("enum E {}");
+        assertThat(out).doesNotContain("enum E {\n}");
+        assertThat(DEFAULT.format(out)).isEqualTo(out);
+    }
+
+    @Test
     void enum_trailingCommas_addsCommaAfterLastConstantWhenMultiline() {
         Formatter f =
                 new Formatter(

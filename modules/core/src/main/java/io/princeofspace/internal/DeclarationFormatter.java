@@ -393,6 +393,16 @@ final class DeclarationFormatter {
             typeClauseWrapped = typeClauseFormatter.printImplementsClause(n.getImplementedTypes(), arg);
         }
         boolean hasMembers = !n.getMembers().isEmpty();
+        boolean hasEntries = n.getEntries().isNonEmpty();
+        if (!hasMembers && !hasEntries && n.getOrphanComments().isEmpty()) {
+            if (typeClauseWrapped && fmt.closingParenOnNewLine()) {
+                ctx.println();
+                ctx.print("{}");
+            } else {
+                ctx.print(" {}");
+            }
+            return;
+        }
         if (typeClauseWrapped && fmt.closingParenOnNewLine()) {
             ctx.println();
             ctx.print("{");
@@ -402,14 +412,14 @@ final class DeclarationFormatter {
         ctx.println();
         ctx.indent();
         drainOrphanCommentsBeforeFirstBodyElement(n, n.getMembers(), n.getEntries(), arg);
-        if (n.getEntries().isNonEmpty()) {
+        if (hasEntries) {
             printEnumConstants(n, arg);
         }
         if (hasMembers) {
             ctx.print(";");
             ctx.println();
             ctx.printMembers(n.getMembers(), arg);
-        } else if (n.getEntries().isNonEmpty()) {
+        } else if (hasEntries) {
             ctx.println();
         }
         ctx.unindent();
