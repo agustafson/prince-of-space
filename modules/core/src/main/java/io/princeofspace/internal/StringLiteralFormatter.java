@@ -131,42 +131,7 @@ final class StringLiteralFormatter {
     }
 
     private void printNormalizedLeadingBlockComment(BlockComment blockComment, int anchorColumn) {
-        String[] lines = blockComment.getContent().split("\\R", -1);
-        ctx.print("/*");
-        ctx.println();
-        boolean printedContentLine = false;
-        boolean pendingBlank = false;
-        for (String line : lines) {
-            String trimmed = line.stripLeading();
-            if (trimmed.isEmpty()) {
-                if (printedContentLine) {
-                    pendingBlank = true;
-                }
-                continue;
-            }
-            if (pendingBlank) {
-                ctx.padToColumn0(anchorColumn);
-                ctx.print(" *");
-                ctx.println();
-                pendingBlank = false;
-            }
-            ctx.padToColumn0(anchorColumn);
-            if (trimmed.startsWith("*")) {
-                ctx.print(" " + trimmed);
-            } else {
-                ctx.print(" * " + trimmed);
-            }
-            ctx.println();
-            printedContentLine = true;
-        }
-        if (!printedContentLine) {
-            ctx.padToColumn0(anchorColumn);
-            ctx.print(" *");
-            ctx.println();
-        }
-        ctx.padToColumn0(anchorColumn);
-        ctx.print(" */");
-        ctx.println();
+        ctx.printNormalizedBlockComment(blockComment, anchorColumn);
     }
 
     /**

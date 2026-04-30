@@ -126,6 +126,42 @@ class CommentPreservationTest {
     }
 
     @Test
+    void blockCommentBetweenArrayInitializerElements_forcesMultilineAndPreservesComment() {
+        String input =
+                """
+                class T {
+                    static final String[] X = {"alpha", /* sep */ "beta", "gamma"};
+                }
+                """;
+        String out = DEFAULT.format(input);
+        // Inline {a, /* c */ b} cannot survive: default block-comment visitor adds a trailing
+        // newline. Forcing multi-line keeps the comment as a normalized leading comment on "beta".
+        assertThat(out).contains("sep");
+        assertThat(out).contains("\"alpha\",\n");
+        assertThat(out).contains("\"beta\",\n");
+        assertThat(out).contains("\"gamma\"\n");
+        assertThat(DEFAULT.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void lineCommentBetweenArrayInitializerElements_preservedOnNewLine() {
+        String input =
+                """
+                class T {
+                    static final String[] X = {
+                        "alpha",
+                        // separator
+                        "beta",
+                        "gamma"
+                    };
+                }
+                """;
+        String out = DEFAULT.format(input);
+        assertThat(out).contains("// separator");
+        assertThat(DEFAULT.format(out)).isEqualTo(out);
+    }
+
+    @Test
     void leadingBlockCommentInArrayInitializer_preservesInternalBlankLines() {
         String input =
                 """

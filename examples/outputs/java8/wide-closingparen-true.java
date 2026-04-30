@@ -566,12 +566,14 @@ public class FormatterShowcase
     }
 
     // Scenario 57: Annotation declarations, nested members, arrays, mixed comments inside array literals
-    @Scenario57Shelf(descriptors = {"showroom-scenario57-descriptor-alpha-symbolic-handle",
+    @Scenario57Shelf(descriptors = {
+            "showroom-scenario57-descriptor-alpha-symbolic-handle",
             /*
              * Annotation array element block commentary must stay anchored when lists wrap across lines.
              */
             "showroom-scenario57-descriptor-bravo-symbolic-handle",
-            "showroom-scenario57-descriptor-charlie-symbolic-handle"})
+            "showroom-scenario57-descriptor-charlie-symbolic-handle"
+    })
     @SuppressWarnings({"deprecation", "unchecked", "rawtypes", "unused"})
     public void scenario57AnnotatedMethodWithBuckets() {
     }
@@ -579,12 +581,15 @@ public class FormatterShowcase
     // Scenario 58: Nested array initializers with line and block comments between elements
     public static final String[][] SCENARIO58_TABLE = new String[][] {{"showroom-scenario58-r0-c0-extra-long-handle",
             "showroom-scenario58-r0-c1-extra-long-handle", "showroom-scenario58-r0-c2-extra-long-handle"},
-            {// row comment before first cell keeps row grouping visible when initializer wraps
-             "showroom-scenario58-r1-c0-extra-long-handle",
-            /*
-             * intra-row block anchors between cells when commas wrap independently 
-             */
-            "showroom-scenario58-r1-c1-extra-long-handle", "showroom-scenario58-r1-c2-extra-long-handle"}};
+            {
+                    // row comment before first cell keeps row grouping visible when initializer wraps
+                    "showroom-scenario58-r1-c0-extra-long-handle",
+                    /*
+                     * intra-row block anchors between cells when commas wrap independently 
+                     */
+                    "showroom-scenario58-r1-c1-extra-long-handle",
+                    "showroom-scenario58-r1-c2-extra-long-handle"
+            }};
 
     // Scenario 59: Enum with long implements list (additional Java 17+ record echoes implements clause in sibling trees)
     enum Scenario59PipelineStage

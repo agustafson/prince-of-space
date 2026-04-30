@@ -3,6 +3,7 @@ package io.princeofspace.internal;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.BodyDeclaration;
+import com.github.javaparser.ast.comments.BlockComment;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.Expression;
@@ -183,6 +184,50 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
     /** Emits orphan comments that appear before a given child node. */
     void printOrphanCommentsBeforeThisChildNode(Node node) {
         visitor.printOrphanCommentsBeforeThisChildNode(node);
+    }
+
+    /**
+     * Emits a block comment as multi-line, re-indented at {@code anchorColumn}, with internal blank
+     * separator lines preserved as bare ` *` lines. Trailing blank lines are discarded. Always ends
+     * with a newline.
+     */
+    void printNormalizedBlockComment(BlockComment blockComment, int anchorColumn) {
+        String[] lines = blockComment.getContent().split("\\R", -1);
+        print("/*");
+        println();
+        boolean printedContentLine = false;
+        boolean pendingBlank = false;
+        for (String line : lines) {
+            String trimmed = line.stripLeading();
+            if (trimmed.isEmpty()) {
+                if (printedContentLine) {
+                    pendingBlank = true;
+                }
+                continue;
+            }
+            if (pendingBlank) {
+                padToColumn0(anchorColumn);
+                print(" *");
+                println();
+                pendingBlank = false;
+            }
+            padToColumn0(anchorColumn);
+            if (trimmed.startsWith("*")) {
+                print(" " + trimmed);
+            } else {
+                print(" * " + trimmed);
+            }
+            println();
+            printedContentLine = true;
+        }
+        if (!printedContentLine) {
+            padToColumn0(anchorColumn);
+            print(" *");
+            println();
+        }
+        padToColumn0(anchorColumn);
+        print(" */");
+        println();
     }
 
     // ── inherited declaration helpers ─────────────────────────────────────────

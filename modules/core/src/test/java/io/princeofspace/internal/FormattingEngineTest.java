@@ -59,6 +59,20 @@ class FormattingEngineTest {
     }
 
     @Test
+    void arrayInitializerWithInteriorBlockComment_convergesToTallLayout() {
+        FormattingEngine eng = new FormattingEngine(FormatterConfig.defaults());
+        String src =
+                "class T {\n"
+                + "    static final String[] X = {\"alpha\", /* sep */ \"beta\", \"gamma\"};\n"
+                + "}\n";
+        FormatResult result = eng.format(src);
+        assertThat(result).isInstanceOf(FormatResult.Success.class);
+        String out = ((FormatResult.Success) result).formattedSource();
+        // Convergence proves the layout is stable; previously this oscillated and never converged.
+        assertThat(((FormatResult.Success) eng.format(out)).formattedSource()).isEqualTo(out);
+    }
+
+    @Test
     void parseFailure_problemMessagesNotEmpty() {
         FormatResult.ParseFailure failure = (FormatResult.ParseFailure) engine.format("class {{{");
         assertThat(failure.problemMessages()).isNotEmpty();
