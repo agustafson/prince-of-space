@@ -12,11 +12,12 @@ import java.util.SplittableRandom;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Property-style idempotency: {@code format(format(x)) == format(x)} across varied configs and inputs.
+ * Deterministic idempotency regression matrix: {@code format(format(x)) == format(x)} across varied
+ * configs and fixed snippets (not a fuzzer — the RNG seed is fixed).
  *
  * <p>Iterations default to 200; override with {@code -Dio.princeofspace.fuzzIterations=N}.
  */
-class IdempotencyFuzzTest {
+class IdempotencyRegressionMatrixTest {
 
     private static final String[] SNIPPETS = {
         "class A {}",

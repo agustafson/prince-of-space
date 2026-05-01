@@ -370,7 +370,7 @@ should be an unambiguous improvement.
 | Stage 2 changes wrap-scope math globally → could regress unrelated wrapped lists | Keep change localized to `enterWrappedDelimitedListScope`; assert via `RuleUniformityTest` that all list-like constructs still align Rule 5. |
 | Stage 3 over-aggressively breaks before single args | Limit to expressions where `argsNeedWrap` is already true; chain-receiver carve-out preserves TDR-017. Add explicit tests for `new X("""…""".formatted(...))` and `single("""…""")`. |
 | Tab-indent users see column math drift | `padToColumn0` already handles tabs; reuse it. Add a test combining tabs + nested calls. |
-| Idempotency regression | Each stage's tests assert `format(format(x)) == format(x)`; existing `IdempotencyFuzzTest` provides broad coverage. |
+| Idempotency regression | Each stage's tests assert `format(format(x)) == format(x)`; existing `IdempotencyRegressionMatrixTest` provides broad coverage. |
 
 ## Sequencing
 

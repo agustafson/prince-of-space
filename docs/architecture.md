@@ -125,7 +125,7 @@ Parse → `LexicalPreservingPrinter.setup` (comment/token coherence for transfor
   and regenerate `examples/outputs/` to keep examples as a developer-facing regression artifact.
 - Wrapping regressions: `WrappingFormattingTest` (method chains, logical AND, `implements` wrapping)
 - Comment preservation: `CommentPreservationTest` (line, block, Javadoc, EOL, between statements, type-use)
-- Idempotency fuzz: `IdempotencyFuzzTest` (randomized `FormatterConfig` over fixed snippets + AST-built CU)
+- Idempotency regression matrix: `IdempotencyRegressionMatrixTest` (fixed-seed `FormatterConfig` sweeps over fixed snippets + AST-built CU)
 - Examples corpus: `ExamplesCorpusFormatTest` (outputs idempotent; inputs single-pass)
 - 4 Java levels (java8, java17, java21, java25) × 6 config combinations = 24 golden files
 - 200+ total tests in `core` (unit/integration + showroom goldens + corpus checks; optional tests may be skipped)
