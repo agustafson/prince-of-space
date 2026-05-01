@@ -3,7 +3,9 @@ package io.princeofspace.model;
 import io.princeofspace.Formatter;
 import io.princeofspace.FormatterException;
 
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Outcome of {@link io.princeofspace.internal.FormattingEngine}'s format attempt. Use
@@ -23,7 +25,8 @@ public sealed interface FormatResult permits FormatResult.Success, FormatResult.
     record Success(String formattedSource) implements FormatResult {}
 
     /** Could not produce formatted output. */
-    sealed interface Failure extends FormatResult permits ParseFailure, EmptyCompilationUnit, NonConvergent {
+    sealed interface Failure extends FormatResult
+            permits ParseFailure, EmptyCompilationUnit, NonConvergent, PathScopedFailure {
 
         /**
          * Returns a human-readable failure message suitable for {@link FormatterException} or logging.
@@ -67,6 +70,28 @@ public sealed interface FormatResult permits FormatResult.Success, FormatResult.
         @Override
         public String message() {
             return "Formatting did not converge to a fixed point within " + passesAttempted + " pass(es)";
+        }
+    }
+
+    /**
+     * Wraps an underlying {@link Failure} with file-context for diagnostics. Returned by
+     * {@link Formatter#formatResult(String, java.nio.file.Path)} so non-throwing callers get the
+     * same path-prefixed message that {@link Formatter#format(String, java.nio.file.Path)} embeds
+     * in its {@link FormatterException}.
+     *
+     * @param path the file the source came from
+     * @param cause the underlying failure
+     */
+    record PathScopedFailure(Path path, Failure cause) implements Failure {
+        /** Validates that neither component is {@code null}. */
+        public PathScopedFailure {
+            Objects.requireNonNull(path, "path");
+            Objects.requireNonNull(cause, "cause");
+        }
+
+        @Override
+        public String message() {
+            return path + ": " + cause.message();
         }
     }
 }
