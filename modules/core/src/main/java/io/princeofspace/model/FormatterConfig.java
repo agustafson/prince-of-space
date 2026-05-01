@@ -2,6 +2,7 @@ package io.princeofspace.model;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * Immutable configuration for the Prince of Space formatter.
@@ -37,12 +38,16 @@ public record FormatterConfig(
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /** Validates component invariants; invoked by the canonical constructor. */
+    /**
+     * Validates component invariants; invoked by the canonical constructor.
+     *
+     * <p>Null components throw {@link NullPointerException} (the JDK convention for missing
+     * required arguments). Non-null but out-of-range values throw {@link IllegalArgumentException}.
+     */
     public FormatterConfig {
-        if (indentStyle == null) throw new IllegalArgumentException("indentStyle must not be null");
-        if (wrapStyle == null) throw new IllegalArgumentException("wrapStyle must not be null");
-        if (javaLanguageLevel == null)
-            throw new IllegalArgumentException("javaLanguageLevel must not be null");
+        Objects.requireNonNull(indentStyle, "indentStyle");
+        Objects.requireNonNull(wrapStyle, "wrapStyle");
+        Objects.requireNonNull(javaLanguageLevel, "javaLanguageLevel");
         if (indentSize <= 0)
             throw new IllegalArgumentException("indentSize must be > 0, got: " + indentSize);
         if (lineLength <= 0)
@@ -101,7 +106,7 @@ public record FormatterConfig(
          * @return this builder
          */
         public Builder indentStyle(IndentStyle indentStyle) {
-            this.indentStyle = indentStyle;
+            this.indentStyle = Objects.requireNonNull(indentStyle, "indentStyle");
             return this;
         }
 
@@ -134,7 +139,7 @@ public record FormatterConfig(
          * @return this builder
          */
         public Builder wrapStyle(WrapStyle wrapStyle) {
-            this.wrapStyle = wrapStyle;
+            this.wrapStyle = Objects.requireNonNull(wrapStyle, "wrapStyle");
             return this;
         }
 
@@ -167,7 +172,7 @@ public record FormatterConfig(
          * @return this builder
          */
         public Builder javaLanguageLevel(JavaLanguageLevel javaLanguageLevel) {
-            this.javaLanguageLevel = javaLanguageLevel;
+            this.javaLanguageLevel = Objects.requireNonNull(javaLanguageLevel, "javaLanguageLevel");
             return this;
         }
 

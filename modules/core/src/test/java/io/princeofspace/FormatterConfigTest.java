@@ -120,21 +120,32 @@ class FormatterConfigTest {
     }
 
     @Test
-    void validation_nullIndentStyleThrows() {
-        assertThatThrownBy(() -> FormatterConfig.builder().indentStyle(null).build())
-                .isInstanceOf(IllegalArgumentException.class);
+    void validation_nullIndentStyleAtSetter_throwsNpe() {
+        assertThatThrownBy(() -> FormatterConfig.builder().indentStyle(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("indentStyle");
     }
 
     @Test
-    void validation_nullWrapStyleThrows() {
-        assertThatThrownBy(() -> FormatterConfig.builder().wrapStyle(null).build())
-                .isInstanceOf(IllegalArgumentException.class);
+    void validation_nullWrapStyleAtSetter_throwsNpe() {
+        assertThatThrownBy(() -> FormatterConfig.builder().wrapStyle(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("wrapStyle");
     }
 
     @Test
-    void validation_nullJavaLanguageLevelThrows() {
-        assertThatThrownBy(() -> FormatterConfig.builder().javaLanguageLevel(null).build())
-                .isInstanceOf(IllegalArgumentException.class);
+    void validation_nullJavaLanguageLevelAtSetter_throwsNpe() {
+        assertThatThrownBy(() -> FormatterConfig.builder().javaLanguageLevel(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("javaLanguageLevel");
+    }
+
+    @Test
+    void validation_nullIndentStyleViaCanonicalConstructor_throwsNpe() {
+        assertThatThrownBy(() -> new FormatterConfig(
+                        null, 4, 120, WrapStyle.BALANCED, true, false, JavaLanguageLevel.of(17)))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("indentStyle");
     }
 
     @Test
