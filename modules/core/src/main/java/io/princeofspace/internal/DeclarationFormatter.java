@@ -247,6 +247,8 @@ final class DeclarationFormatter {
             ctx.print(";");
         } else {
             BlockStmt body = n.getBody().get();
+            // At language level 8, keep the traditional expanded empty block (`{` newline `}`) so
+            // output matches long-standing goldens and Java 8 showcase expectations; 9+ uses compact `{}`.
             boolean modernCompactEmptyMethod =
                     fmt.javaLanguageLevel().level() != JAVA8_RELEASE
                             && body.getStatements().isEmpty()
