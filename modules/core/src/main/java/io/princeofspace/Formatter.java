@@ -43,21 +43,42 @@ public final class Formatter {
      * Attempts to format the given Java source without throwing. Failures are {@link FormatResult.Failure}
      * variants with structured detail (e.g. {@link FormatResult.ParseFailure}).
      *
-     * @param sourceCode the Java source to format
+     * @param sourceCode the Java source to format; must not be {@code null}
      * @return success with formatted text, or a typed failure
      */
     public FormatResult formatResult(String sourceCode) {
+        requireNonNull(sourceCode, "sourceCode");
         return engine.get().format(sourceCode);
+    }
+
+    /**
+     * Like {@link #formatResult(String)}, but prefixes the message of any {@link FormatResult.Failure}
+     * with {@code filePath}. Mirrors {@link #format(String, Path)} for callers that want the
+     * non-throwing API with file-context diagnostics.
+     *
+     * @param sourceCode the Java source to format; must not be {@code null}
+     * @param filePath path to the file, used only for diagnostics; must not be {@code null}
+     * @return success with formatted text, or a path-scoped failure
+     */
+    public FormatResult formatResult(String sourceCode, Path filePath) {
+        requireNonNull(sourceCode, "sourceCode");
+        requireNonNull(filePath, "filePath");
+        FormatResult result = engine.get().format(sourceCode);
+        if (result instanceof FormatResult.Failure failure) {
+            return new FormatResult.PathScopedFailure(filePath, failure);
+        }
+        return result;
     }
 
     /**
      * Formats the given Java source code.
      *
-     * @param sourceCode the Java source to format
+     * @param sourceCode the Java source to format; must not be {@code null}
      * @return formatted source code
      * @throws FormatterException if the source cannot be parsed or the pipeline cannot produce output
      */
     public String format(String sourceCode) {
+        requireNonNull(sourceCode, "sourceCode");
         FormatResult result = engine.get().format(sourceCode);
         if (result instanceof FormatResult.Success success) {
             return success.formattedSource();
@@ -83,12 +104,14 @@ public final class Formatter {
     /**
      * Formats the given Java source code, prefixing failure messages with {@code filePath}.
      *
-     * @param sourceCode the Java source to format
-     * @param filePath path to the file, used only for diagnostics
+     * @param sourceCode the Java source to format; must not be {@code null}
+     * @param filePath path to the file, used only for diagnostics; must not be {@code null}
      * @return formatted source code
      * @throws FormatterException if the source cannot be parsed or the pipeline cannot produce output
      */
     public String format(String sourceCode, Path filePath) {
+        requireNonNull(sourceCode, "sourceCode");
+        requireNonNull(filePath, "filePath");
         FormatResult result = engine.get().format(sourceCode);
         if (result instanceof FormatResult.Success success) {
             return success.formattedSource();

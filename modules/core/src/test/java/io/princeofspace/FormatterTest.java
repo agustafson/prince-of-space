@@ -615,6 +615,42 @@ class FormatterTest {
                 .hasMessageContaining("src/Foo.java");
     }
 
+    @Test
+    void formatResultWithPath_parseFailure_wrapsPathScopedFailure() {
+        java.nio.file.Path path = java.nio.file.Path.of("src/Foo.java");
+        FormatResult r = DEFAULT.formatResult("not java", path);
+        assertThat(r).isInstanceOf(FormatResult.PathScopedFailure.class);
+        FormatResult.PathScopedFailure scoped = (FormatResult.PathScopedFailure) r;
+        assertThat(scoped.path()).isEqualTo(path);
+        assertThat(scoped.cause()).isInstanceOf(FormatResult.ParseFailure.class);
+        assertThat(scoped.message()).startsWith(path.toString());
+    }
+
+    @Test
+    void format_nullSource_throwsNpe() {
+        assertThatThrownBy(() -> DEFAULT.format(null)).isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void formatResult_nullSource_throwsNpe() {
+        assertThatThrownBy(() -> DEFAULT.formatResult(null)).isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void formatWithPath_nullArguments_throwNpe() {
+        assertThatThrownBy(() -> DEFAULT.format(null, java.nio.file.Path.of("a.java")))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> DEFAULT.format("class T {}", null)).isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void formatResultWithPath_nullArguments_throwNpe() {
+        assertThatThrownBy(() -> DEFAULT.formatResult(null, java.nio.file.Path.of("a.java")))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> DEFAULT.formatResult("class T {}", null))
+                .isInstanceOf(NullPointerException.class);
+    }
+
     // ── idempotency ───────────────────────────────────────────────────────────
 
     @Test

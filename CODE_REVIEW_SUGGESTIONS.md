@@ -12,7 +12,7 @@ Project policy: minimum supported Java release is **8**. Findings related to Jav
 
 ### Public API & Configuration
 
-#### 1. **[INC]** Inconsistent null-handling across public entry points
+#### 1. **[DONE]** Inconsistent null-handling across public entry points
 - `Formatter` constructor (`Formatter.java:33`) uses `requireNonNull(config, "config")` → `NullPointerException`.
 - `FormatterConfig` compact constructor (`FormatterConfig.java:42-49`) throws `IllegalArgumentException` for null record components.
 - `Formatter.format(String)` (`Formatter.java:54`) does **not** null-check `sourceCode`. It will surface as an NPE deep inside `JavaParser`.
@@ -20,11 +20,17 @@ Project policy: minimum supported Java release is **8**. Findings related to Jav
 
 **Suggestion:** Pick one convention for required public-API arguments (NPE via `Objects.requireNonNull` is the JDK norm) and apply it uniformly to `sourceCode` and `filePath`. `FormatterConfig` already throws `IllegalArgumentException` for null record components — that's at odds with the JDK convention; consider switching to NPE for null and reserving `IllegalArgumentException` for "wrong but non-null" values.
 
-#### 2. **[INC]** Missing `formatResult(String, Path)` overload
+**Resolution:** All `Formatter` entry points now use `requireNonNull` for `sourceCode` and `filePath`. `FormatterConfig` compact constructor and enum-like builder setters use `Objects.requireNonNull` for reference components; invalid numeric ranges remain `IllegalArgumentException`. Tests cover NPE at call sites.
+
+#### 2. **[DONE]** Missing `formatResult(String, Path)` overload
 `Formatter.java:85` adds path-prefixed diagnostics for the throwing API, but no equivalent exists for the non-throwing `formatResult` API. Callers of the sealed-result API who want path context have to reformat the failure message themselves. Either drop the throwing overload or add the non-throwing one for symmetry.
 
-#### 3. **[QUAL]** `FormatterConfig.Builder` defers null-validation to `build()`
+**Resolution:** Added `formatResult(String, Path)` returning `FormatResult.PathScopedFailure` (wraps underlying `Failure` with `path` + `cause`) so `message()` matches the throwing API’s path prefix. Sealed `Failure` hierarchy permits `PathScopedFailure`.
+
+#### 3. **[DONE]** `FormatterConfig.Builder` defers null-validation to `build()`
 The builder setters (e.g. `indentStyle(IndentStyle)` at `FormatterConfig.java:103`) accept null and only fail at `build()`. Stack traces point to construction, not the setter that supplied the bad value. Either null-check in each setter or annotate parameters with `@NonNull` (JSpecify) so NullAway reports the call site at compile time.
+
+**Resolution:** `indentStyle`, `wrapStyle`, and `javaLanguageLevel` setters now call `Objects.requireNonNull` immediately; tests assert NPE from the setter line.
 
 #### 4. **[DOC/QUAL]** Builder defaults duplicate semantic intent
 Default values are encoded both in the builder field initializers (`FormatterConfig.java:87-93`) and in the architecture docs. There's no single source of truth — the docs can drift. Consider hoisting defaults to named constants on the record (e.g. `DEFAULT_LINE_LENGTH = 120`) and referencing them from both the builder and the documentation. Currently the default `JavaLanguageLevel.of(17)` appears in three places: builder, docs/architecture.md, and README.
