@@ -43,7 +43,7 @@ final class TypeClauseFormatter {
                 w += CLAUSE_SEPARATOR_WIDTH;
             }
             first = false;
-            w += t.toString().length();
+            w += WidthMeasurer.flatWidth(t, fmt);
         }
         return w;
     }
@@ -166,9 +166,12 @@ final class TypeClauseFormatter {
             return false;
         }
         int header = ctx.column();
-        int permitsInline = header + INLINE_PERMITS_KEYWORD_WIDTH + implementsTypesWidth(types);
-        if (fmt.wrapStyle() != WrapStyle.NARROW
-                && permitsInline <= fmt.lineLength()) {
+        int permitsInline =
+                header
+                        + INLINE_PERMITS_KEYWORD_WIDTH
+                        + implementsTypesWidth(types)
+                        + GREEDY_LIST_TRAILING_HEADROOM;
+        if (permitsInline <= fmt.lineLength()) {
             ctx.print(" permits");
             printInlineTypeClauseList(types, arg);
             return false;
@@ -202,7 +205,7 @@ final class TypeClauseFormatter {
         int budget = fmt.lineLength() - GREEDY_LIST_TRAILING_HEADROOM;
         boolean first = true;
         for (ClassOrInterfaceType t : types) {
-            int need = t.toString().length() + (first ? 0 : 2);
+            int need = WidthMeasurer.flatWidth(t, fmt) + (first ? 0 : 2);
             if (!first && (ctx.column() + need > budget || ctx.wouldExceedLineLength(need))) {
                 ctx.print(",");
                 ctx.println();
@@ -248,7 +251,7 @@ final class TypeClauseFormatter {
                 w += CLAUSE_SEPARATOR_WIDTH;
             }
             first = false;
-            w += t.toString().length();
+            w += WidthMeasurer.flatWidth(t, fmt);
         }
         return w;
     }
@@ -303,7 +306,7 @@ final class TypeClauseFormatter {
         int budget = fmt.lineLength() - GREEDY_LIST_TRAILING_HEADROOM;
         boolean first = true;
         for (ReferenceType t : types) {
-            int need = t.toString().length() + (first ? 0 : 2);
+            int need = WidthMeasurer.flatWidth(t, fmt) + (first ? 0 : 2);
             if (!first && (ctx.column() + need > budget || ctx.wouldExceedLineLength(need))) {
                 ctx.print(",");
                 ctx.println();
@@ -325,7 +328,7 @@ final class TypeClauseFormatter {
                 w += UNION_OPERATOR_WITH_SPACES_WIDTH;
             }
             first = false;
-            w += t.toString().length();
+            w += WidthMeasurer.flatWidth(t, fmt);
         }
         return w;
     }
@@ -334,7 +337,7 @@ final class TypeClauseFormatter {
         int budget = fmt.lineLength() - GREEDY_LIST_TRAILING_HEADROOM;
         boolean first = true;
         for (ReferenceType t : types) {
-            int need = t.toString().length() + (first ? 0 : UNION_OPERATOR_WITH_SPACES_WIDTH);
+            int need = WidthMeasurer.flatWidth(t, fmt) + (first ? 0 : UNION_OPERATOR_WITH_SPACES_WIDTH);
             if (!first && (ctx.column() + need > budget || ctx.wouldExceedLineLength(need))) {
                 ctx.println();
                 ctx.printCont();

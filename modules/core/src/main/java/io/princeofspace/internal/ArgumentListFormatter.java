@@ -46,6 +46,11 @@ final class ArgumentListFormatter {
     /**
      * Returns {@code true} when the argument list does not fit on the remainder of the current
      * line at the opening {@code (}.
+     *
+     * <p>Width budget includes one column for {@code (}; the closing {@code )} is not reserved here — wrap
+     * heuristics assume the callee accounts for {@code )} when laying out the inside of the list (see also
+     * {@link #CLOSING_PAREN_INLINE_RESERVED_WIDTH} on wrapped layouts). Angle-bracket predicates reserve both
+     * delimiters; see {@link #typeParametersNeedWrap}.
      */
     boolean argsNeedWrap(NodeList<? extends Expression> args) {
         int width = ctx.column() + 1 + methodChainFormatter.argsFlatWidth(args);
@@ -247,12 +252,17 @@ final class ArgumentListFormatter {
                 w += 2;
             }
             first = false;
-            w += p.toString().length();
+            w += WidthMeasurer.flatWidth(p, fmt);
         }
         return w;
     }
 
-    /** Whether formal parameters need to wrap given the current column and width limits. */
+    /**
+     * Whether formal parameters need to wrap at the opening {@code (}.
+     *
+     * <p>Budget is {@code column + '(' + flatWidths}; closing {@code )} is not folded into this predicate (same
+     * convention as {@link #argsNeedWrap}).
+     */
     boolean paramsNeedWrap(NodeList<Parameter> ps) {
         int width = ctx.column() + 1 + paramsFlatWidth(ps);
         return width > fmt.lineLength();
@@ -285,7 +295,7 @@ final class ArgumentListFormatter {
             boolean first = true;
             for (int idx = 0; idx < n; idx++) {
                 Parameter p = ps.get(idx);
-                int need = p.toString().length() + (first ? 0 : 2);
+                int need = WidthMeasurer.flatWidth(p, fmt) + (first ? 0 : 2);
                 boolean isLast = idx == n - 1;
                 int lineBudget = fmt.lineLength();
                 if (isLast) {
@@ -344,7 +354,7 @@ final class ArgumentListFormatter {
             boolean first = true;
             for (int idx = 0; idx < n; idx++) {
                 Parameter p = ps.get(idx);
-                int need = p.toString().length() + (first ? 0 : 2);
+                int need = WidthMeasurer.flatWidth(p, fmt) + (first ? 0 : 2);
                 boolean isLast = idx == n - 1;
                 int lineBudget = fmt.lineLength();
                 if (isLast) {
@@ -392,12 +402,16 @@ final class ArgumentListFormatter {
                 w += 2;
             }
             first = false;
-            w += p.toString().length();
+            w += WidthMeasurer.flatWidth(p, fmt);
         }
         return w;
     }
 
-    /** Whether a {@code <...>} type parameter list should wrap at the current column. */
+    /**
+     * Whether a {@code <...>} type parameter list should wrap at the current column.
+     *
+     * <p>Budget reserves both angle brackets: {@code column + '<' + content + '>'}.
+     */
     boolean typeParametersNeedWrap(NodeList<TypeParameter> ps) {
         if (isNullOrEmpty(ps)) {
             return false;
@@ -428,7 +442,7 @@ final class ArgumentListFormatter {
             boolean first = true;
             for (int idx = 0; idx < n; idx++) {
                 TypeParameter p = typeParameters.get(idx);
-                int need = p.toString().length() + (first ? 0 : 2);
+                int need = WidthMeasurer.flatWidth(p, fmt) + (first ? 0 : 2);
                 boolean isLast = idx == n - 1;
                 int lineBudget = fmt.lineLength();
                 if (isLast) {
@@ -469,12 +483,16 @@ final class ArgumentListFormatter {
                 w += 2;
             }
             first = false;
-            w += t.toString().length();
+            w += WidthMeasurer.flatWidth(t, fmt);
         }
         return w;
     }
 
-    /** Whether a {@code <...>} type argument list on a reference type should wrap. */
+    /**
+     * Whether a {@code <...>} type argument list on a reference type should wrap.
+     *
+     * <p>Budget reserves both angle brackets (see {@link #typeParametersNeedWrap}).
+     */
     boolean typeArgumentsNeedWrap(NodeList<Type> args) {
         if (isNullOrEmpty(args)) {
             return false;
