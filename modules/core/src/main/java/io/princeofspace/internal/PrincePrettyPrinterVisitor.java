@@ -98,6 +98,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     private static final int FOR_EACH_INLINE_SEPARATOR_WIDTH = 3;
 
     private final FormatterConfig fmt;
+    /** Matches {@link PrettyPrinter}'s {@code END_OF_LINE_CHARACTER} option (opening delimiter of text blocks). */
+    private final String printerEndOfLine;
     final LayoutContext ctx;
     private final CommentUtils commentUtils;
     private final BinaryExprFormatter binaryExprFormatter;
@@ -131,9 +133,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
      */
     private int continuationLineStartLine = -1;
 
-    PrincePrettyPrinterVisitor(PrinterConfiguration configuration, FormatterConfig fmt) {
+    PrincePrettyPrinterVisitor(PrinterConfiguration configuration, FormatterConfig fmt, String printerEndOfLine) {
         super(configuration);
         this.fmt = fmt;
+        this.printerEndOfLine = Objects.requireNonNull(printerEndOfLine, "printerEndOfLine");
         this.ctx = new LayoutContext(fmt, printer, this);
         this.commentUtils = new CommentUtils();
         this.binaryExprFormatter = new BinaryExprFormatter(ctx, commentUtils);
@@ -1121,7 +1124,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     public void visit(TextBlockLiteralExpr n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
-        printer.print("\"\"\"\n");
+        printer.print("\"\"\"");
+        printer.print(printerEndOfLine);
         printer.print(n.getValue());
         printer.print("\"\"\"");
         printOrphanCommentsEnding(n);

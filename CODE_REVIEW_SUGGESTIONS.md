@@ -88,7 +88,7 @@ The two paths handle the same construct differently:
 
 **Suggestion:** Unify into one helper that handles both forms; route both `visit` overrides to it.
 
-#### 15. **[BUG]** Text block `\"\"\"\n` newline is hard-coded
+#### 15. **[DONE]** Text block `\"\"\"\n` newline is hard-coded
 `PrincePrettyPrinterVisitor.java:1119-1121`:
 ```java
 printer.print("\"\"\"\n");
@@ -98,6 +98,8 @@ printer.print("\"\"\"");
 The `\n` is hard-coded but `PrettyPrinter.java:44` configures `END_OF_LINE_CHARACTER` to `\n`. Hidden coupling — if EOL ever becomes configurable, text blocks will mix line endings.
 
 Also: `n.getValue()` for a `TextBlockLiteralExpr` returns the raw text; JavaParser's value extraction has had quirks across releases. Worth a dedicated round-trip test for text blocks containing leading-whitespace stripping edge cases.
+
+**Resolution:** Introduced `PrettyPrinter.PRINTER_END_OF_LINE` (single source) passed into `PrincePrettyPrinterVisitor` as `printerEndOfLine`; text-block opening uses `printer.print("\"\"\"")` + `printer.print(printerEndOfLine)` + content + closing delimiter.
 
 #### 16. **[DONE]** `defaultVisit(Node, Void)` silently no-ops for unsupported types
 `PrincePrettyPrinterVisitor.java:269-275` only routes `BinaryExpr` and `MethodCallExpr`. Any other node passed to `defaultVisit` produces no output. A future caller could pass a different type and get silent failure. Throw `IllegalArgumentException` on unsupported types.

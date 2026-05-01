@@ -16,7 +16,7 @@ class PrincePrettyPrinterVisitorTest {
         DefaultPrinterConfiguration printerConfig = new DefaultPrinterConfiguration();
         printerConfig.addOption(new DefaultConfigurationOption(ConfigOption.END_OF_LINE_CHARACTER, "\n"));
         PrincePrettyPrinterVisitor visitor =
-                new PrincePrettyPrinterVisitor(printerConfig, FormatterConfig.defaults());
+                new PrincePrettyPrinterVisitor(printerConfig, FormatterConfig.defaults(), "\n");
         assertThatThrownBy(() -> visitor.defaultVisit(new StringLiteralExpr("a"), null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("BinaryExpr");

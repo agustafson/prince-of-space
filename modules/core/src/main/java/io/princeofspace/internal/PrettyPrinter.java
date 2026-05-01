@@ -18,6 +18,12 @@ import io.princeofspace.model.IndentStyle;
  */
 final class PrettyPrinter {
 
+    /**
+     * Single source for {@link ConfigOption#END_OF_LINE_CHARACTER} and text-block opening line
+     * terminators in {@link PrincePrettyPrinterVisitor} so they cannot drift.
+     */
+    private static final String PRINTER_END_OF_LINE = "\n";
+
     private final FormatterConfig config;
     private final DefaultPrinterConfiguration printerConfig;
 
@@ -28,7 +34,7 @@ final class PrettyPrinter {
 
     String print(CompilationUnit cu) {
         String raw = new DefaultPrettyPrinter(
-                        pc -> new PrincePrettyPrinterVisitor(pc, config), printerConfig)
+                        pc -> new PrincePrettyPrinterVisitor(pc, config, PRINTER_END_OF_LINE), printerConfig)
                 .print(cu);
         return BlankLineNormalizer.normalize(raw);
     }
@@ -41,7 +47,7 @@ final class PrettyPrinter {
 
         DefaultPrinterConfiguration printerConfig = new DefaultPrinterConfiguration();
         printerConfig.addOption(new DefaultConfigurationOption(ConfigOption.INDENTATION, indentation));
-        printerConfig.addOption(new DefaultConfigurationOption(ConfigOption.END_OF_LINE_CHARACTER, "\n"));
+        printerConfig.addOption(new DefaultConfigurationOption(ConfigOption.END_OF_LINE_CHARACTER, PRINTER_END_OF_LINE));
         printerConfig.addOption(new DefaultConfigurationOption(ConfigOption.SPACE_AROUND_OPERATORS, true));
         printerConfig.addOption(new DefaultConfigurationOption(ConfigOption.PRINT_COMMENTS, true));
         printerConfig.addOption(new DefaultConfigurationOption(ConfigOption.PRINT_JAVADOC, true));
