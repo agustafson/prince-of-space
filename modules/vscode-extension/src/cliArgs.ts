@@ -12,6 +12,20 @@ export interface FormatterOptions {
   trailingCommas: boolean;
 }
 
+const MIN_JAVA_VERSION = 8;
+
+/**
+ * Validates the formatter options before we hand them to the CLI. Returns a
+ * human-readable error message if the options would cause the CLI to fail with
+ * an `IllegalArgumentException`, or `null` when the options look usable.
+ */
+export function validateFormatterOptions(opts: FormatterOptions): string | null {
+  if (!Number.isInteger(opts.javaVersion) || opts.javaVersion < MIN_JAVA_VERSION) {
+    return `princeOfSpace.javaVersion must be an integer >= ${MIN_JAVA_VERSION} (got ${opts.javaVersion}).`;
+  }
+  return null;
+}
+
 export function cliFormatterArgs(jar: string, opts: FormatterOptions): string[] {
   const args = [
     "-jar", jar,

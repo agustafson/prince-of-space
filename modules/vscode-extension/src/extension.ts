@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { formatJavaSource, resolveCliJar } from "./formatter";
-import { FormatterOptions } from "./cliArgs";
+import { FormatterOptions, validateFormatterOptions } from "./cliArgs";
 
 async function formatJavaDocument(
   document: vscode.TextDocument,
@@ -27,6 +27,11 @@ async function formatJavaDocument(
     closingParenOnNewLine: cfg.get<boolean>("closingParenOnNewLine") ?? true,
     trailingCommas: cfg.get<boolean>("trailingCommas") ?? false,
   };
+  const validationError = validateFormatterOptions(opts);
+  if (validationError) {
+    void vscode.window.showErrorMessage(`Prince of Space: ${validationError}`);
+    return [];
+  }
   const sourceText = document.getText();
   try {
     const formatted = await formatJavaSource(javaBin, jar, opts, sourceText, token);

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { cliFormatterArgs, FormatterOptions } from "./cliArgs";
+import { cliFormatterArgs, FormatterOptions, validateFormatterOptions } from "./cliArgs";
 
 const defaults: FormatterOptions = {
   javaVersion: 21,
@@ -57,5 +57,28 @@ describe("cliFormatterArgs", () => {
     assert.ok(args.includes("2"));
     assert.ok(args.includes("80"));
     assert.ok(args.includes("NARROW"));
+  });
+});
+
+describe("validateFormatterOptions", () => {
+  it("accepts the defaults", () => {
+    assert.equal(validateFormatterOptions(defaults), null);
+  });
+
+  it("rejects javaVersion 0", () => {
+    const msg = validateFormatterOptions({ ...defaults, javaVersion: 0 });
+    assert.ok(msg && msg.includes("javaVersion"), `expected javaVersion error, got ${msg}`);
+  });
+
+  it("rejects javaVersion below the minimum supported release", () => {
+    assert.ok(validateFormatterOptions({ ...defaults, javaVersion: 7 }));
+  });
+
+  it("rejects NaN javaVersion", () => {
+    assert.ok(validateFormatterOptions({ ...defaults, javaVersion: Number.NaN }));
+  });
+
+  it("rejects non-integer javaVersion", () => {
+    assert.ok(validateFormatterOptions({ ...defaults, javaVersion: 17.5 }));
   });
 });
