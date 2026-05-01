@@ -175,7 +175,7 @@ final class BinaryExprFormatter {
             printPlusChainOnePerLineWithPlusSpine(parts, arg, plusOrphanSplits);
             return;
         }
-        ctx.acceptDefault(n, arg);
+        ctx.acceptDefaultBinaryExprOrMethodCall(n, arg);
     }
 
     /** Emits this node's orphans and comment before custom layouts; fallback uses {@code super.visit} which prints them. */

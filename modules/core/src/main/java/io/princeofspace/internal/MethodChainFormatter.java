@@ -66,7 +66,7 @@ final class MethodChainFormatter {
         List<MethodCallExpr> calls = chainInOrder(outer);
         Optional<Expression> baseOpt = chainBase(outer);
         if (baseOpt.isEmpty()) {
-            ctx.acceptDefault(n, arg);
+            ctx.acceptDefaultBinaryExprOrMethodCall(n, arg);
             return;
         }
         Expression base = baseOpt.get();

@@ -167,11 +167,12 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
     }
 
     /**
-     * Formats the node using {@link PrincePrettyPrinterVisitor#defaultVisit}, bypassing custom
-     * overrides for that node. Only {@link com.github.javaparser.ast.expr.BinaryExpr} and
-     * {@link com.github.javaparser.ast.expr.MethodCallExpr} are supported.
+     * Formats the node using {@link PrincePrettyPrinterVisitor#defaultVisit} (stock pretty-printer
+     * handling for {@link com.github.javaparser.ast.expr.BinaryExpr} and
+     * {@link com.github.javaparser.ast.expr.MethodCallExpr} only). Prefer {@link #accept} for other
+     * node types.
      */
-    void acceptDefault(Node node, Void arg) {
+    void acceptDefaultBinaryExprOrMethodCall(Node node, Void arg) {
         visitor.defaultVisit(node, arg);
     }
 
