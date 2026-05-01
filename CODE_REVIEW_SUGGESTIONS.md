@@ -62,10 +62,12 @@ In both cases the user has set a system property explicitly and it's being ignor
 
 ### Pretty-Print / Blank-Line Stage
 
-#### 12. **[BUG]** `BlankLineNormalizer.isImportLine` only matches `"import "` (space-separated)
+#### 12. **[DONE]** `BlankLineNormalizer.isImportLine` only matches `"import "` (space-separated)
 `BlankLineNormalizer.java:135-143` requires a literal space after `import`. JLS allows any whitespace between `import` and the qualified name (`import\tjava.util.List;` is legal). Although JavaParser's pretty printer is unlikely to emit a tab there, if upstream output ever changes, the import-spacing preservation rule will silently break.
 
 Replace the `regionMatches` guard with one that consumes any whitespace after the `t` in `import`, or compare against `"import"` followed by whitespace check.
+
+**Resolution:** `isImportLine` now matches the `import` keyword and requires `Character.isWhitespace` after it (any JLS line terminator or space). Added `blankLineBetweenImports_preservedWhenWhitespaceAfterImportKeywordIsTab`.
 
 #### 13. **[QUAL]** `BlankLineNormalizer` line-array growth is allocation-heavy
 `BlankLineNormalizer.java:36-39` doubles the arrays in lock-step (`grow(lineStarts); grow(lineEnds);`). For a 1MB file with ~50-char lines you'd see at most a couple of grows; not a hot path. But the over-allocation strategy of `len / 40 + 1` plus doubling can over-allocate ~2x for a typical file. Consider using `ArrayList<int[]>` or allocating two buffers in one method (one int[] of length `2 * estimated`, paired indices `[2*i, 2*i+1]`) to halve the overhead.

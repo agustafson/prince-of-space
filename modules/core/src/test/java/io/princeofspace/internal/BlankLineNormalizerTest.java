@@ -114,4 +114,10 @@ class BlankLineNormalizerTest {
                 """;
         assertThat(BlankLineNormalizer.normalize(input)).isEqualTo(input);
     }
+
+    @Test
+    void blankLineBetweenImports_preservedWhenWhitespaceAfterImportKeywordIsTab() {
+        String input = "import\tjava.util.List;\n\nimport\tjava.util.Map;\n\nclass T {}\n";
+        assertThat(BlankLineNormalizer.normalize(input)).isEqualTo(input);
+    }
 }

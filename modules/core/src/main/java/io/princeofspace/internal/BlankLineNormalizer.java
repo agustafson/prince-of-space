@@ -13,7 +13,7 @@ package io.princeofspace.internal;
 final class BlankLineNormalizer {
 
     private static final int AVG_CHARS_PER_LINE_ESTIMATE = 40;
-    private static final String IMPORT_PREFIX = "import ";
+    private static final String IMPORT_KEYWORD = "import";
 
     private BlankLineNormalizer() {}
 
@@ -133,13 +133,19 @@ final class BlankLineNormalizer {
     }
 
     private static boolean isImportLine(String s, int start, int end) {
-        // Skip leading whitespace then check for "import ".
+        // Skip leading whitespace; JLS allows any whitespace between `import` and the name.
         int i = start;
         while (i < end && Character.isWhitespace(s.charAt(i))) {
             i++;
         }
-        return end - i >= IMPORT_PREFIX.length()
-                && s.regionMatches(i, IMPORT_PREFIX, 0, IMPORT_PREFIX.length());
+        int keywordLen = IMPORT_KEYWORD.length();
+        if (end - i < keywordLen + 1) {
+            return false;
+        }
+        if (!s.regionMatches(i, IMPORT_KEYWORD, 0, keywordLen)) {
+            return false;
+        }
+        return Character.isWhitespace(s.charAt(i + keywordLen));
     }
 
     private static boolean trimmedEndsWith(String s, int start, int end, char c) {
