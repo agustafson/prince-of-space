@@ -32,14 +32,18 @@ The builder setters (e.g. `indentStyle(IndentStyle)` at `FormatterConfig.java:10
 
 **Resolution:** `indentStyle`, `wrapStyle`, and `javaLanguageLevel` setters now call `Objects.requireNonNull` immediately; tests assert NPE from the setter line.
 
-#### 4. **[DOC/QUAL]** Builder defaults duplicate semantic intent
+#### 4. **[DONE]** Builder defaults duplicate semantic intent
 Default values are encoded both in the builder field initializers (`FormatterConfig.java:87-93`) and in the architecture docs. There's no single source of truth — the docs can drift. Consider hoisting defaults to named constants on the record (e.g. `DEFAULT_LINE_LENGTH = 120`) and referencing them from both the builder and the documentation. Currently the default `JavaLanguageLevel.of(17)` appears in three places: builder, docs/architecture.md, and README.
+
+**Resolution:** Added public `FormatterConfig.DEFAULT_*` constants; `Builder` and `defaults()` use them. README and `docs/architecture.md` reference the same names; `FormatterConfig` class Javadoc links the constants.
 
 #### 5. **[QUAL]** `FormatResult.NonConvergent` exposed as a generic `Failure`
 A non-convergent format almost always indicates a *formatter bug*, not user input being invalid. Lumping it with `ParseFailure` and `EmptyCompilationUnit` means consumers (e.g. CLI, IDE plugin) cannot easily distinguish "your code is broken" from "the formatter is broken." Consider either a separate sealed branch or distinct treatment in user-facing tools (CLI should probably exit with a different code so it can be reported as a bug).
 
-#### 6. **[INC]** `FormatterConfig.continuationIndentSize()` is a public method but undocumented as a knob
+#### 6. **[DONE]** `FormatterConfig.continuationIndentSize()` is a public method but undocumented as a knob
 The Javadoc on `continuationIndentSize()` (`FormatterConfig.java:52-63`) describes a *derived* value — fine — but it is not listed in the README, architecture.md, or canonical-formatting-rules.md as part of the public API surface. If consumers should not call it, mark it `@deprecated` or move the calculation `internal/`. If they should, document it in the public option table.
+
+**Resolution:** Documented as derived API (not a builder knob): README links `FormatterConfig#continuationIndentSize()`; `docs/architecture.md` configuration table includes `continuationIndentSize()` row; Part 3 §3 in `docs/formatting-rules.md` and canonical rules already describe the `2 * indentSize` contract.
 
 ### Engine & Parser Integration
 
@@ -112,7 +116,7 @@ Also: `n.getValue()` for a `TextBlockLiteralExpr` returns the raw text; JavaPars
 #### 16. **[DONE]** `defaultVisit(Node, Void)` silently no-ops for unsupported types
 `PrincePrettyPrinterVisitor.java:269-275` only routes `BinaryExpr` and `MethodCallExpr`. Any other node passed to `defaultVisit` produces no output. A future caller could pass a different type and get silent failure. Throw `IllegalArgumentException` on unsupported types.
 
-**Resolution:** `defaultVisit` now throws `IllegalArgumentException` with the unexpected node class; `LayoutContext.acceptDefault` Javadoc references the supported types.
+**Resolution:** `defaultVisit` now throws `IllegalArgumentException` with the unexpected node class; `LayoutContext.acceptDefaultBinaryExprOrMethodCall` Javadoc references the supported types.
 
 #### 17. **[QUAL/BUG]** Mutating the AST during printing is fragile
 Multiple paths invoke `comment.remove()` after printing (`PrincePrettyPrinterVisitor.java:259, 334`; `BinaryExprFormatter.java:331`; `MethodChainFormatter.java:319`). The Javadoc explains the *why* (preventing duplicate orphan emission across passes), but this means:
@@ -181,9 +185,9 @@ Reworked the branch to count scope width (when present), explicit prefix type ar
 For most expression types this is harmless, but `VariableDeclarator.visit` (line 966) and possibly other visitors *do* use ancestor lookup. If a cloned subtree ever contains those nodes, layout silently degrades.
 
 #### 30. **[DONE]** `BinaryExprFormatter.format` fall-through prints comments twice
-`BinaryExprFormatter.java:39-40` prints orphan comments and the binary's own comment at the *top* of `format()`. For unrecognized operators the method falls through to `ctx.acceptDefault(n, arg)` (line 177), which calls `super.visit(n, arg)` — and JavaParser's default visitor will also print those same comments, producing duplicates.
+`BinaryExprFormatter.java:39-40` prints orphan comments and the binary's own comment at the *top* of `format()`. For unrecognized operators the method falls through to `ctx.acceptDefaultBinaryExprOrMethodCall(n, arg)` (line 177), which calls `super.visit(n, arg)` — and JavaParser's default visitor will also print those same comments, producing duplicates.
 
-**Resolution:** Emit orphans + node comment only on paths that use custom layout (`&&`, `||`, bitwise logical ops, `+`). Fallback `acceptDefault`/`super.visit` prints them alone.
+**Resolution:** Emit orphans + node comment only on paths that use custom layout (`&&`, `||`, bitwise logical ops, `+`). Fallback `acceptDefaultBinaryExprOrMethodCall`/`super.visit` prints them alone.
 
 #### 31. **[DONE]** `MethodChainFormatter.lambdaHeaderWidth` uses `NodeList.toString()`
 `MethodChainFormatter.java:175, 179`: `2 + lambda.getParameters().toString().length()`. `NodeList.toString()` returns `"[a, b]"` (Java's default `AbstractCollection.toString()`), so width is over-counted by ~2. Use `WidthMeasurer.commaSeparatedParameterWidth(...)` or sum element widths directly.
@@ -243,8 +247,10 @@ Canonical Rule 5 says "Empty enums remain `enum E { }` compatible with Rule 9 (n
 
 **Resolution:** introduced a `pendingBlank` flag so internal blank lines between content lines are preserved as bare ` *` separator lines; trailing blanks remain trimmed. Regression test in `CommentPreservationTest.leadingBlockCommentInArrayInitializer_preservesInternalBlankLines`.
 
-#### 41. **[QUAL]** Magic number `WORST_CASE_BLOCK_INDENTS_FOR_STRING_CHUNKING = 4`
+#### 41. **[DONE]** Magic number `WORST_CASE_BLOCK_INDENTS_FOR_STRING_CHUNKING = 4`
 `StringLiteralFormatter.java:34` — assumes any code chunk lives within 4 block indents. Deeper nesting under-allocates string-chunk budget. No comment explains why 4 vs 6 vs 8.
+
+**Resolution:** Javadoc on the constant documents it as a conservative upper bound for width budgeting (deeper nesting may slightly underestimate remaining columns).
 
 ### Comment, ArrayInitializer, LayoutContext, BraceEnforcer, PrettyPrinter
 
@@ -254,22 +260,28 @@ Canonical Rule 5 says "Empty enums remain `enum E { }` compatible with Rule 9 (n
 - Convert all helpers to `static` and call them as `CommentUtils.foo(…)`.
 This affects readability — every reader must do a double-take to figure out why a record has methods.
 
-#### 43. **[BUG/DOC]** Doubled Javadoc blocks on the same method in `CommentUtils`
+#### 43. **[DONE]** Doubled Javadoc blocks on the same method in `CommentUtils`
 `CommentUtils.java:175-180`, `:254-259`, `:287-292`, `:317-322` each have two `/** … */` blocks immediately above the same method:
 - Lines 175-179 explain the rationale; lines 180 is a one-liner. Java attaches the **second** one as the canonical Javadoc, and the first becomes an orphan that JavaParser will preserve but tools (IDE Quick Doc, javadoc tool) may render only the lower one. Worse, when running this very project's formatter on its own source, the orphan would be re-attached and potentially reordered.
 
 Either merge into a single block, or hoist the rationale into a class-level comment.
 
-#### 44. **[QUAL]** `firstLineOrBlockCommentPrintedBeforeExpression` uses `orElseThrow()` inside a stream comparator
+**Resolution:** Merged duplicate Javadoc blocks into single blocks per method.
+
+#### 44. **[DONE]** `firstLineOrBlockCommentPrintedBeforeExpression` uses `orElseThrow()` inside a stream comparator
 `CommentUtils.java:115-116` uses `comment.getRange().orElseThrow()` inside a `Comparator.comparingInt`. The earlier filter `isCommentBeforeExpression` already requires range to be present, so the throw is unreachable today — but a future filter change could leak `Optional.empty()` past it and crash with no message. Cache the range when filtering, or use a safe extractor.
+
+**Resolution:** Comparator uses `Integer.MAX_VALUE` fallbacks when range begin/end is absent instead of `orElseThrow()`.
 
 #### 45. **[DONE]** `ArrayInitializerFormatter` does not preserve interior comments inline
 `ArrayInitializerFormatter.java:98-106` walks `n.getValues()` calling `ctx.accept(expr, arg)`, but never invokes `ctx.printOrphanCommentsBeforeThisChildNode(expr)`. So a comment that appears *between* two array literals (`{a, /* sep */ b}`) may be dropped or misplaced when the array prints inline. The multi-line path (`printTallInitializer`) has the same issue.
 
 **Resolution:** the inline path cannot survive interior comments because the default block-comment visitor emits a trailing newline (this caused infinite oscillation between inline and tall layouts). Now `ArrayInitializerFormatter` detects any value with a leading line/block comment and forces a tall layout (one element per line). In tall mode, leading comments are emitted via the new shared `LayoutContext.printNormalizedBlockComment` (block) or a normalized line-comment printer, then stripped from the AST so the visitor does not re-print them. Also extracted the duplicated multi-line block-comment printer from `StringLiteralFormatter` to `LayoutContext`. Regression test in `FormattingEngineTest.arrayInitializerWithInteriorBlockComment_convergesToTallLayout` plus shape assertions in `CommentPreservationTest`.
 
-#### 46. **[INC]** Asymmetric handling of "nested array initializer" vs top-level
+#### 46. **[DONE]** Asymmetric handling of "nested array initializer" vs top-level
 `ArrayInitializerFormatter.java:40-94` — when the parent is also an `ArrayInitializerExpr` we align elements to `openBraceColumn + continuationIndentSize`; otherwise we use `printCont()`. The reasons are not documented. For a 2D array, this means inner braces get column-aligned padding while outer braces use plain continuation. There may be a deliberate visual reason but neither code nor docs explain it.
+
+**Resolution:** Inline comment at the `nestedArrayInitializer` site explains column alignment for nested `{` vs top-level continuation indent.
 
 #### 47. **[QUAL]** Cross-module call for a width helper
 `ArrayInitializerFormatter.java:38` calls `methodChainFormatter.argsFlatWidth(...)`. `MethodChainFormatter` is unrelated to array initializers; the only reason it owns this helper is historical. Move flat-width helpers to `WidthMeasurer` (or a `ListWidth` utility) so `ArrayInitializerFormatter` doesn't pull in `MethodChainFormatter` as a dependency.
@@ -280,13 +292,17 @@ Either merge into a single block, or hoist the rationale into a class-level comm
 #### 49. **[QUAL]** `LayoutContext` exposes raw scope mutators to delegates
 `LayoutContext.java:121-127` re-exposes `enterWrappedDelimitedListScope`/`exitWrappedDelimitedListScope` from the visitor. Delegate code that forgets to pair them leaves visitor state corrupted across the rest of the print. Wrap as `try-with-resources` (`AutoCloseable`) or `withWrappedDelimitedList(Runnable)` to make scoping mistake-proof.
 
-#### 50. **[INC]** `LayoutContext.acceptDefault` has a known-narrow target
+#### 50. **[DONE]** `LayoutContext.acceptDefault` has a known-narrow target
 `LayoutContext.java:172-174` calls `visitor.defaultVisit(node, arg)`, but `defaultVisit` only routes `BinaryExpr` and `MethodCallExpr` (see finding #16). Naming `acceptDefault` invites callers to use it for any node — and that yields silent no-op output. Either:
 - rename to `acceptBinaryOrChain(...)` to match capability, or
 - have `defaultVisit` fall through to `super.visit(node, arg)` for unknown types.
 
-#### 51. **[INC]** `BraceEnforcer.super.visit(n, null)` discards the `arg`
+**Resolution:** Renamed to `acceptDefaultBinaryExprOrMethodCall`; Javadoc references `PrincePrettyPrinterVisitor#defaultVisit`. Call sites updated in `BinaryExprFormatter` and `MethodChainFormatter`.
+
+#### 51. **[DONE]** `BraceEnforcer.super.visit(n, null)` discards the `arg`
 `BraceEnforcer.java:24, 43, 51, 60, 69` all call `super.visit(n, null)` instead of `super.visit(n, arg)`. The `Void` arg is always null, so behavior is unchanged, but it telegraphs "I don't care what arg is" — and a future migration from `Void` to a real type-parameter would silently erase context. Use `arg`.
+
+**Resolution:** All `super.visit` calls now pass `arg`.
 
 #### 52. **[BUG]** `BraceEnforcer` wraps statements without preserving originating range/comments
 `BraceEnforcer.java:27, 34, 45, 53, 62, 71` synthesize a fresh `BlockStmt` around the original statement. The synthetic block has no source range; any later visitor logic that uses `getRange()` (e.g. `CommentUtils.hasCommentBetweenStatements`) returns "no opinion" for it. A pre-existing comment between an `if (x)` and its body could move or repeat across iterations. Test idempotency for `if (x) /* comment */ doX();`.
@@ -417,8 +433,10 @@ Resolution: replaced with `shadedJar_onlyContainsProjectAndMetaInfEntries` which
 
 **Resolution:** Root `build.gradle.kts` now enables Javadoc/sources only when `project.name in setOf("core", "core-bundled", "spotless")`.
 
-#### 82. **[QUAL]** `prince.maxConvergencePasses` system property is not a public knob
+#### 82. **[DONE]** `prince.maxConvergencePasses` system property is not a public knob
 `FormattingEngine.java:99-109` reads a JVM system property to control convergence retries, but this is documented nowhere outside the source. Either expose via `FormatterConfig` (typed and validated) or document under "Diagnostics" in the user docs.
+
+**Resolution:** Documented in `docs/formatting-rules.md` (JVM diagnostics), `docs/architecture.md` (maintainer table), and cross-linked.
 
 ### Test infrastructure & dependencies
 
