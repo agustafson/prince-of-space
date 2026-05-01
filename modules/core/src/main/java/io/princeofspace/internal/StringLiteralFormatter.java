@@ -31,6 +31,10 @@ final class StringLiteralFormatter {
     private static final int MIN_CONCAT_CHAIN_PARTS = 2;
     private static final int LARGE_STRING_FORCE_BREAK_THRESHOLD = 500;
     private static final int MAX_SHALLOW_LINEAR_STRING_CONCAT_PARTS = 128;
+    /**
+     * Upper bound on nested block depth assumed when budgeting chunk columns — deeper nesting than this
+     * may slightly underestimate remaining width (conservative for wrapping decisions).
+     */
     private static final int WORST_CASE_BLOCK_INDENTS_FOR_STRING_CHUNKING = 4;
 
     private final LayoutContext ctx;

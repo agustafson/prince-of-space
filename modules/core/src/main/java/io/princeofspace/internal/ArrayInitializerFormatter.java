@@ -46,6 +46,8 @@ final class ArrayInitializerFormatter {
             // multi-line whenever any value carries a leading line/block comment.
             boolean hasInteriorComment = anyValueHasLeadingLineOrBlockComment(n.getValues());
             boolean multi = arrayFlat > fmt.lineLength() || hasInteriorComment;
+            // Nested initializers align elements under the inner `{` column (openBraceColumn +
+            // continuation indent); top-level arrays use normal continuation indent — clearer columns for 2D+ literals.
             boolean nestedArrayInitializer = n.getParentNode().map(parent -> parent instanceof ArrayInitializerExpr).orElse(false);
             if (multi) {
                 if (fmt.wrapStyle() == WrapStyle.WIDE && !hasInteriorComment) {
