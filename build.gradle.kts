@@ -36,7 +36,7 @@ subprojects {
                 option("NullAway:AnnotatedPackages", "io.princeofspace")
             }
         }
-        if (project.name.contains("core") || project.name.contains("spotless")) {
+        if (project.name in setOf("core", "core-bundled", "spotless")) {
             logger.lifecycle("${project.name}: enabling javadocs & sources")
             javaExtension.withJavadocJar()
             javaExtension.withSourcesJar()
