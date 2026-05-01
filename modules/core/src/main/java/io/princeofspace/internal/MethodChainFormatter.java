@@ -37,12 +37,10 @@ final class MethodChainFormatter {
     private static final int LAMBDA_HEAVY_CHAIN_WRAP_TRIGGER_WIDTH = 60;
 
     private final LayoutContext ctx;
-    private final CommentUtils comments;
 
-    /** Creates a method-chain formatter bound to shared layout context and comment helpers. */
-    MethodChainFormatter(LayoutContext ctx, CommentUtils comments) {
+    /** Creates a method-chain formatter bound to shared layout context. */
+    MethodChainFormatter(LayoutContext ctx) {
         this.ctx = ctx;
-        this.comments = comments;
     }
 
     /**
@@ -72,7 +70,7 @@ final class MethodChainFormatter {
         Expression base = baseOpt.get();
         boolean wrap = mustWrapChain(base, calls)
                 || shouldWrapLambdaHeavyChain(base, calls)
-                || comments.chainHasLineOrBlockComments(base, calls);
+                || CommentUtils.chainHasLineOrBlockComments(base, calls);
         if (!wrap) {
             ctx.printOrphanCommentsBeforeThisChildNode(n);
             printChainInline(base, calls, arg);
@@ -199,7 +197,7 @@ final class MethodChainFormatter {
      * {@link #isSimpleBase simple} receiver stays {@code receiver.method(...)} on one line.
      */
     void printChainBalancedOrNarrow(Expression base, List<MethodCallExpr> calls, Void arg) {
-        Optional<Comment> hoistedBaseComment = comments.hoistableWrappedChainBaseComment(base);
+        Optional<Comment> hoistedBaseComment = CommentUtils.hoistableWrappedChainBaseComment(base);
         if (hoistedBaseComment.isPresent()) {
             printExpressionWithoutOwnComment(base, arg);
         } else {
@@ -208,8 +206,8 @@ final class MethodChainFormatter {
 
         if (calls.size() == SINGLE_ITEM_COUNT
                 && isSimpleBase(base)
-                && !comments.hasLineOrBlockComment(calls.get(0))
-                && !comments.hasLineOrBlockComment(calls.get(0).getName())
+                && !CommentUtils.hasLineOrBlockComment(calls.get(0))
+                && !CommentUtils.hasLineOrBlockComment(calls.get(0).getName())
                 && calls.get(0).getOrphanComments().isEmpty()) {
             MethodCallExpr only = calls.get(0);
             ctx.print(".");
@@ -232,10 +230,10 @@ final class MethodChainFormatter {
                 ctx.printComment(hoistedBaseComment, arg);
             }
             ctx.printOrphanCommentsBeforeThisChildNode(mc);
-            Optional<Comment> hoistedComment = comments.hoistableArgumentComment(mc);
-            if (comments.hasLineOrBlockComment(mc)) {
+            Optional<Comment> hoistedComment = CommentUtils.hoistableArgumentComment(mc);
+            if (CommentUtils.hasLineOrBlockComment(mc)) {
                 ctx.printComment(mc.getComment(), arg);
-            } else if (comments.hasLineOrBlockComment(mc.getName())) {
+            } else if (CommentUtils.hasLineOrBlockComment(mc.getName())) {
                 ctx.printComment(mc.getName().getComment(), arg);
             } else if (hoistedComment.isPresent()) {
                 ctx.printComment(hoistedComment, arg);
@@ -243,7 +241,7 @@ final class MethodChainFormatter {
             ctx.print(".");
             ctx.printTypeArgs(mc, arg);
             ctx.print(mc.getNameAsString());
-            if (comments.hasBlockLambdaArgument(mc.getArguments())) {
+            if (CommentUtils.hasBlockLambdaArgument(mc.getArguments())) {
                 ctx.indentWithAlignToSafe(contCol);
                 try {
                     ctx.printArguments(mc.getArguments(), arg);

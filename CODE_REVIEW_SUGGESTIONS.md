@@ -254,11 +254,13 @@ Canonical Rule 5 says "Empty enums remain `enum E { }` compatible with Rule 9 (n
 
 ### Comment, ArrayInitializer, LayoutContext, BraceEnforcer, PrettyPrinter
 
-#### 42. **[QUAL]** `record CommentUtils()` is an unusual idiom
+#### 42. **[DONE]** `record CommentUtils()` is an unusual idiom
 `CommentUtils.java:25` declares `record CommentUtils() { … }` with no components. Records are intended for value carriers, not stateless helpers. There are 21 instance methods that have no use of `this`. Either:
 - Make it `final class CommentUtils { private CommentUtils() {} }` with `static` methods, or
 - Convert all helpers to `static` and call them as `CommentUtils.foo(…)`.
 This affects readability — every reader must do a double-take to figure out why a record has methods.
+
+**Resolution:** Replaced with `final class CommentUtils` (private ctor), `static` helpers; delegates no longer inject `CommentUtils` — call sites use `CommentUtils.method(...)`.
 
 #### 43. **[DONE]** Doubled Javadoc blocks on the same method in `CommentUtils`
 `CommentUtils.java:175-180`, `:254-259`, `:287-292`, `:317-322` each have two `/** … */` blocks immediately above the same method:

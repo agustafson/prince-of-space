@@ -26,12 +26,10 @@ final class BinaryExprFormatter {
     private static final int STRING_CONCAT_OPERATOR_WITH_SPACES_WIDTH = 3; // " + "
 
     private final LayoutContext ctx;
-    private final CommentUtils comments;
 
-    /** Creates a binary formatter bound to shared layout context and comment helpers. */
-    BinaryExprFormatter(LayoutContext ctx, CommentUtils comments) {
+    /** Creates a binary formatter bound to shared layout context. */
+    BinaryExprFormatter(LayoutContext ctx) {
         this.ctx = ctx;
-        this.comments = comments;
     }
 
     /** Formats binary expressions with wrap-style-specific handling for comments and line budgets. */
@@ -44,8 +42,8 @@ final class BinaryExprFormatter {
             for (Expression p : parts) {
                 flat += WidthMeasurer.flatWidth(p, ctx.config()) + LOGICAL_OPERATOR_WITH_SPACES_WIDTH;
             }
-            if (!comments.anyOperandHasLeadingLineOrBlockComment(parts)
-                    && !comments.anyOperandHasTrailingLineOrBlockComment(parts)
+            if (!CommentUtils.anyOperandHasLeadingLineOrBlockComment(parts)
+                    && !CommentUtils.anyOperandHasTrailingLineOrBlockComment(parts)
                     && flat <= ctx.config().lineLength()) {
                 ctx.accept(parts.get(0), arg);
                 String os = n.getOperator().asString();
@@ -61,8 +59,8 @@ final class BinaryExprFormatter {
             if (ctx.config().wrapStyle() == WrapStyle.BALANCED || ctx.config().wrapStyle() == WrapStyle.NARROW) {
                 boolean prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(0), arg);
                 for (int i = 1; i < parts.size(); i++) {
-                    boolean interOperandComment = comments.hasCommentBetweenNodes(parts.get(i - 1), parts.get(i));
-                    if (comments.hasLeadingLineOrBlockComment(parts.get(i)) || interOperandComment) {
+                    boolean interOperandComment = CommentUtils.hasCommentBetweenNodes(parts.get(i - 1), parts.get(i));
+                    if (CommentUtils.hasLeadingLineOrBlockComment(parts.get(i)) || interOperandComment) {
                         printBinaryChainOperandWithInterposedLeadingComments(parts.get(i), os, arg);
                         prevTrailing = false;
                     } else {
@@ -91,8 +89,8 @@ final class BinaryExprFormatter {
             for (Expression p : parts) {
                 flat += WidthMeasurer.flatWidth(p, ctx.config()) + LOGICAL_OPERATOR_WITH_SPACES_WIDTH;
             }
-            if (!comments.anyOperandHasLeadingLineOrBlockComment(parts)
-                    && !comments.anyOperandHasTrailingLineOrBlockComment(parts)
+            if (!CommentUtils.anyOperandHasLeadingLineOrBlockComment(parts)
+                    && !CommentUtils.anyOperandHasTrailingLineOrBlockComment(parts)
                     && flat <= ctx.config().lineLength()) {
                 ctx.accept(parts.get(0), arg);
                 String os = n.getOperator().asString();
@@ -108,8 +106,8 @@ final class BinaryExprFormatter {
             if (ctx.config().wrapStyle() == WrapStyle.BALANCED || ctx.config().wrapStyle() == WrapStyle.NARROW) {
                 boolean prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(0), arg);
                 for (int i = 1; i < parts.size(); i++) {
-                    boolean interOperandComment = comments.hasCommentBetweenNodes(parts.get(i - 1), parts.get(i));
-                    if (comments.hasLeadingLineOrBlockComment(parts.get(i)) || interOperandComment) {
+                    boolean interOperandComment = CommentUtils.hasCommentBetweenNodes(parts.get(i - 1), parts.get(i));
+                    if (CommentUtils.hasLeadingLineOrBlockComment(parts.get(i)) || interOperandComment) {
                         printBinaryChainOperandWithInterposedLeadingComments(parts.get(i), os, arg);
                         prevTrailing = false;
                     } else {
@@ -135,8 +133,8 @@ final class BinaryExprFormatter {
             List<StringLiteralExpr> concatLeaves = new ArrayList<>();
             if (tryCollectPureStringConcatLeaves((Expression) n, concatLeaves)) {
                 List<Expression> concatLeavesAsExpr = new ArrayList<>(concatLeaves);
-                if (!comments.anyOperandHasLeadingLineOrBlockComment(concatLeavesAsExpr)
-                        && !comments.anyOperandHasTrailingLineOrBlockComment(concatLeavesAsExpr)
+                if (!CommentUtils.anyOperandHasLeadingLineOrBlockComment(concatLeavesAsExpr)
+                        && !CommentUtils.anyOperandHasTrailingLineOrBlockComment(concatLeavesAsExpr)
                         && !anyInterOperandComments(concatLeavesAsExpr)) {
                     String merged = mergeStringLiteralValues(concatLeaves);
                     int max = ctx.config().lineLength();
@@ -157,8 +155,8 @@ final class BinaryExprFormatter {
             for (Expression p : parts) {
                 flat += WidthMeasurer.flatWidth(p, ctx.config()) + STRING_CONCAT_OPERATOR_WITH_SPACES_WIDTH;
             }
-            if (!comments.anyOperandHasLeadingLineOrBlockComment(parts)
-                    && !comments.anyOperandHasTrailingLineOrBlockComment(parts)
+            if (!CommentUtils.anyOperandHasLeadingLineOrBlockComment(parts)
+                    && !CommentUtils.anyOperandHasTrailingLineOrBlockComment(parts)
                     && flat <= ctx.config().lineLength()) {
                 ctx.accept(parts.get(0), arg);
                 for (int i = 1; i < parts.size(); i++) {
@@ -209,7 +207,7 @@ final class BinaryExprFormatter {
         }
         boolean prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(0), arg);
         for (int i = 1; i < parts.size(); i++) {
-            if (comments.hasLeadingLineOrBlockComment(parts.get(i))) {
+            if (CommentUtils.hasLeadingLineOrBlockComment(parts.get(i))) {
                 printBinaryChainOperandWithInterposedLeadingComments(parts.get(i), "+", arg);
                 prevTrailing = false;
             } else {
@@ -263,7 +261,7 @@ final class BinaryExprFormatter {
 
     private boolean anyInterOperandComments(List<Expression> parts) {
         for (int i = 1; i < parts.size(); i++) {
-            if (comments.hasCommentBetweenNodes(parts.get(i - 1), parts.get(i))) {
+            if (CommentUtils.hasCommentBetweenNodes(parts.get(i - 1), parts.get(i))) {
                 return true;
             }
         }
@@ -303,8 +301,8 @@ final class BinaryExprFormatter {
         for (int i = 1; i < parts.size(); i++) {
             int opLen = op.length() + 2; // " op "
             int partLen = WidthMeasurer.flatWidth(parts.get(i), ctx.config());
-            boolean leadingComment = comments.hasLeadingLineOrBlockComment(parts.get(i));
-            boolean interOperandComment = comments.hasCommentBetweenNodes(parts.get(i - 1), parts.get(i));
+            boolean leadingComment = CommentUtils.hasLeadingLineOrBlockComment(parts.get(i));
+            boolean interOperandComment = CommentUtils.hasCommentBetweenNodes(parts.get(i - 1), parts.get(i));
             boolean overBudget = used + opLen + partLen > budget;
             if (leadingComment || interOperandComment) {
                 printBinaryChainOperandWithInterposedLeadingComments(parts.get(i), op, arg);
@@ -416,7 +414,7 @@ final class BinaryExprFormatter {
      * @return {@code true} if a trailing comment was emitted (line was ended by the comment)
      */
     boolean printExprWithTrailingCommentAfter(Expression expr, Void arg) {
-        if (!comments.hasTrailingLineOrBlockComment(expr)) {
+        if (!CommentUtils.hasTrailingLineOrBlockComment(expr)) {
             ctx.accept(expr, arg);
             return false;
         }
@@ -442,7 +440,7 @@ final class BinaryExprFormatter {
         ctx.print(op);
         ctx.print(" ");
         Expression stripped = operand.clone();
-        comments.removeAllCommentsFromTree(stripped);
+        CommentUtils.removeAllCommentsFromTree(stripped);
         ctx.accept(stripped, arg);
     }
 }

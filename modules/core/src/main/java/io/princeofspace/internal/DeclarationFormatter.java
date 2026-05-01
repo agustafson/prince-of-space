@@ -34,19 +34,16 @@ final class DeclarationFormatter {
 
     private final LayoutContext ctx;
     private final FormatterConfig fmt;
-    private final CommentUtils commentUtils;
     private final ArgumentListFormatter argumentListFormatter;
     private final TypeClauseFormatter typeClauseFormatter;
 
     DeclarationFormatter(
             LayoutContext ctx,
             FormatterConfig fmt,
-            CommentUtils commentUtils,
             ArgumentListFormatter argumentListFormatter,
             TypeClauseFormatter typeClauseFormatter) {
         this.ctx = ctx;
         this.fmt = fmt;
-        this.commentUtils = commentUtils;
         this.argumentListFormatter = argumentListFormatter;
         this.typeClauseFormatter = typeClauseFormatter;
     }
@@ -333,11 +330,11 @@ final class DeclarationFormatter {
             } else {
                 ctx.print("class ");
             }
-            commentUtils.pruneDuplicatedHeaderLineCommentsOnTypeClauses(n);
+            CommentUtils.pruneDuplicatedHeaderLineCommentsOnTypeClauses(n);
             List<Comment> misplacedOpeningLineComments =
                     !n.getExtendedTypes().isEmpty() || !n.getImplementedTypes().isEmpty()
-                            ? commentUtils.extractAndDedupeLineCommentsOnTypeNameLine(n)
-                            : commentUtils.extractLineCommentsMisplacedBeforeTypeName(n);
+                            ? CommentUtils.extractAndDedupeLineCommentsOnTypeNameLine(n)
+                            : CommentUtils.extractLineCommentsMisplacedBeforeTypeName(n);
             ctx.accept(n.getName(), arg);
             argumentListFormatter.printTypeParameters(n.getTypeParameters(), arg);
             boolean typeClauseWrapped = false;

@@ -101,7 +101,6 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     /** Matches {@link PrettyPrinter}'s {@code END_OF_LINE_CHARACTER} option (opening delimiter of text blocks). */
     private final String printerEndOfLine;
     final LayoutContext ctx;
-    private final CommentUtils commentUtils;
     private final BinaryExprFormatter binaryExprFormatter;
     private final MethodChainFormatter methodChainFormatter;
     private final ArgumentListFormatter argumentListFormatter;
@@ -138,13 +137,12 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         this.fmt = fmt;
         this.printerEndOfLine = Objects.requireNonNull(printerEndOfLine, "printerEndOfLine");
         this.ctx = new LayoutContext(fmt, printer, this);
-        this.commentUtils = new CommentUtils();
-        this.binaryExprFormatter = new BinaryExprFormatter(ctx, commentUtils);
-        this.methodChainFormatter = new MethodChainFormatter(ctx, commentUtils);
-        this.argumentListFormatter = new ArgumentListFormatter(ctx, fmt, commentUtils, methodChainFormatter);
-        this.typeClauseFormatter = new TypeClauseFormatter(ctx, fmt, commentUtils);
+        this.methodChainFormatter = new MethodChainFormatter(ctx);
+        this.binaryExprFormatter = new BinaryExprFormatter(ctx);
+        this.argumentListFormatter = new ArgumentListFormatter(ctx, fmt, methodChainFormatter);
+        this.typeClauseFormatter = new TypeClauseFormatter(ctx, fmt);
         this.declarationFormatter =
-                new DeclarationFormatter(ctx, fmt, commentUtils, argumentListFormatter, typeClauseFormatter);
+                new DeclarationFormatter(ctx, fmt, argumentListFormatter, typeClauseFormatter);
         this.stringLiteralFormatter = new StringLiteralFormatter(ctx);
         this.arrayInitializerFormatter =
                 new ArrayInitializerFormatter(ctx, argumentListFormatter, methodChainFormatter);
@@ -412,9 +410,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 if (prev != null && prev.getRange().isPresent() && s.getRange().isPresent()) {
                     int prevEnd = prev.getRange().get().end.line;
                     int curStart = s.getRange().get().begin.line;
-                    boolean hasInterveningComment = commentUtils.hasCommentBetweenStatements(n, prev, s);
+                    boolean hasInterveningComment = CommentUtils.hasCommentBetweenStatements(n, prev, s);
                     boolean currentStatementPrintsCommentBeforeCode =
-                            commentUtils.hasLineOrBlockCommentPrintedBeforeNode(s);
+                            CommentUtils.hasLineOrBlockCommentPrintedBeforeNode(s);
                     if (curStart > prevEnd + 1
                             && !hasInterveningComment
                             && !currentStatementPrintsCommentBeforeCode) {
@@ -486,11 +484,11 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             boolean first = true;
             while (resources.hasNext()) {
                 Expression resource = resources.next();
-                if (first && commentUtils.hasLeadingLineOrBlockComment(resource)) {
+                if (first && CommentUtils.hasLeadingLineOrBlockComment(resource)) {
                     printer.println();
                     printCont();
                 }
-                if (commentUtils.hasLeadingLineOrBlockComment(resource) && resource.getComment().isPresent()) {
+                if (CommentUtils.hasLeadingLineOrBlockComment(resource) && resource.getComment().isPresent()) {
                     printComment(resource.getComment(), arg);
                     printCont();
                     Expression resourceWithoutLeadingComment = resource.clone();
@@ -726,7 +724,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printer.print("@");
         n.getName().accept(this, arg);
         printer.print("(");
-        if (commentUtils.hasLeadingLineOrBlockComment(n.getMemberValue())) {
+        if (CommentUtils.hasLeadingLineOrBlockComment(n.getMemberValue())) {
             printer.println();
             printCont();
             n.getMemberValue().accept(this, arg);
@@ -752,7 +750,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printer.print("(");
         boolean hasCommentedPair = false;
         for (MemberValuePair p : pairs) {
-            if (commentUtils.hasLineOrBlockComment(p)) {
+            if (CommentUtils.hasLineOrBlockComment(p)) {
                 hasCommentedPair = true;
                 break;
             }
@@ -856,8 +854,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                             wrapped
                                     && (args.size() > SINGLE_ITEM_COUNT
                                             || (args.size() == SINGLE_ITEM_COUNT
-                                                    && (commentUtils.hasLeadingLineOrBlockComment(args.get(0))
-                                                            || commentUtils.hasAnyLineOrBlockCommentOnLambda(
+                                                    && (CommentUtils.hasLeadingLineOrBlockComment(args.get(0))
+                                                            || CommentUtils.hasAnyLineOrBlockCommentOnLambda(
                                                                     args.get(0))
                                                             || argumentListFormatter.shouldBreakBeforeSingleWrappedArg(
                                                                     args.get(0)))));
@@ -996,7 +994,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (n.getInitializer().isPresent()) {
             Expression init = n.getInitializer().get();
             printer.print(" =");
-            if (commentUtils.hasLeadingLineOrBlockComment(init)) {
+            if (CommentUtils.hasLeadingLineOrBlockComment(init)) {
                 printer.println();
                 printCont();
             } else {
@@ -1223,7 +1221,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
         boolean inlineArrow = !colonStyle
                 && stmts.size() == SINGLE_ITEM_COUNT
-                && !commentUtils.hasLeadingLineOrBlockComment(stmts.get(0));
+                && !CommentUtils.hasLeadingLineOrBlockComment(stmts.get(0));
         if (inlineArrow) {
             printer.print(" ");
             stmts.get(0).accept(this, arg);

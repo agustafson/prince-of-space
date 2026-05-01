@@ -26,12 +26,10 @@ final class TypeClauseFormatter {
 
     private final LayoutContext ctx;
     private final FormatterConfig fmt;
-    private final CommentUtils commentUtils;
 
-    TypeClauseFormatter(LayoutContext ctx, FormatterConfig fmt, CommentUtils commentUtils) {
+    TypeClauseFormatter(LayoutContext ctx, FormatterConfig fmt) {
         this.ctx = ctx;
         this.fmt = fmt;
-        this.commentUtils = commentUtils;
     }
 
     /** Estimates the width of a comma-separated list of class/interface type names (flat text). */
@@ -232,7 +230,7 @@ final class TypeClauseFormatter {
      * leading line/block comment forces it.
      */
     void printInlineTypeClauseList(NodeList<ClassOrInterfaceType> types, Void arg) {
-        if (types.size() == 1 && commentUtils.hasLeadingLineOrBlockComment(types.get(0))) {
+        if (types.size() == 1 && CommentUtils.hasLeadingLineOrBlockComment(types.get(0))) {
             ctx.println();
             ctx.printCont();
             ctx.accept(types.get(0), arg);

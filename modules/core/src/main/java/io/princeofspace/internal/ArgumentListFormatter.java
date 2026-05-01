@@ -29,17 +29,11 @@ final class ArgumentListFormatter {
 
     private final LayoutContext ctx;
     private final FormatterConfig fmt;
-    private final CommentUtils commentUtils;
     private final MethodChainFormatter methodChainFormatter;
 
-    ArgumentListFormatter(
-            LayoutContext ctx,
-            FormatterConfig fmt,
-            CommentUtils commentUtils,
-            MethodChainFormatter methodChainFormatter) {
+    ArgumentListFormatter(LayoutContext ctx, FormatterConfig fmt, MethodChainFormatter methodChainFormatter) {
         this.ctx = ctx;
         this.fmt = fmt;
-        this.commentUtils = commentUtils;
         this.methodChainFormatter = methodChainFormatter;
     }
 
@@ -86,7 +80,7 @@ final class ArgumentListFormatter {
             if (e instanceof LambdaExpr leadingLambda && leadingLambda.getBody() instanceof BlockStmt) {
                 return false;
             }
-            if (commentUtils.hasLineOrBlockComment(e) || commentUtils.hasLeadingLineOrBlockComment(e)) {
+            if (CommentUtils.hasLineOrBlockComment(e) || CommentUtils.hasLeadingLineOrBlockComment(e)) {
                 return false;
             }
         }
@@ -115,14 +109,14 @@ final class ArgumentListFormatter {
      */
     void printCommaSeparatedExprs(NodeList<? extends Expression> args, Void arg) {
         if (args.size() == SINGLE_ITEM_COUNT
-                && (commentUtils.hasLeadingLineOrBlockComment(args.get(0))
-                        || commentUtils.hasAnyLineOrBlockCommentOnLambda(args.get(0)))) {
+                && (CommentUtils.hasLeadingLineOrBlockComment(args.get(0))
+                        || CommentUtils.hasAnyLineOrBlockCommentOnLambda(args.get(0)))) {
             ctx.println();
             ctx.printCont();
             ctx.accept(args.get(0), arg);
             return;
         }
-        if (args.size() > SINGLE_ITEM_COUNT && commentUtils.hasLineOrBlockComment(args.get(0))) {
+        if (args.size() > SINGLE_ITEM_COUNT && CommentUtils.hasLineOrBlockComment(args.get(0))) {
             ctx.println();
             ctx.printCont();
             if (fmt.wrapStyle() == WrapStyle.WIDE) {
@@ -221,7 +215,7 @@ final class ArgumentListFormatter {
                     : WidthMeasurer.flatWidth(e, fmt);
             int need = expressionWidth + (first ? 0 : 2);
             boolean shouldWrapForLoneLastItem = avoidLoneLastItem && !first && remaining == 2;
-            boolean hasInterveningComment = previous != null && commentUtils.hasCommentBetweenNodes(previous, e);
+            boolean hasInterveningComment = previous != null && CommentUtils.hasCommentBetweenNodes(previous, e);
             boolean currentHasLeadingComment = e.getComment().isPresent();
             int lineBudget = budget + (extraLastLineBudget > 0 && remaining == 1 ? extraLastLineBudget : 0);
             if (!first

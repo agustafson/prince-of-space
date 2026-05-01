@@ -23,15 +23,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class CommentUtilsTest {
 
-    private final CommentUtils commentUtils = new CommentUtils();
-
     @Test
     void hasLineOrBlockComment_trueWhenNodeOwnsLineComment() {
         NameExpr expr = expr("value", 3, 10, 3, 14);
         LineComment comment = lineComment(" owner ", 3, 2, 3, 8);
         expr.setComment(comment);
 
-        assertThat(commentUtils.hasLineOrBlockComment(expr)).isTrue();
+        assertThat(CommentUtils.hasLineOrBlockComment(expr)).isTrue();
     }
 
     @Test
@@ -40,8 +38,8 @@ class CommentUtilsTest {
         LineComment comment = lineComment(" lead ", 5, 2, 5, 9);
         expr.setComment(comment);
 
-        assertThat(commentUtils.hasLeadingLineOrBlockComment(expr)).isTrue();
-        assertThat(commentUtils.hasTrailingLineOrBlockComment(expr)).isFalse();
+        assertThat(CommentUtils.hasLeadingLineOrBlockComment(expr)).isTrue();
+        assertThat(CommentUtils.hasTrailingLineOrBlockComment(expr)).isFalse();
     }
 
     @Test
@@ -50,8 +48,8 @@ class CommentUtilsTest {
         LineComment comment = lineComment(" trail ", 6, 12, 6, 20);
         expr.setComment(comment);
 
-        assertThat(commentUtils.hasTrailingLineOrBlockComment(expr)).isTrue();
-        assertThat(commentUtils.hasLeadingLineOrBlockComment(expr)).isFalse();
+        assertThat(CommentUtils.hasTrailingLineOrBlockComment(expr)).isTrue();
+        assertThat(CommentUtils.hasLeadingLineOrBlockComment(expr)).isFalse();
     }
 
     @Test
@@ -60,7 +58,7 @@ class CommentUtilsTest {
         LineComment comment = lineComment(" first ", 9, 2, 9, 9);
         expr.setComment(comment);
 
-        assertThat(commentUtils.firstLineOrBlockCommentPrintedBeforeExpression(expr)).contains(comment);
+        assertThat(CommentUtils.firstLineOrBlockCommentPrintedBeforeExpression(expr)).contains(comment);
     }
 
     @Test
@@ -69,7 +67,7 @@ class CommentUtilsTest {
         Statement first = block.getStatement(0);
         Statement second = block.getStatement(1);
 
-        assertThat(commentUtils.hasCommentBetweenStatements(block, first, second)).isTrue();
+        assertThat(CommentUtils.hasCommentBetweenStatements(block, first, second)).isTrue();
     }
 
     @Test
@@ -77,7 +75,7 @@ class CommentUtilsTest {
         NameExpr expr = expr("value", 2, 1, 2, 5);
         expr.setComment(lineComment(" c ", 1, 1, 1, 4));
 
-        assertThat(commentUtils.hasAnyLineOrBlockCommentOnLambda(expr)).isFalse();
+        assertThat(CommentUtils.hasAnyLineOrBlockCommentOnLambda(expr)).isFalse();
     }
 
     @Test
@@ -85,7 +83,7 @@ class CommentUtilsTest {
         LambdaExpr lambda = (LambdaExpr) StaticJavaParser.parseExpression("x -> x + 1");
         lambda.setComment(lineComment(" lambda ", 1, 1, 1, 9));
 
-        assertThat(commentUtils.hasAnyLineOrBlockCommentOnLambda(lambda)).isTrue();
+        assertThat(CommentUtils.hasAnyLineOrBlockCommentOnLambda(lambda)).isTrue();
     }
 
     @Test
@@ -95,7 +93,7 @@ class CommentUtilsTest {
         var first = type.getMembers().get(0);
         var second = type.getMembers().get(1);
 
-        assertThat(commentUtils.hasCommentBetweenNodes(first, second)).isTrue();
+        assertThat(CommentUtils.hasCommentBetweenNodes(first, second)).isTrue();
     }
 
     @Test
@@ -103,8 +101,8 @@ class CommentUtilsTest {
         Expression blockLambda = StaticJavaParser.parseExpression("x -> { return x; }");
         Expression inlineLambda = StaticJavaParser.parseExpression("x -> x + 1");
 
-        assertThat(commentUtils.hasBlockLambdaArgument(new NodeList<>(inlineLambda, blockLambda))).isTrue();
-        assertThat(commentUtils.hasBlockLambdaArgument(new NodeList<>(inlineLambda))).isFalse();
+        assertThat(CommentUtils.hasBlockLambdaArgument(new NodeList<>(inlineLambda, blockLambda))).isTrue();
+        assertThat(CommentUtils.hasBlockLambdaArgument(new NodeList<>(inlineLambda))).isFalse();
     }
 
     @Test
@@ -113,7 +111,7 @@ class CommentUtilsTest {
         expr.setComment(new BlockComment(" owned "));
         expr.addOrphanComment(new LineComment(" orphan "));
 
-        commentUtils.removeAllCommentsFromTree(expr);
+        CommentUtils.removeAllCommentsFromTree(expr);
 
         assertThat(expr.getComment()).isEmpty();
         assertThat(expr.getOrphanComments()).isEmpty();
@@ -126,7 +124,7 @@ class CommentUtilsTest {
         BlockComment emptyBlock = new BlockComment("  ");
         call.getArgument(1).setComment(emptyBlock);
 
-        assertThat(commentUtils.hoistableArgumentComment(call)).contains(emptyBlock);
+        assertThat(CommentUtils.hoistableArgumentComment(call)).contains(emptyBlock);
     }
 
     @Test
@@ -135,7 +133,7 @@ class CommentUtilsTest {
         LineComment owner = lineComment(" direct ", 1, 1, 1, 9);
         call.getArgument(0).setComment(owner);
 
-        assertThat(commentUtils.hoistableArgumentComment(call)).contains(owner);
+        assertThat(CommentUtils.hoistableArgumentComment(call)).contains(owner);
     }
 
     @Test
@@ -149,7 +147,7 @@ class CommentUtilsTest {
         type.addOrphanComment(right);
         type.addOrphanComment(unique);
 
-        List<Comment> comments = commentUtils.extractAndDedupeLineCommentsOnTypeNameLine(type);
+        List<Comment> comments = CommentUtils.extractAndDedupeLineCommentsOnTypeNameLine(type);
 
         assertThat(comments).hasSize(2);
         assertThat(comments).extracting(Comment::getContent).containsExactly("dup", "unique");

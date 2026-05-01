@@ -21,12 +21,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-/** Comment-oriented AST helpers used by visitor delegates. */
-record CommentUtils() {
+/** Static comment-oriented AST helpers used by visitor delegates. */
+final class CommentUtils {
+
     private static final int SINGLE_ARGUMENT_COUNT = 1;
 
+    private CommentUtils() {}
+
     /** Returns whether comments exist between two statements in the same block. */
-    boolean hasCommentBetweenStatements(BlockStmt block, Statement previous, Statement current) {
+    static boolean hasCommentBetweenStatements(BlockStmt block, Statement previous, Statement current) {
         if (previous.getRange().isEmpty() || current.getRange().isEmpty()) {
             return false;
         }
@@ -49,7 +52,7 @@ record CommentUtils() {
     }
 
     /** Returns true when a line/block comment would print before the node body. */
-    boolean hasLineOrBlockCommentPrintedBeforeNode(Node node) {
+    static boolean hasLineOrBlockCommentPrintedBeforeNode(Node node) {
         if (node.getRange().isEmpty()) {
             return false;
         }
@@ -72,7 +75,7 @@ record CommentUtils() {
     }
 
     /** Returns true when a lambda node owns a line/block comment. */
-    boolean hasAnyLineOrBlockCommentOnLambda(Node node) {
+    static boolean hasAnyLineOrBlockCommentOnLambda(Node node) {
         if (!(node instanceof LambdaExpr)) {
             return false;
         }
@@ -85,7 +88,7 @@ record CommentUtils() {
     }
 
     /** Returns true when a node's direct comment is line/block style. */
-    boolean hasLineOrBlockComment(Node node) {
+    static boolean hasLineOrBlockComment(Node node) {
         Optional<Comment> c = node.getComment();
         if (c.isEmpty()) {
             return false;
@@ -95,13 +98,13 @@ record CommentUtils() {
     }
 
     /** Returns true for line/block comments that contain only whitespace. */
-    boolean isEmptyLineOrBlockComment(Comment comment) {
+    static boolean isEmptyLineOrBlockComment(Comment comment) {
         return (comment instanceof LineComment || comment instanceof BlockComment)
                 && comment.getContent().trim().isEmpty();
     }
 
     /** Returns first line/block comment that would print before an expression. */
-    Optional<Comment> firstLineOrBlockCommentPrintedBeforeExpression(Expression expression) {
+    static Optional<Comment> firstLineOrBlockCommentPrintedBeforeExpression(Expression expression) {
         if (expression.getRange().isEmpty()) {
             return Optional.empty();
         }
@@ -122,7 +125,7 @@ record CommentUtils() {
     }
 
     /** Returns true when comment starts before expression source position. */
-    private boolean isCommentBeforeExpression(Comment comment, int expressionBeginLine, int expressionBeginColumn) {
+    private static boolean isCommentBeforeExpression(Comment comment, int expressionBeginLine, int expressionBeginColumn) {
         if (!isLineOrBlock(comment) || comment.getRange().isEmpty()) {
             return false;
         }
@@ -137,7 +140,7 @@ record CommentUtils() {
     }
 
     /** Returns true when node or descendants contain a line/block comment. */
-    boolean hasAnyLineOrBlockComment(Node node) {
+    static boolean hasAnyLineOrBlockComment(Node node) {
         if (node.getComment().isPresent()
                 && (node.getComment().get() instanceof LineComment
                         || node.getComment().get() instanceof BlockComment)) {
@@ -152,7 +155,7 @@ record CommentUtils() {
     }
 
     /** Returns true when there is a comment between two sibling nodes by range. */
-    boolean hasCommentBetweenNodes(Node previous, Node current) {
+    static boolean hasCommentBetweenNodes(Node previous, Node current) {
         if (previous.getRange().isEmpty() || current.getRange().isEmpty()) {
             return false;
         }
@@ -184,7 +187,7 @@ record CommentUtils() {
      * break can be re-attached to a different AST node on the next parse — use a continuation line
      * before printing such nodes.
      */
-    boolean hasLeadingLineOrBlockComment(Node node) {
+    static boolean hasLeadingLineOrBlockComment(Node node) {
         Optional<Comment> c = node.getComment();
         if (c.isEmpty() || node.getRange().isEmpty() || c.get().getRange().isEmpty()) {
             return false;
@@ -207,7 +210,7 @@ record CommentUtils() {
     }
 
     /** Returns true when a node has a same-line trailing line/block comment. */
-    boolean hasTrailingLineOrBlockComment(Node node) {
+    static boolean hasTrailingLineOrBlockComment(Node node) {
         Optional<Comment> c = node.getComment();
         if (c.isEmpty() || node.getRange().isEmpty() || c.get().getRange().isEmpty()) {
             return false;
@@ -227,7 +230,7 @@ record CommentUtils() {
     }
 
     /** Returns true when any operand has a leading line/block comment. */
-    boolean anyOperandHasLeadingLineOrBlockComment(List<Expression> parts) {
+    static boolean anyOperandHasLeadingLineOrBlockComment(List<Expression> parts) {
         for (Expression p : parts) {
             if (hasLeadingLineOrBlockComment(p)) {
                 return true;
@@ -237,7 +240,7 @@ record CommentUtils() {
     }
 
     /** Returns true when any operand has a trailing line/block comment. */
-    boolean anyOperandHasTrailingLineOrBlockComment(List<Expression> parts) {
+    static boolean anyOperandHasTrailingLineOrBlockComment(List<Expression> parts) {
         for (Expression p : parts) {
             if (hasTrailingLineOrBlockComment(p)) {
                 return true;
@@ -247,7 +250,7 @@ record CommentUtils() {
     }
 
     /** Removes owned and orphan comments from a subtree clone. */
-    void removeAllCommentsFromTree(Node node) {
+    static void removeAllCommentsFromTree(Node node) {
         new ArrayList<>(node.getOrphanComments()).forEach(Comment::remove);
         node.getComment().ifPresent(Comment::remove);
         for (Node child : new ArrayList<>(node.getChildNodes())) {
@@ -264,7 +267,7 @@ record CommentUtils() {
      * as an orphan <em>before</em> the type's simple name (between {@code class} and the name).
      * Relocate those comments into the type body so they are not printed twice and idempotency holds.
      */
-    List<Comment> extractLineCommentsMisplacedBeforeTypeName(ClassOrInterfaceDeclaration n) {
+    static List<Comment> extractLineCommentsMisplacedBeforeTypeName(ClassOrInterfaceDeclaration n) {
         if (n.getName().getRange().isEmpty()) {
             return List.of();
         }
@@ -298,7 +301,7 @@ record CommentUtils() {
      * line comment as several orphan nodes on the header line. Strip the whole line's line-comment
      * orphans and keep one copy per distinct comment text (rightmost wins).
      */
-    List<Comment> extractAndDedupeLineCommentsOnTypeNameLine(ClassOrInterfaceDeclaration n) {
+    static List<Comment> extractAndDedupeLineCommentsOnTypeNameLine(ClassOrInterfaceDeclaration n) {
         if (n.getName().getRange().isEmpty()) {
             return List.of();
         }
@@ -329,7 +332,7 @@ record CommentUtils() {
      * entry (for example, both {@code OperatorNot} and {@code extends SpelNodeImpl}). Remove the
      * duplicate from type-clause entries so we print it once and stay idempotent.
      */
-    void pruneDuplicatedHeaderLineCommentsOnTypeClauses(ClassOrInterfaceDeclaration n) {
+    static void pruneDuplicatedHeaderLineCommentsOnTypeClauses(ClassOrInterfaceDeclaration n) {
         Optional<Comment> nameComment = n.getName().getComment();
         if (nameComment.isEmpty() || !(nameComment.get() instanceof LineComment) || nameComment.get().getRange().isEmpty()) {
             return;
@@ -360,7 +363,7 @@ record CommentUtils() {
     }
 
     /** Returns a comment candidate that should be hoisted before wrapped call arguments. */
-    Optional<Comment> hoistableArgumentComment(MethodCallExpr mc) {
+    static Optional<Comment> hoistableArgumentComment(MethodCallExpr mc) {
         if (mc.getArguments().isEmpty()) {
             return Optional.empty();
         }
@@ -384,7 +387,7 @@ record CommentUtils() {
     }
 
     /** Returns a base comment suitable for hoisting on wrapped method chains. */
-    Optional<Comment> hoistableWrappedChainBaseComment(Expression base) {
+    static Optional<Comment> hoistableWrappedChainBaseComment(Expression base) {
         Optional<Comment> comment = base.getComment();
         if (comment.isPresent() && isEmptyLineOrBlockComment(comment.get())) {
             return comment;
@@ -393,7 +396,7 @@ record CommentUtils() {
     }
 
     /** Returns true when any part of a call chain contains line/block comments. */
-    boolean chainHasLineOrBlockComments(Expression base, List<MethodCallExpr> calls) {
+    static boolean chainHasLineOrBlockComments(Expression base, List<MethodCallExpr> calls) {
         if (hasAnyLineOrBlockComment(base)) {
             return true;
         }
@@ -406,7 +409,7 @@ record CommentUtils() {
     }
 
     /** Returns true when any argument is a lambda with a block body. */
-    boolean hasBlockLambdaArgument(NodeList<? extends Expression> args) {
+    static boolean hasBlockLambdaArgument(NodeList<? extends Expression> args) {
         for (Expression expression : args) {
             if (expression instanceof LambdaExpr lambda && lambda.getBody() instanceof BlockStmt) {
                 return true;
@@ -416,7 +419,7 @@ record CommentUtils() {
     }
 
     /** Returns true when comment is either line or block style. */
-    private boolean isLineOrBlock(Comment comment) {
+    private static boolean isLineOrBlock(Comment comment) {
         return comment instanceof LineComment || comment instanceof BlockComment;
     }
 }
