@@ -17,10 +17,10 @@ import static com.github.javaparser.utils.Utils.isNullOrEmpty;
  */
 final class TypeClauseFormatter {
     private static final int CLAUSE_SEPARATOR_WIDTH = 2; // ", "
-    private static final int INLINE_EXTENDS_KEYWORD_WIDTH = 8; // " extends"
-    private static final int INLINE_IMPLEMENTS_KEYWORD_WIDTH = 12; // " implements"
+    private static final int INLINE_EXTENDS_KEYWORD_WIDTH = 9; // " extends "
+    private static final int INLINE_IMPLEMENTS_KEYWORD_WIDTH = 12; // " implements "
     private static final int INLINE_PERMITS_KEYWORD_WIDTH = 9; // " permits "
-    private static final int INLINE_THROWS_KEYWORD_WIDTH = 7; // " throws "
+    private static final int INLINE_THROWS_KEYWORD_WIDTH = 8; // " throws "
     private static final int UNION_OPERATOR_WITH_SPACES_WIDTH = 3; // " | "
     private static final int GREEDY_LIST_TRAILING_HEADROOM = 2;
 
