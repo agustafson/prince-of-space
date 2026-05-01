@@ -18,6 +18,11 @@ import java.util.Objects;
  * units (see {@link #continuationIndentSize()}). This is not configurable — it follows the
  * Oracle/IntelliJ convention and ensures parameters are visually distinct from the method body.
  *
+ * <p><b>Default option values:</b> {@link #DEFAULT_INDENT_STYLE}, {@link #DEFAULT_INDENT_SIZE},
+ * {@link #DEFAULT_LINE_LENGTH}, {@link #DEFAULT_WRAP_STYLE}, {@link #DEFAULT_CLOSING_PAREN_ON_NEW_LINE},
+ * {@link #DEFAULT_TRAILING_COMMAS}, and {@link #DEFAULT_JAVA_LANGUAGE_LEVEL} are the single source of truth
+ * for {@link #defaults()} and {@link Builder}; README and architecture docs reference the same names.
+ *
  * @param indentStyle block indentation: spaces or tab characters per step
  * @param indentSize number of {@link IndentStyle} units per logical indent level
  * @param lineLength target line width; wrapping is triggered when a line exceeds this
@@ -35,6 +40,28 @@ public record FormatterConfig(
         boolean trailingCommas,
         JavaLanguageLevel javaLanguageLevel)
         implements Serializable {
+
+    /** Default {@link IndentStyle} for {@link #defaults()} and {@link Builder}. */
+    public static final IndentStyle DEFAULT_INDENT_STYLE = IndentStyle.SPACES;
+
+    /** Default indent step size ({@link IndentStyle} units per block level) for {@link #defaults()} and {@link Builder}. */
+    public static final int DEFAULT_INDENT_SIZE = 4;
+
+    /** Default {@link #lineLength()} for {@link #defaults()} and {@link Builder}. */
+    public static final int DEFAULT_LINE_LENGTH = 120;
+
+    /** Default {@link WrapStyle} for {@link #defaults()} and {@link Builder}. */
+    public static final WrapStyle DEFAULT_WRAP_STYLE = WrapStyle.BALANCED;
+
+    /** Default {@link #closingParenOnNewLine()} for {@link #defaults()} and {@link Builder}. */
+    public static final boolean DEFAULT_CLOSING_PAREN_ON_NEW_LINE = true;
+
+    /** Default {@link #trailingCommas()} for {@link #defaults()} and {@link Builder}. */
+    public static final boolean DEFAULT_TRAILING_COMMAS = false;
+
+    /** Default {@link #javaLanguageLevel()} for {@link #defaults()} and {@link Builder}. */
+    public static final JavaLanguageLevel DEFAULT_JAVA_LANGUAGE_LEVEL = JavaLanguageLevel.of(17);
+
     @Serial
     private static final long serialVersionUID = 1L;
 
@@ -89,13 +116,13 @@ public record FormatterConfig(
     @SuppressWarnings("PMD.AvoidFieldNameMatchingMethodName")
     public static final class Builder {
 
-        private IndentStyle indentStyle = IndentStyle.SPACES;
-        private int indentSize = 4;
-        private int lineLength = 120;
-        private WrapStyle wrapStyle = WrapStyle.BALANCED;
-        private boolean closingParenOnNewLine = true;
-        private boolean trailingCommas = false;
-        private JavaLanguageLevel javaLanguageLevel = JavaLanguageLevel.of(17);
+        private IndentStyle indentStyle = DEFAULT_INDENT_STYLE;
+        private int indentSize = DEFAULT_INDENT_SIZE;
+        private int lineLength = DEFAULT_LINE_LENGTH;
+        private WrapStyle wrapStyle = DEFAULT_WRAP_STYLE;
+        private boolean closingParenOnNewLine = DEFAULT_CLOSING_PAREN_ON_NEW_LINE;
+        private boolean trailingCommas = DEFAULT_TRAILING_COMMAS;
+        private JavaLanguageLevel javaLanguageLevel = DEFAULT_JAVA_LANGUAGE_LEVEL;
 
         private Builder() {}
 

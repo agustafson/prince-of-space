@@ -15,14 +15,14 @@ class FormatterConfigTest {
     void defaults_returnsExpectedValues() {
         FormatterConfig config = FormatterConfig.defaults();
 
-        assertThat(config.indentStyle()).isEqualTo(IndentStyle.SPACES);
-        assertThat(config.indentSize()).isEqualTo(4);
-        assertThat(config.lineLength()).isEqualTo(120);
-        assertThat(config.continuationIndentSize()).isEqualTo(8);
-        assertThat(config.wrapStyle()).isEqualTo(WrapStyle.BALANCED);
-        assertThat(config.closingParenOnNewLine()).isTrue();
-        assertThat(config.trailingCommas()).isFalse();
-        assertThat(config.javaLanguageLevel()).isEqualTo(JavaLanguageLevel.of(17));
+        assertThat(config.indentStyle()).isEqualTo(FormatterConfig.DEFAULT_INDENT_STYLE);
+        assertThat(config.indentSize()).isEqualTo(FormatterConfig.DEFAULT_INDENT_SIZE);
+        assertThat(config.lineLength()).isEqualTo(FormatterConfig.DEFAULT_LINE_LENGTH);
+        assertThat(config.continuationIndentSize()).isEqualTo(FormatterConfig.DEFAULT_INDENT_SIZE * 2);
+        assertThat(config.wrapStyle()).isEqualTo(FormatterConfig.DEFAULT_WRAP_STYLE);
+        assertThat(config.closingParenOnNewLine()).isEqualTo(FormatterConfig.DEFAULT_CLOSING_PAREN_ON_NEW_LINE);
+        assertThat(config.trailingCommas()).isEqualTo(FormatterConfig.DEFAULT_TRAILING_COMMAS);
+        assertThat(config.javaLanguageLevel()).isEqualTo(FormatterConfig.DEFAULT_JAVA_LANGUAGE_LEVEL);
     }
 
     @Test
