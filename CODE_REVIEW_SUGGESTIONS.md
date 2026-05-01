@@ -51,8 +51,10 @@ In both cases the user has set a system property explicitly and it's being ignor
 
 **Resolution:** Introduced `interpretMaxConvergencePasses(String)` (used from static init and covered by unit tests). Non-integer values log `WARNING` and fall back to the default pass budget; negative values log `WARNING` and clamp to `0`. Replaced silent `Math.max`/`catch` with explicit branches.
 
-#### 9. **[QUAL]** `@SuppressWarnings("ConstantConditions")` placed at method level
+#### 9. **[DONE]** `@SuppressWarnings("ConstantConditions")` placed at method level
 `FormattingEngine.java:141` suppresses on the whole `transform(CompilationUnit)` method to silence one varargs-null call. Move the suppression to a local variable or use a typed `Void v = null` to remove the need for suppression entirely.
+
+**Resolution:** Moved the suppression to a local `Void visitorArg = null` inside `transform` so only that assignment is annotated.
 
 #### 10. **[DONE]** Legacy Java 1–7 mapping is dead surface (project supports Java 8+)
 `JavaParserLanguageLevels.java:63-74` retains a `LEGACY_RELEASE_1`–`LEGACY_RELEASE_7` switch. Since the project only supports Java 8+, the legacy arms (and the `MIN_SUPPORTED_LEVEL = 1` floor in `JavaLanguageLevel`) are unused surface that misleads readers and complicates input validation. Remove the legacy arms; raise the minimum to 8; tighten the public Javadoc accordingly.

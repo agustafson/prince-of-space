@@ -157,9 +157,10 @@ public final class FormattingEngine {
         return new FormatResult.Success(prettyPrinter.print(cu));
     }
 
-    @SuppressWarnings("ConstantConditions") // Void visitor arg is java.lang.Void; null is the only value
     private void transform(CompilationUnit cu) {
-        new BraceEnforcer().visit(cu, null);
-        new AnnotationArranger().visit(cu, null);
+        @SuppressWarnings("ConstantConditions") // Void visitor arg is java.lang.Void; null is the only value
+        Void visitorArg = null;
+        new BraceEnforcer().visit(cu, visitorArg);
+        new AnnotationArranger().visit(cu, visitorArg);
     }
 }
