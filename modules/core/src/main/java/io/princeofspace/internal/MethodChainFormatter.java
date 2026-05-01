@@ -172,11 +172,11 @@ final class MethodChainFormatter {
     private static int lambdaHeaderWidth(LambdaExpr lambda) {
         int paramsWidth;
         if (lambda.isEnclosingParameters()) {
-            paramsWidth = 2 + lambda.getParameters().toString().length(); // "(a, b)"
+            paramsWidth = 2 + WidthMeasurer.commaSeparatedParameterWidth(lambda.getParameters());
         } else if (lambda.getParameters().size() == SINGLE_ITEM_COUNT) {
             paramsWidth = lambda.getParameter(0).toString().length();
         } else {
-            paramsWidth = 2 + lambda.getParameters().toString().length();
+            paramsWidth = 2 + WidthMeasurer.commaSeparatedParameterWidth(lambda.getParameters());
         }
         return paramsWidth + " -> { }".length();
     }

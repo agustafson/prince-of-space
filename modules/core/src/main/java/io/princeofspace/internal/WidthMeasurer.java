@@ -159,7 +159,7 @@ final class WidthMeasurer {
         return parametersWidth + " -> ".length() + expressionWidth(lambdaExpr.getBody().asExpressionStmt().getExpression(), fmt);
     }
 
-    private static int commaSeparatedParameterWidth(NodeList<com.github.javaparser.ast.body.Parameter> parameters) {
+    static int commaSeparatedParameterWidth(NodeList<com.github.javaparser.ast.body.Parameter> parameters) {
         int width = 0;
         boolean first = true;
         for (com.github.javaparser.ast.body.Parameter parameter : parameters) {
