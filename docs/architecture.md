@@ -90,29 +90,37 @@ Behavior of `io.princeofspace.Formatter` and `FormatterConfig` is the same; only
 public record JavaLanguageLevel(int level, boolean preview) implements Serializable
 ```
 
-- **`level`** — Java feature-release number (e.g. `17`, `21`, `25`). Legacy versions `1`–`7` are supported.
+- **`level`** — Java feature-release number (e.g. `8`, `17`, `21`, `25`). Minimum is **8** (project baseline); values below 8 are rejected.
 - **`preview`** — `true` to enable preview language features for that release.
 - **Factory methods:** `JavaLanguageLevel.of(17)`, `JavaLanguageLevel.of(21, true)`.
 
 Internal translation to JavaParser's `LanguageLevel` happens in `io.princeofspace.internal` when `FormattingEngine` configures the parser:
-- Levels 1–7 map via a dedicated switch to `JAVA_1_0` through `JAVA_7`.
-- Levels 8+ resolve via `LanguageLevel.valueOf("JAVA_" + level)` (or `"JAVA_" + level + "_PREVIEW"` when `preview` is true).
+releases **8+** resolve via `LanguageLevel.valueOf("JAVA_" + level)` (or `"JAVA_" + level + "_PREVIEW"` when `preview` is true).
 
 This design means the public API is stable even when JavaParser adds new enum variants.
 
-## Configuration Options (7 total)
+## Configuration Options (7 configurable fields + derived continuation width)
+
+Default column values match **`FormatterConfig`** `public static final` **`DEFAULT_*`** fields (`DEFAULT_INDENT_STYLE`, `DEFAULT_INDENT_SIZE`, `DEFAULT_LINE_LENGTH`, `DEFAULT_WRAP_STYLE`, `DEFAULT_CLOSING_PAREN_ON_NEW_LINE`, `DEFAULT_TRAILING_COMMAS`, `DEFAULT_JAVA_LANGUAGE_LEVEL`).
 
 | Option | Default |
 |--------|---------|
-| `wrapStyle` | `balanced` |
-| `indentStyle` | `spaces` |
-| `indentSize` | `4` |
-| `lineLength` | `120` |
-| `closingParenOnNewLine` | `true` |
-| `trailingCommas` | `false` |
-| `javaLanguageLevel` | `JavaLanguageLevel.of(17)` |
+| `wrapStyle` | `FormatterConfig.DEFAULT_WRAP_STYLE` (`balanced`) |
+| `indentStyle` | `FormatterConfig.DEFAULT_INDENT_STYLE` (`spaces`) |
+| `indentSize` | `FormatterConfig.DEFAULT_INDENT_SIZE` (`4`) |
+| `lineLength` | `FormatterConfig.DEFAULT_LINE_LENGTH` (`120`) |
+| `closingParenOnNewLine` | `FormatterConfig.DEFAULT_CLOSING_PAREN_ON_NEW_LINE` (`true`) |
+| `trailingCommas` | `FormatterConfig.DEFAULT_TRAILING_COMMAS` (`false`) |
+| `javaLanguageLevel` | `FormatterConfig.DEFAULT_JAVA_LANGUAGE_LEVEL` (`JavaLanguageLevel.of(17)`) |
+| `continuationIndentSize()` | Derived only: always `2 * indentSize` — same contract as `FormatterConfig#continuationIndentSize()` (`docs/formatting-rules.md`, §3). Not a builder knob. |
 
-For **`indentSize`**, the numeric value is a count of **spaces** when using spaces, or a count of **tab characters** when using tabs (`docs/formatting-rules.md`, §1 and §3). Continuation indent for delimited list continuations is always `2 * indentSize` (not configurable). Wrapped method chains are an exception and use a single `indentSize` step (see TDR-015).
+For **`indentSize`**, the numeric value is a count of **spaces** when using spaces, or a count of **tab characters** when using tabs (`docs/formatting-rules.md`, §1 and §3). Wrapped method chains are an exception and use a single `indentSize` step (see TDR-015).
+
+### JVM diagnostics (optional)
+
+| System property | Effect |
+|-----------------|--------|
+| `prince.maxConvergencePasses` | Integer: extra convergence passes after the first format (clamped at 0; non-integer falls back to default). Invalid values are logged at WARNING. See `FormattingEngine`. |
 
 ## Pipeline (`FormattingEngine`)
 

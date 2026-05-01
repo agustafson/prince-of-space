@@ -492,6 +492,18 @@ enum Planet {
 
 ---
 
+### JVM diagnostics (optional)
+
+These are **not** `FormatterConfig` options — they are JVM system properties read by the engine for troubleshooting or tuning convergence.
+
+| System property | Meaning |
+|-----------------|--------|
+| `prince.maxConvergencePasses` | Non-negative integer: **extra** full format passes after the first (`FormattingEngine`). Invalid values (non-integer) log at WARNING and fall back to the built-in default; negative values clamp to `0` with a WARNING. |
+
+See `docs/architecture.md` for the same table in maintainer context.
+
+---
+
 ## Part 4: Options We Considered But Rejected
 
 | Option | Why Rejected |
