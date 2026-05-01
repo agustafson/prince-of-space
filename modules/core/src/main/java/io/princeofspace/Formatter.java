@@ -26,6 +26,9 @@ import static java.util.Objects.requireNonNull;
  */
 public final class Formatter {
 
+    private static final String SOURCE_CODE_PARAM = "sourceCode";
+    private static final String FILE_PATH_PARAM = "filePath";
+
     private final FormatterConfig config;
     private final ThreadLocal<FormattingEngine> engine;
 
@@ -47,7 +50,7 @@ public final class Formatter {
      * @return success with formatted text, or a typed failure
      */
     public FormatResult formatResult(String sourceCode) {
-        requireNonNull(sourceCode, "sourceCode");
+        requireNonNull(sourceCode, SOURCE_CODE_PARAM);
         return engine.get().format(sourceCode);
     }
 
@@ -61,8 +64,8 @@ public final class Formatter {
      * @return success with formatted text, or a path-scoped failure
      */
     public FormatResult formatResult(String sourceCode, Path filePath) {
-        requireNonNull(sourceCode, "sourceCode");
-        requireNonNull(filePath, "filePath");
+        requireNonNull(sourceCode, SOURCE_CODE_PARAM);
+        requireNonNull(filePath, FILE_PATH_PARAM);
         FormatResult result = engine.get().format(sourceCode);
         if (result instanceof FormatResult.Failure failure) {
             return new FormatResult.PathScopedFailure(filePath, failure);
@@ -78,7 +81,7 @@ public final class Formatter {
      * @throws FormatterException if the source cannot be parsed or the pipeline cannot produce output
      */
     public String format(String sourceCode) {
-        requireNonNull(sourceCode, "sourceCode");
+        requireNonNull(sourceCode, SOURCE_CODE_PARAM);
         FormatResult result = engine.get().format(sourceCode);
         if (result instanceof FormatResult.Success success) {
             return success.formattedSource();
@@ -110,8 +113,8 @@ public final class Formatter {
      * @throws FormatterException if the source cannot be parsed or the pipeline cannot produce output
      */
     public String format(String sourceCode, Path filePath) {
-        requireNonNull(sourceCode, "sourceCode");
-        requireNonNull(filePath, "filePath");
+        requireNonNull(sourceCode, SOURCE_CODE_PARAM);
+        requireNonNull(filePath, FILE_PATH_PARAM);
         FormatResult result = engine.get().format(sourceCode);
         if (result instanceof FormatResult.Success success) {
             return success.formattedSource();
