@@ -109,4 +109,28 @@ class FormattingEngineTest {
         FormatResult result = onePassOnly.format("class T {void m(){int x=1;}}");
         assertThat(result).isInstanceOf(FormatResult.NonConvergent.class);
     }
+
+    @Test
+    void interpretMaxConvergencePasses_blankUsesDefault() {
+        int defaultPasses = FormattingEngine.interpretMaxConvergencePasses(null);
+        assertThat(FormattingEngine.interpretMaxConvergencePasses("")).isEqualTo(defaultPasses);
+        assertThat(FormattingEngine.interpretMaxConvergencePasses("   ")).isEqualTo(defaultPasses);
+    }
+
+    @Test
+    void interpretMaxConvergencePasses_validInteger() {
+        assertThat(FormattingEngine.interpretMaxConvergencePasses("0")).isZero();
+        assertThat(FormattingEngine.interpretMaxConvergencePasses(" 7 ")).isEqualTo(7);
+    }
+
+    @Test
+    void interpretMaxConvergencePasses_negativeClampsToZero() {
+        assertThat(FormattingEngine.interpretMaxConvergencePasses("-1")).isZero();
+    }
+
+    @Test
+    void interpretMaxConvergencePasses_nonNumericFallsBackToDefault() {
+        assertThat(FormattingEngine.interpretMaxConvergencePasses("twelve"))
+                .isEqualTo(FormattingEngine.interpretMaxConvergencePasses(null));
+    }
 }

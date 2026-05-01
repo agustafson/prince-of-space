@@ -61,7 +61,8 @@ public final class FormattingEngine {
      */
     private static final int DEFAULT_MAX_CONVERGENCE_PASSES = 11;
     private static final int CONVERGENCE_LOG_THRESHOLD = 1;
-    private static final int CONFIGURED_MAX_CONVERGENCE_PASSES = resolveMaxConvergencePasses();
+    private static final int CONFIGURED_MAX_CONVERGENCE_PASSES =
+            interpretMaxConvergencePasses(System.getProperty("prince.maxConvergencePasses"));
 
     /**
      * Parses and formats the given source, or returns a typed failure without throwing.
@@ -97,14 +98,31 @@ public final class FormattingEngine {
         return new FormatResult.NonConvergent(maxConvergencePasses + 1);
     }
 
-    private static int resolveMaxConvergencePasses() {
-        String raw = System.getProperty("prince.maxConvergencePasses");
+    /**
+     * Interprets the raw {@code prince.maxConvergencePasses} property text. Visible for tests.
+     *
+     * <p>Non-integer values and explicit negatives are rejected: the former falls back to the
+     * default pass budget; the latter clamps to zero. Both cases log at {@link Level#WARNING} because
+     * the user set the property explicitly.
+     */
+    static int interpretMaxConvergencePasses(String raw) {
         if (raw == null || raw.isBlank()) {
             return DEFAULT_MAX_CONVERGENCE_PASSES;
         }
+        String stripped = raw.strip();
         try {
-            return Math.max(0, Integer.parseInt(raw.strip()));
-        } catch (NumberFormatException ignored) {
+            int parsed = Integer.parseInt(stripped);
+            if (parsed < 0) {
+                LOG.log(Level.WARNING,
+                        "Ignoring invalid prince.maxConvergencePasses={0} (negative); using 0",
+                        raw);
+                return 0;
+            }
+            return parsed;
+        } catch (NumberFormatException ex) {
+            LOG.log(Level.WARNING,
+                    "Ignoring invalid prince.maxConvergencePasses={0} (not an integer); using default {1}",
+                    raw, DEFAULT_MAX_CONVERGENCE_PASSES);
             return DEFAULT_MAX_CONVERGENCE_PASSES;
         }
     }
