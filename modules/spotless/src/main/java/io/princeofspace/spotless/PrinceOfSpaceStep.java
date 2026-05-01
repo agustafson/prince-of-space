@@ -27,6 +27,7 @@ public final class PrinceOfSpaceStep {
     }
 
     private static FormatterFunc formatterFunc(FormatterConfig config) {
-        return FormatterFunc.needsFile((unix, file) -> new Formatter(config).format(unix, file.toPath()));
+        Formatter formatter = new Formatter(config);
+        return FormatterFunc.needsFile((unix, file) -> formatter.format(unix, file.toPath()));
     }
 }
