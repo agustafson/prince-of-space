@@ -29,7 +29,7 @@ public final class FormattingEngine {
     private static final Logger LOG = System.getLogger(FormattingEngine.class.getName());
 
     private final int maxConvergencePasses;
-    private final ParserConfiguration parserConfig;
+    private final JavaParser parser;
     private final PrettyPrinter prettyPrinter;
 
     /**
@@ -46,8 +46,9 @@ public final class FormattingEngine {
      */
     FormattingEngine(FormatterConfig config, int maxConvergencePasses) {
         this.maxConvergencePasses = Math.max(0, maxConvergencePasses);
-        this.parserConfig = new ParserConfiguration()
+        ParserConfiguration parserConfig = new ParserConfiguration()
                 .setLanguageLevel(JavaParserLanguageLevels.toLanguageLevel(config.javaLanguageLevel()));
+        this.parser = new JavaParser(parserConfig);
         this.prettyPrinter = new PrettyPrinter(config);
     }
 
@@ -121,7 +122,7 @@ public final class FormattingEngine {
     }
 
     private FormatResult singlePassFormat(String sourceCode) {
-        ParseResult<CompilationUnit> result = new JavaParser(parserConfig).parse(sourceCode);
+        ParseResult<CompilationUnit> result = parser.parse(sourceCode);
         if (!result.isSuccessful()) {
             List<String> problems = result.getProblems().stream().map(Problem::toString).toList();
             return new FormatResult.ParseFailure(problems);
