@@ -330,11 +330,36 @@ class WrappingFormattingTest {
     }
 
     @Test
-    void permitsClause_narrow_wrapsEvenWhenInlineWouldFit() {
+    void permitsClause_narrow_inlinesWhenClauseFits_sameAsExtendsAndImplements() {
         Formatter f =
                 new Formatter(
                         FormatterConfig.builder()
                                 .lineLength(120)
+                                .wrapStyle(WrapStyle.NARROW)
+                                .closingParenOnNewLine(false)
+                                .javaLanguageLevel(JavaLanguageLevel.of(21))
+                                .build());
+        String input =
+                """
+                sealed interface Shape permits Shape.Circle, Shape.Rectangle, Shape.Triangle {
+                    record Circle(double radius) implements Shape {}
+                    record Rectangle(double width, double height) implements Shape {}
+                    record Triangle(double base, double height) implements Shape {}
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).contains("permits Shape.Circle, Shape.Rectangle, Shape.Triangle");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void permitsClause_narrow_wrapsWhenClauseDoesNotFit() {
+        Formatter f =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .lineLength(52)
                                 .wrapStyle(WrapStyle.NARROW)
                                 .closingParenOnNewLine(false)
                                 .javaLanguageLevel(JavaLanguageLevel.of(21))

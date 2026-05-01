@@ -49,6 +49,8 @@ These rules define output shape for Java formatting in `modules/core`.
 
 `wrapStyle` semantics are uniform across all wrapped constructs (arguments, parameters, type clauses, type parameters, chain segments, binary chains, array initializers, and similar lists):
 
+- **Type clauses (`extends`, `implements`, `permits`, `throws`):** the same inline-fit check applies to every clause kind for a given `wrapStyle`, including `narrow` — a clause is emitted inline when it fits within `lineLength`; forced wrapping is not applied merely because `wrapStyle == narrow` when the clause would still fit on one line.
+
 - `wide`: greedily pack items while respecting width. An item that carries a line comment (`//`) forces a line break after it, since the comment claims the rest of the line.
 - `balanced`: either fully inline if it fits, or one item/operator segment per continuation line.
 - `narrow`: always one item/operator segment per continuation line once in wrapped form.
