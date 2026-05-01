@@ -19,10 +19,15 @@ import static java.util.Objects.requireNonNull;
  * }</pre>
  *
  * <p>For a non-throwing API, use {@link #formatResult(String)} and pattern-match on {@link FormatResult}.
+ *
+ * <p>A single {@code Formatter} instance is safe to share across threads. Each thread receives its
+ * own {@link FormattingEngine} via {@link ThreadLocal}, so JavaParser and the pretty printer (both
+ * stateful and not thread-safe) are never accessed concurrently.
  */
 public final class Formatter {
 
-    private final FormattingEngine engine;
+    private final FormatterConfig config;
+    private final ThreadLocal<FormattingEngine> engine;
 
     /**
      * Creates a formatter with the provided configuration.
@@ -30,7 +35,8 @@ public final class Formatter {
      * @param config formatting options; must not be {@code null}
      */
     public Formatter(FormatterConfig config) {
-        this.engine = new FormattingEngine(requireNonNull(config, "config"));
+        this.config = requireNonNull(config, "config");
+        this.engine = ThreadLocal.withInitial(() -> new FormattingEngine(this.config));
     }
 
     /**
@@ -41,7 +47,7 @@ public final class Formatter {
      * @return success with formatted text, or a typed failure
      */
     public FormatResult formatResult(String sourceCode) {
-        return engine.format(sourceCode);
+        return engine.get().format(sourceCode);
     }
 
     /**
@@ -52,7 +58,7 @@ public final class Formatter {
      * @throws FormatterException if the source cannot be parsed or the pipeline cannot produce output
      */
     public String format(String sourceCode) {
-        FormatResult result = engine.format(sourceCode);
+        FormatResult result = engine.get().format(sourceCode);
         if (result instanceof FormatResult.Success success) {
             return success.formattedSource();
         }
@@ -83,7 +89,7 @@ public final class Formatter {
      * @throws FormatterException if the source cannot be parsed or the pipeline cannot produce output
      */
     public String format(String sourceCode, Path filePath) {
-        FormatResult result = engine.format(sourceCode);
+        FormatResult result = engine.get().format(sourceCode);
         if (result instanceof FormatResult.Success success) {
             return success.formattedSource();
         }
