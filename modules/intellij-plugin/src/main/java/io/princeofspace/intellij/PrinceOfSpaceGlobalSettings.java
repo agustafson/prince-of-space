@@ -19,6 +19,7 @@ import io.princeofspace.model.WrapStyle;
 public final class PrinceOfSpaceGlobalSettings
         implements PersistentStateComponent<CommonState> {
 
+    private final Object lock = new Object();
     private CommonState commonState = new CommonState();
 
     public static PrinceOfSpaceGlobalSettings getInstance() {
@@ -26,32 +27,42 @@ public final class PrinceOfSpaceGlobalSettings
     }
 
     public FormatterConfig toFormatterConfig() {
-        IndentStyle indentStyle = IndentStyle.valueOf(commonState.indentStyle);
-        WrapStyle wrapStyle = WrapStyle.valueOf(commonState.wrapStyle);
+        CommonState snapshot;
+        synchronized (lock) {
+            snapshot = commonState.copy();
+        }
+        IndentStyle indentStyle = IndentStyle.valueOf(snapshot.indentStyle);
+        WrapStyle wrapStyle = WrapStyle.valueOf(snapshot.wrapStyle);
         return FormatterConfig.builder()
                 .indentStyle(indentStyle)
-                .indentSize(commonState.indentSize)
-                .lineLength(commonState.lineLength)
+                .indentSize(snapshot.indentSize)
+                .lineLength(snapshot.lineLength)
                 .wrapStyle(wrapStyle)
-                .closingParenOnNewLine(commonState.closingParenOnNewLine)
-                .trailingCommas(commonState.trailingCommas)
-                .javaLanguageLevel(JavaLanguageLevel.of(commonState.javaRelease))
+                .closingParenOnNewLine(snapshot.closingParenOnNewLine)
+                .trailingCommas(snapshot.trailingCommas)
+                .javaLanguageLevel(JavaLanguageLevel.of(snapshot.javaRelease))
                 .build();
     }
 
     @Override
     public CommonState getState() {
-        return commonState;
+        synchronized (lock) {
+            return commonState.copy();
+        }
     }
 
     @Override
     public void loadState(CommonState loaded) {
-        XmlSerializerUtil.copyBean(loaded, commonState);
-        commonState.normalizeAfterLoad();
+        synchronized (lock) {
+            XmlSerializerUtil.copyBean(loaded, commonState);
+            commonState.normalizeAfterLoad();
+        }
     }
 
     public void replaceState(CommonState newState) {
-        XmlSerializerUtil.copyBean(newState, commonState);
-        commonState.normalizeAfterLoad();
+        synchronized (lock) {
+            XmlSerializerUtil.copyBean(newState, commonState);
+            commonState.normalizeAfterLoad();
+        }
     }
 }

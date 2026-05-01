@@ -38,6 +38,18 @@ interface PrinceOfSpaceState {
             javaRelease = javaRelease >= JAVA_LEVEL_MIN ? javaRelease : JAVA_LEVEL_DEFAULT;
         }
 
+        public CommonState copy() {
+            CommonState c = new CommonState();
+            c.indentStyle = indentStyle;
+            c.indentSize = indentSize;
+            c.lineLength = lineLength;
+            c.wrapStyle = wrapStyle;
+            c.closingParenOnNewLine = closingParenOnNewLine;
+            c.trailingCommas = trailingCommas;
+            c.javaRelease = javaRelease;
+            return c;
+        }
+
         private static int clamp(int value, int min, int max, int fallback) {
             if (value <= 0) {
                 return fallback;
@@ -92,6 +104,15 @@ interface PrinceOfSpaceState {
          * {@code false}, {@link #commonState#javaRelease} is used.
          */
         public boolean useProjectLanguageLevel = true;
+
+        public ProjectState copy() {
+            ProjectState p = new ProjectState();
+            p.commonState = commonState.copy();
+            p.formatOnSave = formatOnSave;
+            p.useGlobalFormatterSettings = useGlobalFormatterSettings;
+            p.useProjectLanguageLevel = useProjectLanguageLevel;
+            return p;
+        }
 
         @Override
         public boolean equals(Object o) {

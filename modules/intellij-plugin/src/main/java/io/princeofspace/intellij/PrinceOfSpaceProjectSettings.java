@@ -24,6 +24,7 @@ import io.princeofspace.model.WrapStyle;
 )
 public final class PrinceOfSpaceProjectSettings implements PersistentStateComponent<ProjectState> {
 
+    private final Object lock = new Object();
     private ProjectState projectState = new ProjectState();
 
     public static PrinceOfSpaceProjectSettings getInstance(Project project) {
@@ -32,13 +33,17 @@ public final class PrinceOfSpaceProjectSettings implements PersistentStateCompon
 
     /** Builds a {@link FormatterConfig} from saved options and the given Java file (for language level). */
     public FormatterConfig toFormatterConfig(PsiJavaFile javaFile) {
-        PrinceOfSpaceState.CommonState state = projectState.commonState;
-        if (projectState.useGlobalFormatterSettings) {
+        ProjectState snapshot;
+        synchronized (lock) {
+            snapshot = projectState.copy();
+        }
+        if (snapshot.useGlobalFormatterSettings) {
             return PrinceOfSpaceGlobalSettings.getInstance().toFormatterConfig();
         }
+        PrinceOfSpaceState.CommonState state = snapshot.commonState;
         IndentStyle indentStyle = IndentStyle.valueOf(state.indentStyle);
         WrapStyle wrapStyle = WrapStyle.valueOf(state.wrapStyle);
-        int release = projectState.useProjectLanguageLevel
+        int release = snapshot.useProjectLanguageLevel
             ? PsiUtil.getLanguageLevel(javaFile).toJavaVersion().feature
             : state.javaRelease;
         return FormatterConfig.builder()
@@ -53,28 +58,38 @@ public final class PrinceOfSpaceProjectSettings implements PersistentStateCompon
     }
 
     public boolean isFormatOnSave() {
-        return projectState.formatOnSave;
+        synchronized (lock) {
+            return projectState.formatOnSave;
+        }
     }
 
     public void setFormatOnSave(boolean formatOnSave) {
-        projectState.formatOnSave = formatOnSave;
+        synchronized (lock) {
+            projectState.formatOnSave = formatOnSave;
+        }
     }
 
     @Override
     public ProjectState getState() {
-        return projectState;
+        synchronized (lock) {
+            return projectState.copy();
+        }
     }
 
     @Override
     public void loadState(ProjectState loaded) {
-        XmlSerializerUtil.copyBean(loaded, projectState);
-        projectState.commonState.normalizeAfterLoad();
+        synchronized (lock) {
+            XmlSerializerUtil.copyBean(loaded, projectState);
+            projectState.commonState.normalizeAfterLoad();
+        }
     }
 
     /** Replaces persisted state (e.g. from the settings UI) after validation. */
     public void replaceState(ProjectState newProjectState) {
-        XmlSerializerUtil.copyBean(newProjectState, projectState);
-        projectState.commonState.normalizeAfterLoad();
+        synchronized (lock) {
+            XmlSerializerUtil.copyBean(newProjectState, projectState);
+            projectState.commonState.normalizeAfterLoad();
+        }
     }
 
 }
