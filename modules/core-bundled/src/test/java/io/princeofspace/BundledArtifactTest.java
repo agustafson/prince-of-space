@@ -52,7 +52,7 @@ class BundledArtifactTest {
     }
 
     @Test
-    void shadedJar_doesNotExposeOriginalThirdPartyPackageRoots() throws Exception {
+    void shadedJar_onlyContainsProjectAndMetaInfEntries() throws Exception {
         Path jar = bundledJar();
         List<String> bad = new ArrayList<>();
         try (ZipFile zf = new ZipFile(jar.toFile())) {
@@ -63,15 +63,14 @@ class BundledArtifactTest {
                 if (name.endsWith("/")) {
                     continue;
                 }
-                if (name.startsWith("com/github/javaparser/")
-                        || name.startsWith("org/slf4j/")
-                        || name.startsWith("org/jspecify/")) {
+                if (!(name.startsWith("io/princeofspace/") || name.startsWith("META-INF/"))) {
                     bad.add(name);
                 }
             }
         }
         assertThat(bad)
-                .as("Relocated dependencies must not keep original package roots (found: %s)", bad)
+                .as("Bundled jar must only contain io/princeofspace/ and META-INF/ entries; "
+                    + "any other root indicates an un-relocated dependency leaked through the shadow plugin (found: %s)", bad)
                 .isEmpty();
     }
 
