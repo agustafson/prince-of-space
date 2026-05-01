@@ -27,9 +27,10 @@ async function formatJavaDocument(
     closingParenOnNewLine: cfg.get<boolean>("closingParenOnNewLine") ?? true,
     trailingCommas: cfg.get<boolean>("trailingCommas") ?? false,
   };
+  const sourceText = document.getText();
   try {
-    const formatted = await formatJavaSource(javaBin, jar, opts, document.getText(), token);
-    const full = new vscode.Range(document.positionAt(0), document.positionAt(document.getText().length));
+    const formatted = await formatJavaSource(javaBin, jar, opts, sourceText, token);
+    const full = new vscode.Range(document.positionAt(0), document.positionAt(sourceText.length));
     return [vscode.TextEdit.replace(full, formatted)];
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
