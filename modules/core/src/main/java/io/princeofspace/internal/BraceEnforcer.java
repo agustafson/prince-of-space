@@ -21,7 +21,7 @@ final class BraceEnforcer extends ModifierVisitor<Void> {
 
     @Override
     public Visitable visit(IfStmt n, Void arg) {
-        super.visit(n, null); // depth-first: process nested if/else first
+        super.visit(n, arg); // depth-first: process nested if/else first
 
         if (!(n.getThenStmt() instanceof BlockStmt)) {
             n.setThenStmt(new BlockStmt(NodeList.nodeList(n.getThenStmt())));
@@ -40,7 +40,7 @@ final class BraceEnforcer extends ModifierVisitor<Void> {
 
     @Override
     public Visitable visit(ForStmt n, Void arg) {
-        super.visit(n, null);
+        super.visit(n, arg);
         if (!(n.getBody() instanceof BlockStmt)) {
             n.setBody(new BlockStmt(NodeList.nodeList(n.getBody())));
         }
@@ -49,7 +49,7 @@ final class BraceEnforcer extends ModifierVisitor<Void> {
 
     @Override
     public Visitable visit(ForEachStmt n, Void arg) {
-        super.visit(n, null);
+        super.visit(n, arg);
         if (!(n.getBody() instanceof BlockStmt)) {
             n.setBody(new BlockStmt(NodeList.nodeList(n.getBody())));
         }
@@ -58,7 +58,7 @@ final class BraceEnforcer extends ModifierVisitor<Void> {
 
     @Override
     public Visitable visit(WhileStmt n, Void arg) {
-        super.visit(n, null);
+        super.visit(n, arg);
         if (!(n.getBody() instanceof BlockStmt)) {
             n.setBody(new BlockStmt(NodeList.nodeList(n.getBody())));
         }
@@ -67,7 +67,7 @@ final class BraceEnforcer extends ModifierVisitor<Void> {
 
     @Override
     public Visitable visit(DoStmt n, Void arg) {
-        super.visit(n, null);
+        super.visit(n, arg);
         if (!(n.getBody() instanceof BlockStmt)) {
             n.setBody(new BlockStmt(NodeList.nodeList(n.getBody())));
         }
