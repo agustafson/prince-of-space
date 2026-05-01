@@ -36,9 +36,8 @@ final class BinaryExprFormatter {
 
     /** Formats binary expressions with wrap-style-specific handling for comments and line budgets. */
     void format(BinaryExpr n, Void arg) {
-        ctx.printOrphanCommentsBeforeThisChildNode(n);
-        ctx.printComment(n.getComment(), arg);
         if (n.getOperator() == BinaryExpr.Operator.AND || n.getOperator() == BinaryExpr.Operator.OR) {
+            printBinaryLeadingComments(n, arg);
             List<Expression> parts = new ArrayList<>();
             collectSameOp(n.getOperator(), (Expression) n, parts);
             int flat = ctx.column();
@@ -85,6 +84,7 @@ final class BinaryExprFormatter {
         if (n.getOperator() == BinaryExpr.Operator.BINARY_AND
                 || n.getOperator() == BinaryExpr.Operator.BINARY_OR
                 || n.getOperator() == BinaryExpr.Operator.XOR) {
+            printBinaryLeadingComments(n, arg);
             List<Expression> parts = new ArrayList<>();
             collectSameOp(n.getOperator(), (Expression) n, parts);
             int flat = ctx.column();
@@ -128,6 +128,7 @@ final class BinaryExprFormatter {
             return;
         }
         if (n.getOperator() == BinaryExpr.Operator.PLUS) {
+            printBinaryLeadingComments(n, arg);
             // Literal-only + chains (including parenthesized balanced concat from deep chunking):
             // re-emit using the same chunk algorithm as visit(StringLiteralExpr), or idempotency
             // diverges. Uses iterative collection so balanced trees do not rely on flatten recursion.
@@ -175,6 +176,12 @@ final class BinaryExprFormatter {
             return;
         }
         ctx.acceptDefault(n, arg);
+    }
+
+    /** Emits this node's orphans and comment before custom layouts; fallback uses {@code super.visit} which prints them. */
+    private void printBinaryLeadingComments(BinaryExpr n, Void arg) {
+        ctx.printOrphanCommentsBeforeThisChildNode(n);
+        ctx.printComment(n.getComment(), arg);
     }
 
     /**
