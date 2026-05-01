@@ -147,8 +147,10 @@ Resolution: the example in the finding turned out to be already correct — `get
 - **Explicit prefix type arguments** (`new <String> Foo()`): `getTypeArguments()` was ignored (off by `<String> ` = 9).
 Reworked the branch to count scope width (when present), explicit prefix type arguments (when present), the type's own toString (which carries diamond/declared args), the parens + arg list, and the optional anonymous body. Added four targeted `WidthMeasurerTest` cases (standard parameterized, explicit prefix type-args, inner-scope, diamond) that all assert width equals `toString().length()`.
 
-#### 26. **[BUG]** `WidthMeasurer.expressionWidth(LambdaExpr)` non-block, non-expression body NPE
+#### 26. **[DONE]** `WidthMeasurer.expressionWidth(LambdaExpr)` non-block, non-expression body NPE
 `WidthMeasurer.java:151`: `lambdaExpr.getBody().asExpressionStmt().getExpression()` will throw `IllegalStateException` for any body that's neither a `BlockStmt` nor an `ExpressionStmt`. A defensive `instanceof` check (or a fallback to `e.toString().length()`) would be safer.
+
+**Resolution:** `lambdaHeaderWidth` now branches on `isBlockStmt` / `isExpressionStmt` and falls back to `getBody().toString().length()` for any other body shape (defensive; valid Java lambdas use only the first two).
 
 #### 27. **[QUAL]** Massive duplication in `BinaryExprFormatter.format`
 `BinaryExprFormatter.java:41-84` (AND/OR) and `:85-129` (BINARY_AND/BINARY_OR/XOR) are 45-line copy-pastes of the same algorithm. Extract a single helper that takes the operator group as a parameter.

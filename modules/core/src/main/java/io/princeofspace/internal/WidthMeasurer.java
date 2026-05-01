@@ -156,7 +156,12 @@ final class WidthMeasurer {
         if (lambdaExpr.getBody().isBlockStmt()) {
             return parametersWidth + " -> { }".length();
         }
-        return parametersWidth + " -> ".length() + expressionWidth(lambdaExpr.getBody().asExpressionStmt().getExpression(), fmt);
+        if (lambdaExpr.getBody().isExpressionStmt()) {
+            return parametersWidth
+                    + " -> ".length()
+                    + expressionWidth(lambdaExpr.getBody().asExpressionStmt().getExpression(), fmt);
+        }
+        return parametersWidth + " -> ".length() + lambdaExpr.getBody().toString().length();
     }
 
     static int commaSeparatedParameterWidth(NodeList<com.github.javaparser.ast.body.Parameter> parameters) {
