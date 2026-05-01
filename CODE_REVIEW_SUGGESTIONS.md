@@ -99,8 +99,10 @@ The `\n` is hard-coded but `PrettyPrinter.java:44` configures `END_OF_LINE_CHARA
 
 Also: `n.getValue()` for a `TextBlockLiteralExpr` returns the raw text; JavaParser's value extraction has had quirks across releases. Worth a dedicated round-trip test for text blocks containing leading-whitespace stripping edge cases.
 
-#### 16. **[BUG]** `defaultVisit(Node, Void)` silently no-ops for unsupported types
+#### 16. **[DONE]** `defaultVisit(Node, Void)` silently no-ops for unsupported types
 `PrincePrettyPrinterVisitor.java:269-275` only routes `BinaryExpr` and `MethodCallExpr`. Any other node passed to `defaultVisit` produces no output. A future caller could pass a different type and get silent failure. Throw `IllegalArgumentException` on unsupported types.
+
+**Resolution:** `defaultVisit` now throws `IllegalArgumentException` with the unexpected node class; `LayoutContext.acceptDefault` Javadoc references the supported types.
 
 #### 17. **[QUAL/BUG]** Mutating the AST during printing is fragile
 Multiple paths invoke `comment.remove()` after printing (`PrincePrettyPrinterVisitor.java:259, 334`; `BinaryExprFormatter.java:331`; `MethodChainFormatter.java:319`). The Javadoc explains the *why* (preventing duplicate orphan emission across passes), but this means:

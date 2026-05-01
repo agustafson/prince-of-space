@@ -167,8 +167,9 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
     }
 
     /**
-     * Formats the node using the default (superclass) visitor, bypassing any custom overrides.
-     * Used as a fallback when the custom formatting logic does not apply.
+     * Formats the node using {@link PrincePrettyPrinterVisitor#defaultVisit}, bypassing custom
+     * overrides for that node. Only {@link com.github.javaparser.ast.expr.BinaryExpr} and
+     * {@link com.github.javaparser.ast.expr.MethodCallExpr} are supported.
      */
     void acceptDefault(Node node, Void arg) {
         visitor.defaultVisit(node, arg);

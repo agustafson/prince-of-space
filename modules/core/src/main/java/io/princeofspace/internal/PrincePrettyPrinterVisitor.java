@@ -264,13 +264,18 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     /**
      * Dispatch to JavaParser's stock printer for nodes we sometimes need without re-entering custom
      * overrides (e.g. {@link MethodChainFormatter} falling back for odd scopes). Only {@link BinaryExpr}
-     * and {@link MethodCallExpr} are routed — other node kinds should use {@code accept(this, arg)}.
+     * and {@link MethodCallExpr} are supported — any other type throws so callers never get silent
+     * empty output; other node kinds should use {@code accept(this, arg)}.
      */
     void defaultVisit(Node node, Void arg) {
         if (node instanceof BinaryExpr n) {
             super.visit(n, arg);
         } else if (node instanceof MethodCallExpr n) {
             super.visit(n, arg);
+        } else {
+            throw new IllegalArgumentException(
+                    "defaultVisit supports only BinaryExpr and MethodCallExpr, got: "
+                            + node.getClass().getName());
         }
     }
 
