@@ -62,4 +62,36 @@ class WidthMeasurerTest {
         assertThat(WidthMeasurer.flatWidth(expr, DEFAULT_CONFIG))
                 .isEqualTo("items.stream().map(item -> item.trim()).toList()".length());
     }
+
+    @Test
+    void flatWidth_objectCreation_includesTypeArgumentsOnType() {
+        Expression expr = StaticJavaParser.parseExpression("new HashMap<String, Integer>()");
+
+        assertThat(WidthMeasurer.flatWidth(expr, DEFAULT_CONFIG))
+                .isEqualTo("new HashMap<String, Integer>()".length());
+    }
+
+    @Test
+    void flatWidth_objectCreation_includesExplicitTypeArgumentsBeforeName() {
+        Expression expr = StaticJavaParser.parseExpression("new <String> Foo()");
+
+        assertThat(WidthMeasurer.flatWidth(expr, DEFAULT_CONFIG))
+                .isEqualTo("new <String> Foo()".length());
+    }
+
+    @Test
+    void flatWidth_objectCreation_includesScopePrefix() {
+        Expression expr = StaticJavaParser.parseExpression("outer.new Inner<String>()");
+
+        assertThat(WidthMeasurer.flatWidth(expr, DEFAULT_CONFIG))
+                .isEqualTo("outer.new Inner<String>()".length());
+    }
+
+    @Test
+    void flatWidth_objectCreation_diamond_matchesActual() {
+        Expression expr = StaticJavaParser.parseExpression("new HashMap<>()");
+
+        assertThat(WidthMeasurer.flatWidth(expr, DEFAULT_CONFIG))
+                .isEqualTo("new HashMap<>()".length());
+    }
 }

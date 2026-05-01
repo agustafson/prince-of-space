@@ -84,8 +84,16 @@ final class WidthMeasurer {
                     + instanceOfExpr.getType().toString().length();
         }
         if (expression instanceof ObjectCreationExpr objectCreationExpr) {
-            int argsWidth = commaSeparatedWidth(objectCreationExpr.getArguments(), fmt);
-            int width = "new ".length() + objectCreationExpr.getType().toString().length() + 2 + argsWidth;
+            int width = 0;
+            if (objectCreationExpr.getScope().isPresent()) {
+                width += expressionWidth(objectCreationExpr.getScope().get(), fmt) + 1;
+            }
+            width += "new ".length();
+            if (objectCreationExpr.getTypeArguments().isPresent()) {
+                width += 2 + commaSeparatedTypeWidth(objectCreationExpr.getTypeArguments().get()) + 1;
+            }
+            width += objectCreationExpr.getType().toString().length();
+            width += 2 + commaSeparatedWidth(objectCreationExpr.getArguments(), fmt);
             if (objectCreationExpr.getAnonymousClassBody().isPresent()) {
                 width += " { }".length();
             }
