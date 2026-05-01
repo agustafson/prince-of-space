@@ -112,8 +112,13 @@ record CommentUtils() {
         comments.addAll(expression.getAllContainedComments());
         return comments.stream()
                 .filter(comment -> isCommentBeforeExpression(comment, expressionBeginLine, expressionBeginColumn))
-                .min(Comparator.comparingInt((Comment comment) -> comment.getRange().orElseThrow().begin.line)
-                        .thenComparingInt(comment -> comment.getRange().orElseThrow().begin.column));
+                .min(
+                        Comparator.comparingInt(
+                                        (Comment comment) ->
+                                                comment.getRange().map(r -> r.begin.line).orElse(Integer.MAX_VALUE))
+                                .thenComparingInt(
+                                        comment ->
+                                                comment.getRange().map(r -> r.begin.column).orElse(Integer.MAX_VALUE)));
     }
 
     /** Returns true when comment starts before expression source position. */
@@ -173,11 +178,12 @@ record CommentUtils() {
     }
 
     /**
-     * Line/block comments on nodes printed immediately after {@code =} or {@code ->} without a line
-     * break can be re-attached to a different AST node on the next parse. Use a continuation line
+     * Returns true when a node has a line/block comment lexically before its start.
+     *
+     * <p>Line/block comments on nodes printed immediately after {@code =} or {@code ->} without a line
+     * break can be re-attached to a different AST node on the next parse — use a continuation line
      * before printing such nodes.
      */
-    /** Returns true when a node has a line/block comment lexically before its start. */
     boolean hasLeadingLineOrBlockComment(Node node) {
         Optional<Comment> c = node.getComment();
         if (c.isEmpty() || node.getRange().isEmpty() || c.get().getRange().isEmpty()) {
@@ -252,11 +258,12 @@ record CommentUtils() {
     }
 
     /**
-     * JavaParser sometimes attaches a line comment that lexically follows {@code extends Type {}}
+     * Extracts misplaced orphan line comments from before a type name token.
+     *
+     * <p>JavaParser sometimes attaches a line comment that lexically follows {@code extends Type {}}
      * as an orphan <em>before</em> the type's simple name (between {@code class} and the name).
      * Relocate those comments into the type body so they are not printed twice and idempotency holds.
      */
-    /** Extracts misplaced orphan line comments from before a type name token. */
     List<Comment> extractLineCommentsMisplacedBeforeTypeName(ClassOrInterfaceDeclaration n) {
         if (n.getName().getRange().isEmpty()) {
             return List.of();
@@ -285,11 +292,12 @@ record CommentUtils() {
     }
 
     /**
-     * With {@code extends} / {@code implements}, JavaParser may duplicate the same opening-brace
+     * Extracts and deduplicates orphan line comments on the type-name line.
+     *
+     * <p>With {@code extends} / {@code implements}, JavaParser may duplicate the same opening-brace
      * line comment as several orphan nodes on the header line. Strip the whole line's line-comment
      * orphans and keep one copy per distinct comment text (rightmost wins).
      */
-    /** Extracts and deduplicates orphan line comments on the type-name line. */
     List<Comment> extractAndDedupeLineCommentsOnTypeNameLine(ClassOrInterfaceDeclaration n) {
         if (n.getName().getRange().isEmpty()) {
             return List.of();
@@ -315,11 +323,12 @@ record CommentUtils() {
     }
 
     /**
-     * Some headers carry the same trailing line comment on both the simple name and a type-clause
+     * Removes duplicate header line comments mirrored onto type-clause entries.
+     *
+     * <p>Some headers carry the same trailing line comment on both the simple name and a type-clause
      * entry (for example, both {@code OperatorNot} and {@code extends SpelNodeImpl}). Remove the
      * duplicate from type-clause entries so we print it once and stay idempotent.
      */
-    /** Removes duplicate header line comments mirrored onto type-clause entries. */
     void pruneDuplicatedHeaderLineCommentsOnTypeClauses(ClassOrInterfaceDeclaration n) {
         Optional<Comment> nameComment = n.getName().getComment();
         if (nameComment.isEmpty() || !(nameComment.get() instanceof LineComment) || nameComment.get().getRange().isEmpty()) {
