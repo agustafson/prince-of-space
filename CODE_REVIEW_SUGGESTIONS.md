@@ -65,8 +65,10 @@ In both cases the user has set a system property explicitly and it's being ignor
 #### 10. **[DONE]** Legacy Java 1–7 mapping is dead surface (project supports Java 8+)
 `JavaParserLanguageLevels.java:63-74` retains a `LEGACY_RELEASE_1`–`LEGACY_RELEASE_7` switch. Since the project only supports Java 8+, the legacy arms (and the `MIN_SUPPORTED_LEVEL = 1` floor in `JavaLanguageLevel`) are unused surface that misleads readers and complicates input validation. Remove the legacy arms; raise the minimum to 8; tighten the public Javadoc accordingly.
 
-#### 11. **[QUAL]** `transform()` doc-string is misleading
+#### 11. **[DONE]** `transform()` doc-string is misleading
 `FormattingEngine.java:142` only mentions `BraceEnforcer` and `AnnotationArranger`, but `AnnotationArranger` is currently a no-op (see `AnnotationArranger.java:15`, an empty class extending `ModifierVisitor`). Either remove `AnnotationArranger` until it does something, or document why an empty hook is registered.
+
+**Resolution:** Added Javadoc on `FormattingEngine.transform` describing `BraceEnforcer` and documenting `AnnotationArranger` as an intentional no-op `ModifierVisitor` pipeline hook for future annotation-attachment work (see class Javadoc on `AnnotationArranger`).
 
 ### Pretty-Print / Blank-Line Stage
 
@@ -136,16 +138,22 @@ A user-supplied blank line between a comment and the next statement may be prese
 #### 21. **[QUAL]** Massive duplication between `printParametersList` and `printParametersListForLambda`
 `ArgumentListFormatter.java:270-322` and `:329-379` are 50+ lines of nearly identical code, differing only in the continuation-print mechanism. Parameterize on a `ContinuationStrategy` (a `Runnable` or method ref).
 
-#### 22. **[BUG]** `paramsFlatWidth` / `typeArgumentsFlatWidth` / `typeParametersFlatWidth` use `toString()`
+#### 22. **[DONE]** `paramsFlatWidth` / `typeArgumentsFlatWidth` / `typeParametersFlatWidth` use `toString()`
 `ArgumentListFormatter.java:242-253, 387-398, 464-475` all sum `p.toString().length()`. For nodes that contain comments or whose `toString()` includes pretty-printing artifacts (newlines), this *over-counts*, causing premature wrapping. Delegate to `WidthMeasurer.flatWidth(...)` (which has special-case logic for many node types). Note the same bug appears in `TypeClauseFormatter.java:38, 243, 320`.
 
-#### 23. **[INC]** Inconsistent reservation widths in `*NeedWrap` predicates
+**Resolution:** Replaced `toString().length()` sums with `WidthMeasurer.flatWidth` for parameters, type parameters, type arguments, and WIDE greedy `need` calculations in `ArgumentListFormatter`. `TypeClauseFormatter` now uses `flatWidth` for `implementsTypesWidth`, `referenceTypesFlatWidth`, `referenceTypesUnionFlatWidth`, and greedy clause loops.
+
+#### 23. **[DONE]** Inconsistent reservation widths in `*NeedWrap` predicates
 `argsNeedWrap` (line 50) and `paramsNeedWrap` (line 256) reserve **1** char (the `(`).
 `typeParametersNeedWrap` (line 401) and `typeArgumentsNeedWrap` (line 478) reserve **2** chars (`<` and `>`).
 The `(` predicates don't reserve for the closing `)`. The constants implicitly assume the closer is irrelevant for line-length purposes for parens but relevant for angles. Document or fix.
 
-#### 24. **[BUG]** `WidthMeasurer.lambdaHeaderWidth` reachable dead branch
+**Resolution:** Documented on `argsNeedWrap`, `paramsNeedWrap`, `typeParametersNeedWrap`, and `typeArgumentsNeedWrap`: parens reserve only the opener in the predicate; angle lists reserve `<` and `>`; closing `)` handling for wrapped layouts references existing `CLOSING_PAREN_INLINE_RESERVED_WIDTH` where relevant.
+
+#### 24. **[DONE]** `WidthMeasurer.lambdaHeaderWidth` reachable dead branch
 `WidthMeasurer.java:144-146`: the `else` branch (`!isEnclosingParameters() && size != 1`) is unreachable — Java syntax requires multi-param lambdas to enclose params in parens. Either delete or explicitly throw.
+
+**Resolution:** Collapsed to two branches — single unparenthesized parameter vs parenthesized / multi-param (`2 + commaSeparatedParameterWidth`), removing the redundant unreachable duplicate path.
 
 #### 25. **[DONE]** `WidthMeasurer.expressionWidth(ObjectCreationExpr)` ignores type arguments
 `WidthMeasurer.java:86-93`: `new HashMap<String, Integer>()` is measured as `new HashMap()` (off by `<String, Integer>` length). This causes the formatter to under-estimate widths for parameterized constructors and miss wrap opportunities.
@@ -172,8 +180,10 @@ Reworked the branch to count scope width (when present), explicit prefix type ar
 - `MethodChainFormatter.java:307-310, 314-324` (`printExpressionWithoutOwnComment`, `printArgumentsWithoutComments`)
 For most expression types this is harmless, but `VariableDeclarator.visit` (line 966) and possibly other visitors *do* use ancestor lookup. If a cloned subtree ever contains those nodes, layout silently degrades.
 
-#### 30. **[BUG]** `BinaryExprFormatter.format` fall-through prints comments twice
+#### 30. **[DONE]** `BinaryExprFormatter.format` fall-through prints comments twice
 `BinaryExprFormatter.java:39-40` prints orphan comments and the binary's own comment at the *top* of `format()`. For unrecognized operators the method falls through to `ctx.acceptDefault(n, arg)` (line 177), which calls `super.visit(n, arg)` — and JavaParser's default visitor will also print those same comments, producing duplicates.
+
+**Resolution:** Emit orphans + node comment only on paths that use custom layout (`&&`, `||`, bitwise logical ops, `+`). Fallback `acceptDefault`/`super.visit` prints them alone.
 
 #### 31. **[DONE]** `MethodChainFormatter.lambdaHeaderWidth` uses `NodeList.toString()`
 `MethodChainFormatter.java:175, 179`: `2 + lambda.getParameters().toString().length()`. `NodeList.toString()` returns `"[a, b]"` (Java's default `AbstractCollection.toString()`), so width is over-counted by ~2. Use `WidthMeasurer.commaSeparatedParameterWidth(...)` or sum element widths directly.
@@ -198,8 +208,10 @@ Resolution: traced each constant against the actual print sequence — every key
 - `" throws "` = 8 (was 7 — under by 1).
 Bumped EXTENDS to 9 and THROWS to 8; updated all four comments to show the actual `" KEYWORD "` strings (with trailing space) for consistency. Core tests + showroom goldens unchanged — none of the formatter's existing tests sat exactly on the boundary the constants moved.
 
-#### 33. **[INC]** `printPermitsClause` has a NARROW guard `extends`/`implements` lack
+#### 33. **[DONE]** `printPermitsClause` has a NARROW guard `extends`/`implements` lack
 `TypeClauseFormatter.java:170-171` blocks inline rendering when `wrapStyle == NARROW` even if the clause fits. `printExtendsClause` and `printImplementsClause` accept inline rendering in all wrap styles when it fits. Per Rule 5 ("WrapStyle must be construct-uniform"), all three should behave identically. Either add the guard to extends/implements or remove it from permits.
+
+**Resolution:** Removed the `wrapStyle != NARROW` gate; aligned inline budget with other clauses using `GREEDY_LIST_TRAILING_HEADROOM`. Updated `WrappingFormattingTest` (inline-when-fits + narrow wrap when line length forces); clarified Rule 5 in `docs/canonical-formatting-rules.md`; regenerated narrow showroom goldens.
 
 #### 34. **[QUAL]** Massive duplication: `printExtendsClause` / `printImplementsClause` / `printPermitsClause` / `printThrowsClause`
 `TypeClauseFormatter.java:56-198, 257-300` — 4 nearly identical methods. Extract a parameterized `printTypeClause(keyword, types, wrapBehavior)`.
@@ -218,8 +230,10 @@ enum E {
 ```
 Canonical Rule 5 says "Empty enums remain `enum E { }` compatible with Rule 9 (no blank lines inside empty blocks beyond what the formatter already coalesces)." Current output adds an internal newline; either the rule should be revised or the code should emit `enum E {}` for the empty case.
 
-#### 38. **[QUAL/DOC]** Mysterious Java 8 carve-out for compact empty methods
+#### 38. **[DONE]** Mysterious Java 8 carve-out for compact empty methods
 `DeclarationFormatter.java:251-262`: `modernCompactEmptyMethod` requires `level != 8`. There's no comment about *why* Java 8 is excluded. If this is to avoid a parser-rendering quirk, please document. If not, remove the guard.
+
+**Resolution:** Comment documents that level 8 keeps the expanded empty-block shape for goldens/showcase consistency; 9+ uses compact `{}`.
 
 #### 39. **[QUAL]** Three copies of "wrap params, emit `)`"
 `formatConstructor`, `formatMethod`, `formatRecord` each have the same 14-line `paramsWrapped` block (`DeclarationFormatter.java:178-192, 231-245, 275-289`). Extract.
@@ -398,21 +412,25 @@ Resolution: replaced with `shadedJar_onlyContainsProjectAndMetaInfEntries` which
 #### 80. **[QUAL]** Test discoverability: `eval`, `showroom-golden`, default
 `modules/core/build.gradle.kts:33-78` defines three test entry points with subtle filtering: `tasks.test` excludes `eval`, `evalTest` includes only `eval`, `showroomGoldenTest` includes only `showroom-golden`. The default `tasks.test` will *also* run `showroom-golden` tagged tests — was that intentional? If so, document; if not, add `excludeTags("showroom-golden")` to the default.
 
-#### 81. **[INC]** `core` and `spotless` get sources/javadoc, but `core-bundled` also matches "core"
+#### 81. **[DONE]** `core` and `spotless` get sources/javadoc, but `core-bundled` also matches "core"
 `build.gradle.kts:39-43`: `if (project.name.contains("core") || project.name.contains("spotless"))`. `core-bundled` matches "core" — works by accident, not intent. Use exact equality (`project.name in setOf("core", "spotless", "core-bundled")`).
+
+**Resolution:** Root `build.gradle.kts` now enables Javadoc/sources only when `project.name in setOf("core", "core-bundled", "spotless")`.
 
 #### 82. **[QUAL]** `prince.maxConvergencePasses` system property is not a public knob
 `FormattingEngine.java:99-109` reads a JVM system property to control convergence retries, but this is documented nowhere outside the source. Either expose via `FormatterConfig` (typed and validated) or document under "Diagnostics" in the user docs.
 
 ### Test infrastructure & dependencies
 
-#### 83. **[BUG]** `IdempotencyFuzzTest` is fully deterministic — no actual fuzzing
+#### 83. **[DONE]** `IdempotencyFuzzTest` is fully deterministic — no actual fuzzing
 `IdempotencyFuzzTest.java:52` seeds `SplittableRandom rng = new SplittableRandom(0xFEEDBEEFL)`. Every CI run executes the *same* 200 (config, snippet) pairs. Real-world idempotency drifts are caught by goldens; this "fuzz" test cannot find new bugs that the seed didn't already exercise. Either:
 - Seed from `System.nanoTime()` and log the seed on failure for reproduction,
 - Or accept it's a regression suite and rename to `IdempotencyRegressionMatrixTest`.
 
-#### 84. **[BUG]** `IdempotencyFuzzTest` SNIPPETS array is tiny (6 entries)
-`IdempotencyFuzzTest.java:21-40`. With 200 iterations and 6 snippets, each snippet is exercised ~33 times — most variance comes from configs, not source shapes. Add more snippets (lambdas, switch expressions, text blocks, generics, annotations) or generate via `jqwik` (already a dependency).
+**Resolution:** Renamed class to `IdempotencyRegressionMatrixTest`; clarified Javadoc (deterministic matrix, not fuzz). Updated `docs/architecture.md` and `docs/implementation-plan-stacked-closers.md` references.
+
+#### 84. **[BUG]** `IdempotencyRegressionMatrixTest` SNIPPETS array is tiny (6 entries)
+`IdempotencyRegressionMatrixTest.java` (formerly `IdempotencyFuzzTest`). With 200 iterations and 6 snippets, each snippet is exercised ~33 times — most variance comes from configs, not source shapes. Add more snippets (lambdas, switch expressions, text blocks, generics, annotations) or generate via `jqwik` (already a dependency).
 
 #### 85. **[QUAL]** `InternalArchitectureTest.publicMethodsInInternalPackageAreAllowlisted` allowlist is brittle
 `InternalArchitectureTest.java:46-60` lists 5 class names by string. A rename will silently disable the check. Use `@SuppressWarnings("internal-public")` annotation + ArchUnit predicate, or a `List.of(...)` constant referenced symbolically. Also: re-check whether any of those 5 classes still *needs* public methods after the recent refactors.
@@ -423,8 +441,10 @@ Resolution: replaced with `shadedJar_onlyContainsProjectAndMetaInfEntries` which
 #### 87. **[QUAL]** Error Prone pinned to 2.45 due to NullAway compatibility
 `gradle/libs.versions.toml:6`: pinned with a comment. This blocks newer Error Prone checks (e.g. `BadInstanceof`, `IdentityHashMapBoxing` ergonomics). Track NullAway 0.14+ and re-evaluate periodically; consider opening an upstream issue if NullAway is the only blocker.
 
-#### 88. **[QUAL]** `slf4j-simple` dependency in versions catalog is unused
+#### 88. **[DONE]** `slf4j-simple` dependency in versions catalog is unused
 `gradle/libs.versions.toml:38` lists `slf4j-simple` but no module references it (only `slf4j-api`). Either wire it up as a `testRuntimeOnly` for visibility into engine logs during testing, or remove the catalog entry.
+
+**Resolution:** Finding outdated — `:cli` uses `runtimeOnly(libs.slf4j.simple)` in `modules/cli/build.gradle.kts`. Catalog entry retained.
 
 #### 89. **[BUG]** `bisect-eval-idempotency.sh` blindly uses `--no-configuration-cache`
 `scripts/bisect-eval-idempotency.sh:16, 26`. With finding #77, removing the carve-out would let bisect run faster. Even today, the `compileJava` step (line 16) doesn't need the flag — only `evalTest` does.
