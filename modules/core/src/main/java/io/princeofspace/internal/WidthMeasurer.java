@@ -145,11 +145,12 @@ final class WidthMeasurer {
 
     private static int lambdaHeaderWidth(LambdaExpr lambdaExpr, FormatterConfig fmt) {
         int parametersWidth;
-        if (lambdaExpr.isEnclosingParameters()) {
-            parametersWidth = 2 + commaSeparatedParameterWidth(lambdaExpr.getParameters());
-        } else if (lambdaExpr.getParameters().size() == SINGLE_PARAMETER_COUNT) {
+        if (!lambdaExpr.isEnclosingParameters()
+                && lambdaExpr.getParameters().size() == SINGLE_PARAMETER_COUNT) {
+            // Parentheses optional for exactly one inferred-type parameter (JLS).
             parametersWidth = lambdaExpr.getParameter(0).toString().length();
         } else {
+            // Including implicit parens for zero params `()`, multi-parameter lambdas, or malformed AST.
             parametersWidth = 2 + commaSeparatedParameterWidth(lambdaExpr.getParameters());
         }
 
