@@ -271,6 +271,11 @@ public final class Main implements Callable<Integer> {
         return (formattedSource + "\n").getBytes(StandardCharsets.UTF_8);
     }
 
+    /**
+     * Framed stdin/stdout daemon loop; streams wrap process stdio and must not be closed (would shut
+     * down shared {@link System#in}/{@link System#out}).
+     */
+    @SuppressWarnings("PMD.CloseResource")
     private static int runStdioDaemon(Formatter formatter) throws IOException {
         DataInputStream in = new DataInputStream(new BufferedInputStream(System.in));
         DataOutputStream out = new DataOutputStream(new BufferedOutputStream(System.out));
