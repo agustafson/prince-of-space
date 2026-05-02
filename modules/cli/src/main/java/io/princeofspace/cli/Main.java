@@ -10,7 +10,12 @@ import io.princeofspace.model.WrapStyle;
 import org.jspecify.annotations.Nullable;
 import picocli.CommandLine;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -34,6 +39,7 @@ import java.util.stream.Collectors;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
+import static java.util.Objects.requireNonNullElse;
 
 /**
  * Command-line entry for formatting Java sources. See {@code --help} for options.
@@ -57,30 +63,48 @@ import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
         description = "Format Java source using the Prince of Space formatter.")
 public final class Main implements Callable<Integer> {
     private static final String JAVA_FILE_SUFFIX = ".java";
+    /** Serialize stderr lines from verbose batch processing vs. error reporting. */
+    private static final Object STDERR_LOCK = new Object();
+
     /** Exit when formatting fails to converge (likely formatter bug); distinct from parse/config failures ({@code 2}). */
     private static final int EXIT_NON_CONVERGENT = 3;
 
     @CommandLine.Option(
             names = "--check",
-            description = "Check only; exit 1 if any file would change (does not write files).")
+            description =
+                    "Check only; exit 1 if any file would change (does not write files). Each matched file is still "
+                            + "read and parsed like a format run — there is no cheap metadata-only pass. Use "
+                            + "--fail-fast with --check to stop after the first file that would change.")
     private boolean check;
+
+    @CommandLine.Option(
+            names = "--fail-fast",
+            description =
+                    "Only meaningful with --check: stop after the first file that would need formatting instead of "
+                            + "scanning every matched file.")
+    private boolean failFast;
 
     @CommandLine.Option(
             names = "--java-version",
             description =
                     "Java language level for parsing (8+ maps to JavaParser LanguageLevel.JAVA_N; "
-                            + "newer releases work when the bundled JavaParser defines the enum constant)",
-            defaultValue = "17")
-    private int javaVersion;
+                            + "newer releases work when the bundled JavaParser defines the enum constant)")
+    private int javaVersion = FormatterConfig.defaultJavaVersion();
 
     @CommandLine.Option(names = "--indent-style", description = "Indent style: SPACES or TABS.", defaultValue = "SPACES")
     private IndentStyle indentStyle = IndentStyle.SPACES;
 
-    @CommandLine.Option(names = "--indent-size", description = "Indent units per block level.", defaultValue = "4")
-    private int indentSize = 4;
+    @CommandLine.Option(
+            names = "--indent-size",
+            description = "Indent units per block level.",
+            defaultValue = "4") // must match FormatterConfig.DEFAULT_INDENT_SIZE (annotation value must be constant)
+    private int indentSize = FormatterConfig.DEFAULT_INDENT_SIZE;
 
-    @CommandLine.Option(names = "--line-length", description = "Target line length for wrapping.", defaultValue = "120")
-    private int lineLength = 120;
+    @CommandLine.Option(
+            names = "--line-length",
+            description = "Target line length for wrapping.",
+            defaultValue = "120") // must match FormatterConfig.DEFAULT_LINE_LENGTH (annotation value must be constant)
+    private int lineLength = FormatterConfig.DEFAULT_LINE_LENGTH;
 
     @CommandLine.Option(names = "--wrap-style", description = "Wrap style: NARROW, BALANCED, or WIDE.", defaultValue = "BALANCED")
     private WrapStyle wrapStyle = WrapStyle.BALANCED;
@@ -99,6 +123,24 @@ public final class Main implements Callable<Integer> {
             description = "Read Java source from stdin; write formatted result to stdout.")
     private boolean stdin;
 
+    /**
+     * Framed stdio loop for IDE integrations: one request is {@code u32 BE source length} + UTF-8 source; one response
+     * is {@code u32 BE status} (0 ok, 2 failure, 3 non-convergent) + {@code u32 BE payload length} + UTF-8 payload
+     * (formatted source or error message). Big-endian per {@link java.io.DataInputStream#readInt()}. EOF on stdin
+     * after a complete request exits successfully; malformed frames exit {@code 2}.
+     */
+    @CommandLine.Option(
+            names = "--stdio-daemon",
+            description =
+                    "Run a framed stdin/stdout loop for repeated formatting (used by the VS Code extension). "
+                            + "Mutually exclusive with --stdin and PATH arguments.")
+    private boolean stdioDaemon;
+
+    /** Upper bound on a single daemon request body to avoid accidental OOM from a corrupt length prefix. */
+    private static final int STDIO_DAEMON_MAX_SOURCE_BYTES = 64 * 1024 * 1024;
+
+    private static final int DAEMON_STATUS_OK = 0;
+
     @CommandLine.Option(
             names = {"-r", "--recursive"},
             description = "When arguments are directories, find .java files recursively.")
@@ -110,9 +152,33 @@ public final class Main implements Callable<Integer> {
     @CommandLine.Parameters(arity = "0..*", paramLabel = "PATH", description = ".java files or directories")
     private final List<Path> paths = new ArrayList<>();
 
+    /**
+     * Same {@link CommandLine} setup as {@link #main(String[])} — tests should use this so parse errors share the
+     * production handlers (exit code {@code 2}).
+     */
+    static CommandLine applicationCommandLine() {
+        CommandLine cmd = new CommandLine(new Main());
+        cmd.setExecutionExceptionHandler(
+                (ex, commandLine, parseResult) -> {
+                    errLine(requireNonNullElse(ex.getMessage(), ex.getClass().getName()));
+                    return 2;
+                });
+        cmd.setParameterExceptionHandler(
+                (ex, args) -> {
+                    errLine(requireNonNullElse(ex.getMessage(), ex.getClass().getName()));
+                    return 2;
+                });
+        return cmd;
+    }
+
+    static void errLine(String message) {
+        synchronized (STDERR_LOCK) {
+            System.err.println(message);
+        }
+    }
+
     public static void main(String[] args) {
-        int code = new CommandLine(new Main()).execute(args);
-        System.exit(code);
+        System.exit(applicationCommandLine().execute(args));
     }
 
     @Override
@@ -129,32 +195,51 @@ public final class Main implements Callable<Integer> {
                                     .closingParenOnNewLine(closingParenOnNewLine)
                                     .trailingCommas(trailingCommas)
                                     .build());
+            if (stdioDaemon && stdin) {
+                errLine("error: --stdio-daemon cannot be combined with --stdin");
+                return 2;
+            }
+            if (stdioDaemon) {
+                if (!paths.isEmpty()) {
+                    errLine("error: --stdio-daemon does not accept PATH arguments");
+                    return 2;
+                }
+                return runStdioDaemon(formatter);
+            }
             if (stdin) {
                 return runStdin(formatter);
             }
             if (paths.isEmpty()) {
-                System.err.println("error: no inputs (pass .java paths or directories, or use --stdin)");
+                errLine("error: no inputs (pass .java paths or directories, or use --stdin)");
                 return 2;
             }
             List<Path> files = collectJavaFiles(paths, recursive);
             if (files.isEmpty()) {
-                System.err.println("error: no .java files matched");
+                errLine("error: no .java files matched");
+                return 2;
+            }
+            if (failFast && !check) {
+                errLine("error: --fail-fast requires --check");
                 return 2;
             }
             return runBatch(formatter, files);
         } catch (FormatterException | IOException e) {
-            System.err.println(e.getMessage());
+            errLine(requireNonNullElse(e.getMessage(), e.getClass().getName()));
             return 2;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            System.err.println("interrupted");
+            errLine("interrupted");
             return 2;
         } catch (ExecutionException e) {
             Throwable c = e.getCause();
-            System.err.println(c != null ? c.getMessage() : e.getMessage());
+            String msg =
+                    c != null
+                            ? requireNonNullElse(c.getMessage(), c.getClass().getName())
+                            : requireNonNullElse(e.getMessage(), e.getClass().getName());
+            errLine(msg);
             return 2;
         } catch (IllegalArgumentException e) {
-            System.err.println("error: " + e.getMessage());
+            errLine("error: " + e.getMessage());
             return 2;
         }
     }
@@ -166,20 +251,102 @@ public final class Main implements Callable<Integer> {
         }
         FormatResult result = formatter.formatResult(input);
         if (result instanceof FormatResult.Success success) {
-            String out = success.formattedSource();
-            System.out.print(out);
-            if (!out.isEmpty() && !out.endsWith("\n")) {
-                System.out.println();
-            }
+            byte[] payload = bytesForStdoutFormattedPayload(success.formattedSource());
+            System.out.write(payload);
+            System.out.flush();
             return 0;
         }
         FormatResult.Failure failure = (FormatResult.Failure) result;
-        System.err.println(failure.message());
+        errLine(failure.message());
         return failureExitCode(failure);
     }
 
-    @SuppressWarnings("PMD.CloseResource")
+    private static byte[] bytesForStdoutFormattedPayload(String formattedSource) {
+        if (formattedSource.isEmpty()) {
+            return new byte[0];
+        }
+        if (formattedSource.endsWith("\n")) {
+            return formattedSource.getBytes(StandardCharsets.UTF_8);
+        }
+        return (formattedSource + "\n").getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static int runStdioDaemon(Formatter formatter) throws IOException {
+        DataInputStream in = new DataInputStream(new BufferedInputStream(System.in));
+        DataOutputStream out = new DataOutputStream(new BufferedOutputStream(System.out));
+        try {
+            while (true) {
+                final int lenRaw;
+                try {
+                    lenRaw = in.readInt();
+                } catch (EOFException e) {
+                    break;
+                }
+                long unsignedLen = Integer.toUnsignedLong(lenRaw);
+                if (unsignedLen > STDIO_DAEMON_MAX_SOURCE_BYTES) {
+                    writeDaemonFrame(out, 2, ("frame too large: " + unsignedLen).getBytes(StandardCharsets.UTF_8));
+                    return 2;
+                }
+                int len = (int) unsignedLen;
+                byte[] sourceBytes = new byte[len];
+                in.readFully(sourceBytes);
+                String input = new String(sourceBytes, StandardCharsets.UTF_8);
+                FormatResult result = formatter.formatResult(input);
+                if (result instanceof FormatResult.Success success) {
+                    writeDaemonFrame(out, DAEMON_STATUS_OK, bytesForStdoutFormattedPayload(success.formattedSource()));
+                } else {
+                    FormatResult.Failure failure = (FormatResult.Failure) result;
+                    writeDaemonFrame(out, failureExitCode(failure), failure.message().getBytes(StandardCharsets.UTF_8));
+                }
+            }
+        } finally {
+            out.flush();
+        }
+        return 0;
+    }
+
+    private static void writeDaemonFrame(DataOutputStream out, int status, byte[] payload) throws IOException {
+        out.writeInt(status);
+        out.writeInt(payload.length);
+        out.write(payload);
+        out.flush();
+    }
+
     private int runBatch(Formatter formatter, List<Path> files)
+            throws IOException, InterruptedException, ExecutionException {
+        if (check && failFast) {
+            return runBatchCheckFailFast(formatter, files);
+        }
+        return runBatchParallel(formatter, files);
+    }
+
+    /**
+     * Sequential {@code --check --fail-fast}: exit {@code 1} on the first file that would change.
+     */
+    private int runBatchCheckFailFast(Formatter formatter, List<Path> files) throws IOException {
+        for (Path file : files) {
+            String src = Files.readString(file, StandardCharsets.UTF_8);
+            FormatResult result = formatter.formatResult(src, file);
+            if (result instanceof FormatResult.Success success) {
+                boolean unchanged = src.equals(success.formattedSource());
+                if (verbose) {
+                    errLine(file.toString());
+                }
+                if (!unchanged) {
+                    errLine("check failed: " + file + " needs formatting");
+                    return 1;
+                }
+            } else {
+                FormatResult.Failure failure = (FormatResult.Failure) result;
+                errLine(failure.message());
+                return failureExitCode(failure);
+            }
+        }
+        return 0;
+    }
+
+    @SuppressWarnings("PMD.CloseResource")
+    private int runBatchParallel(Formatter formatter, List<Path> files)
             throws IOException, InterruptedException, ExecutionException {
         boolean anyChange = false;
         int workers = Math.max(1, Runtime.getRuntime().availableProcessors());
@@ -194,12 +361,15 @@ public final class Main implements Callable<Integer> {
                                     FormatResult result = formatter.formatResult(src, file);
                                     if (result instanceof FormatResult.Success success) {
                                         String out = success.formattedSource();
-                                        return new BatchResult(file, src.equals(out), out, Optional.empty());
+                                        boolean unchanged = src.equals(out);
+                                        Optional<String> newContent =
+                                                unchanged ? Optional.empty() : Optional.of(out);
+                                        return new BatchResult(file, unchanged, newContent, Optional.empty());
                                     }
                                     return new BatchResult(
                                             file,
                                             true,
-                                            src,
+                                            Optional.empty(),
                                             Optional.of((FormatResult.Failure) result));
                                 }));
             }
@@ -207,16 +377,16 @@ public final class Main implements Callable<Integer> {
                 BatchResult r = f.get();
                 if (r.failure().isPresent()) {
                     FormatResult.Failure failure = r.failure().get();
-                    System.err.println(failure.message());
+                    errLine(failure.message());
                     return failureExitCode(failure);
                 }
                 if (verbose) {
-                    System.err.println(r.path());
+                    errLine(r.path().toString());
                 }
                 if (!r.unchanged()) {
                     anyChange = true;
                     if (!check) {
-                        Files.writeString(r.path(), r.formatted(), StandardCharsets.UTF_8);
+                        Files.writeString(r.path(), r.newContentIfChanged().orElseThrow(), StandardCharsets.UTF_8);
                     }
                 }
             }
@@ -224,18 +394,22 @@ public final class Main implements Callable<Integer> {
             executor.shutdown();
         }
         if (check && anyChange) {
-            System.err.println("check failed: one or more files need formatting");
+            errLine("check failed: one or more files need formatting");
             return 1;
         }
         return 0;
     }
 
     /**
-     * @param formatted formatted source when {@code failure} is empty; when present, equals original source
+     * @param newContentIfChanged formatted source only when the output differs from the input; empty when unchanged to
+     *     limit peak memory for large batches.
      * @param failure when non-empty, formatting failed for this file
      */
     private record BatchResult(
-            Path path, boolean unchanged, String formatted, Optional<FormatResult.Failure> failure) {}
+            Path path,
+            boolean unchanged,
+            Optional<String> newContentIfChanged,
+            Optional<FormatResult.Failure> failure) {}
 
     private static int failureExitCode(FormatResult.Failure failure) {
         if (failure instanceof FormatResult.NonConvergent) {
@@ -248,6 +422,14 @@ public final class Main implements Callable<Integer> {
         return 2;
     }
 
+    /**
+     * Collects {@code .java} inputs from CLI paths.
+     *
+     * <p><b>Git vs walk:</b> When a directory sits inside a Git work tree and {@code recursive} is {@code true},
+     * indexed and untracked {@code .java} paths come from {@code git ls-files} (two runs — tracked files and
+     * {@code --others --exclude-standard} — merged so untracked-but-not-ignored sources are included). When there is
+     * no Git root, or {@code recursive} is {@code false} on a Git directory, listing/walking does not use Git.
+     */
     @SuppressWarnings("ConstantConditions")
     static List<Path> collectJavaFiles(List<Path> paths, boolean recursive) throws IOException {
         List<Path> out = new ArrayList<>();
@@ -360,11 +542,7 @@ public final class Main implements Callable<Integer> {
                 new SimpleFileVisitor<>() {
                     @Override
                     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-                        String name = dir.getFileName().toString();
-                        if (dir.equals(root)) {
-                            return CONTINUE;
-                        }
-                        if (name.equals(".git") || name.equals("build") || name.equals("target")) {
+                        if (shouldSkipWalkSubtree(dir, root)) {
                             return SKIP_SUBTREE;
                         }
                         return CONTINUE;
@@ -378,5 +556,25 @@ public final class Main implements Callable<Integer> {
                         return CONTINUE;
                     }
                 });
+    }
+
+    static boolean shouldSkipWalkSubtree(Path dir, Path root) {
+        if (dir.equals(root)) {
+            return false;
+        }
+        String name = dir.getFileName().toString();
+        return switch (name) {
+            case ".git",
+                    "build",
+                    "target",
+                    "node_modules",
+                    "out",
+                    "bin",
+                    ".gradle",
+                    ".idea",
+                    ".vscode",
+                    "dist" -> true;
+            default -> false;
+        };
     }
 }
