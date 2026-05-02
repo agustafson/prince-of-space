@@ -3,7 +3,7 @@
 # Requires PRINCE_EVAL_ROOTS (guava + spring-framework checkouts). Exits:
 #   0 = eval harness passed (0 parse errors, 0 idempotency failures)
 #   1 = regression / failure
-# 125 = skip (does not compile)
+#   125 = skip (PRINCE_EVAL_ROOTS unset, or compile failed — see stderr)
 set -eu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT" || exit 125
@@ -13,7 +13,7 @@ if [[ -z "${PRINCE_EVAL_ROOTS:-}" ]]; then
   exit 125
 fi
 
-if ! ./gradlew :core:compileJava :core:compileTestJava -q --no-configuration-cache; then
+if ! ./gradlew :core:compileJava :core:compileTestJava -q; then
   echo "SKIP: compile failed" >&2
   exit 125
 fi
@@ -23,7 +23,8 @@ export PRINCE_EVAL_WRAP_STYLE="${PRINCE_EVAL_WRAP_STYLE:-BALANCED}"
 export PRINCE_EVAL_REPORT_DIR="${PRINCE_EVAL_REPORT_DIR:-/tmp/prince-bisect-eval}"
 
 set +e
-./gradlew :core:evalTest --no-configuration-cache --rerun-tasks -q
+# --rerun-tasks forces a fresh eval each bisect step (eval harness reads env at execution time).
+./gradlew :core:evalTest --rerun-tasks -q
 st=$?
 set -e
 if [[ "$st" -eq 0 ]]; then
