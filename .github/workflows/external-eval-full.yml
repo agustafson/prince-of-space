@@ -1,70 +1,26 @@
-# External corpus checks: Spring Framework and Guava; full eval uses a matrix of line lengths and
-# wrap styles per corpus. Requires network to clone upstream; does not commit reports to the branch
-# (artifacts only).
+# Full matrix (3 line lengths × 3 wrap styles per corpus). Heavy: scheduled / manual only.
+# Not triggered on pull_request so branch protection + Dependabot auto-merge are not blocked by
+# skipped or missing full-matrix checks on routine PRs (see external-eval-smoke.yml).
 #
-# Eval result dedupe: .github/actions/eval-external-corpus (per wrap style, line width, upstream HEAD,
-# PoS commit). On cache hit, corpus checkout + Gradle eval are skipped.
+# Eval result dedupe: .github/actions/eval-external-corpus (same keys as release workflow).
 
-name: External eval
+name: External eval full
 
 on:
-  pull_request:
-  push:
-    branches: [main, master]
   schedule:
     # Weekly full matrix; each job is one (corpus × line length × wrap style).
     - cron: "0 6 * * 0"
   workflow_dispatch:
 
 concurrency:
-  group: external-eval-${{ github.workflow }}-${{ github.ref }}
+  group: external-eval-full-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  # Fast gate: one (line length, wrap style), same assertions as other eval (parse + idempotency).
-  external-eval-smoke:
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
-    name: External eval smoke (${{ matrix.corpus }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - corpus: spring-framework
-            repository: spring-projects/spring-framework
-            line_length: 120
-            wrap_style: balanced
-          - corpus: guava
-            repository: google/guava
-            line_length: 120
-            wrap_style: balanced
-    steps:
-      - name: Checkout Prince of Space
-        uses: actions/checkout@v6
-
-      - name: Eval external corpus (smoke, cached)
-        uses: ./.github/actions/eval-external-corpus
-        with:
-          corpus: ${{ matrix.corpus }}
-          repository: ${{ matrix.repository }}
-          line_length: ${{ matrix.line_length }}
-          wrap_style: ${{ matrix.wrap_style }}
-
-      - name: Upload eval report artifact
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: eval-report-smoke-${{ matrix.corpus }}-${{ matrix.line_length }}-${{ matrix.wrap_style }}-${{ github.sha }}
-          path: docs/eval-results/*.md
-          if-no-files-found: ignore
-
-  # Full matrix (3 line lengths × 3 wrap styles per corpus). Heavy: scheduled / manual only.
   external-eval-full:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     name: External eval full (${{ matrix.corpus }} w${{ matrix.line_length }} ${{ matrix.wrap_style }})
     runs-on: ubuntu-latest
     timeout-minutes: 120

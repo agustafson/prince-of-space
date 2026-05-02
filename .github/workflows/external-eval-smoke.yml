@@ -1,0 +1,59 @@
+# Fast external corpus gate for every PR / push / merge queue: one (line length, wrap style) per corpus.
+# Kept separate from external-eval-full.yml so required status checks on PRs are never "missing" because
+# a heavy matrix job is skipped (which blocks Dependabot auto-merge when those jobs are required).
+#
+# Eval result dedupe: .github/actions/eval-external-corpus (per wrap style, line width, upstream HEAD,
+# PoS commit). On cache hit, corpus checkout + Gradle eval are skipped.
+
+name: External eval smoke
+
+on:
+  pull_request:
+  merge_group:
+    types: [checks_requested]
+  push:
+    branches: [main, master]
+
+concurrency:
+  group: external-eval-smoke-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  external-eval-smoke:
+    name: External eval smoke (${{ matrix.corpus }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - corpus: spring-framework
+            repository: spring-projects/spring-framework
+            line_length: 120
+            wrap_style: balanced
+          - corpus: guava
+            repository: google/guava
+            line_length: 120
+            wrap_style: balanced
+    steps:
+      - name: Checkout Prince of Space
+        uses: actions/checkout@v6
+
+      - name: Eval external corpus (smoke, cached)
+        uses: ./.github/actions/eval-external-corpus
+        with:
+          corpus: ${{ matrix.corpus }}
+          repository: ${{ matrix.repository }}
+          line_length: ${{ matrix.line_length }}
+          wrap_style: ${{ matrix.wrap_style }}
+
+      - name: Upload eval report artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: eval-report-smoke-${{ matrix.corpus }}-${{ matrix.line_length }}-${{ matrix.wrap_style }}-${{ github.sha }}
+          path: docs/eval-results/*.md
+          if-no-files-found: ignore

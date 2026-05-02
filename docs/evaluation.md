@@ -85,9 +85,10 @@ failed leg blocks publishing even on dry runs. See
 [RELEASING — External eval gate](releasing.md#external-eval-gate-mandatory)
 on GitHub for recovery steps.
 
-A lighter **`external-eval-smoke`** matrix (`lineLength=120`, `wrapStyle=BALANCED` only) also runs on every
-push and pull request for fast feedback; the full matrix runs weekly and
-on-demand via `workflow_dispatch`. See `.github/workflows/external-eval.yml`.
+A lighter **`external-eval-smoke`** matrix (`lineLength=120`, `wrapStyle=BALANCED` only) runs on every
+push, pull request, and merge queue for fast feedback; the full matrix runs weekly and
+on-demand via `workflow_dispatch`. See `.github/workflows/external-eval-smoke.yml` and
+`.github/workflows/external-eval-full.yml`.
 
 ## Config permutations
 
