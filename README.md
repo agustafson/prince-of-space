@@ -163,8 +163,9 @@ The `examples/` directory is the best way to evaluate how options affect real ou
 
 - **`examples/inputs/java{8,17,21,25}/FormatterShowcase.java`** — a single unformatted source file covering 46+ scenarios: constructors, method chains, lambdas, binary operators, generics, switch expressions, records, sealed types, text blocks, and more.
 - **`examples/outputs/java{8,17,21,25}/`** — 6 formatted versions per Java level (24 total), one for each combination of `wrapStyle` and `closingParenOnNewLine`.
+- **`examples/external/outputs/`** — the same showcase passed through [Spotless](https://github.com/diffplug/spotless) with other popular Java formatters (Google Java Format AOSP, Eclipse JDT, Palantir Java Format AOSP, Prettier with prettier-plugin-java), one file per Java level per formatter — useful when comparing pipelines.
 
-For an interactive side-by-side diff, open **[`examples/compare.html`](examples/compare.html)** in a browser (or visit the hosted version at the GitHub Pages URL for this repo) — pick a Java version and two configurations to compare. For a narrated walkthrough of the key differences, see **[docs/output-showcase.md](docs/output-showcase.md)**.
+Open **[`examples/compare.html`](examples/compare.html)** in a browser (or the GitHub Pages copy for this repo) for an interactive side-by-side diff: choose a Java level, then pick any two outputs on the left and right — Prince of Space configurations **or** one of the Spotless-driven alternatives above — to see how they differ on identical input. For a narrated walkthrough focused on Prince of Space options, see **[docs/output-showcase.md](docs/output-showcase.md)**.
 
 ## API
 

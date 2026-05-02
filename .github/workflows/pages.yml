@@ -12,10 +12,14 @@ on:
     paths:
       - "docs/**"
       - "examples/outputs/**"
+      - "examples/external/outputs/**"
       - "examples/compare.html"
       - "scripts/generate-compare.py"
+      - "modules/external-compare/**"
+      - "gradle/libs.versions.toml"
       - "mkdocs.yml"
       - "build.gradle.kts"
+      - "settings.gradle.kts"
       - "CHANGELOG.md"
   workflow_dispatch:
 

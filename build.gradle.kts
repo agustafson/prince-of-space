@@ -122,11 +122,18 @@ python {
     pip("mkdocs-material:9.5.50")
 }
 
+tasks.register("regenerateExternalCompareOutputs") {
+    group = "documentation"
+    description = "Refresh examples/external/outputs via Spotless (GJF, Eclipse, Palantir, Prettier)."
+    dependsOn(tasks.named(":external-compare:regenerateExternalCompareOutputs"))
+}
+
 val generateCompareHtml by tasks.registering(Exec::class) {
     group = "documentation"
     description = "Regenerate examples/compare.html from committed outputs."
     inputs.file(layout.projectDirectory.file("scripts/generate-compare.py"))
     inputs.dir(layout.projectDirectory.dir("examples/outputs"))
+    inputs.dir(layout.projectDirectory.dir("examples/external/outputs"))
     outputs.file(layout.projectDirectory.file("examples/compare.html"))
     commandLine("sh", "-lc", "set -eu; python3 scripts/generate-compare.py")
 }

@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 """
 Generate examples/compare.html — a self-contained, dependency-free diff viewer
-for all 24 Prince of Space showroom outputs.
+for Prince of Space showroom outputs and Spotless external formatter outputs
+(Google Java Format, Eclipse JDT, Palantir AOSP, Prettier).
 
 Usage:
     python3 scripts/generate-compare.py
 
 Run after regenerating showroom goldens:
     REGENERATE_SHOWROOM=true ./gradlew :core:test --tests RegenerateShowroomGoldens
+
+Refresh external formatter goldens (Prettier uses npm via Spotless):
+    ./gradlew :external-compare:regenerateExternalCompareOutputs
+
+Then:
     python3 scripts/generate-compare.py
 """
 
@@ -17,11 +23,12 @@ from pathlib import Path
 
 REPO = Path(__file__).parent.parent
 OUTPUTS = REPO / "examples" / "outputs"
+EXTERNAL_OUTPUTS = REPO / "examples" / "external" / "outputs"
 OUT_FILE = REPO / "examples" / "compare.html"
 
 JAVA_LEVELS = ["java8", "java17", "java21", "java25"]
 
-CONFIGS = [
+INTERNAL_CONFIGS = [
     "balanced-closingparen-true",
     "balanced-closingparen-false",
     "narrow-closingparen-true",
@@ -30,6 +37,16 @@ CONFIGS = [
     "wide-closingparen-false",
 ]
 
+# Spotless format names — matches examples/external/outputs/<slug>/ (see :external-compare)
+EXTERNAL_CONFIGS = [
+    "google-java-format",
+    "eclipse",
+    "palantir-aosp",
+    "prettier",
+]
+
+CONFIGS = INTERNAL_CONFIGS + EXTERNAL_CONFIGS
+
 LABELS = {
     "balanced-closingparen-true":  "Balanced \u00b7 ) on new line",
     "balanced-closingparen-false": "Balanced \u00b7 ) inline",
@@ -37,20 +54,30 @@ LABELS = {
     "narrow-closingparen-false":   "Narrow \u00b7 ) inline",
     "wide-closingparen-true":      "Wide \u00b7 ) on new line",
     "wide-closingparen-false":     "Wide \u00b7 ) inline",
+    "google-java-format":          "Spotless: googleJavaFormat().aosp()",
+    "eclipse":                     "Spotless: eclipse()",
+    "palantir-aosp":               'Spotless: palantirJavaFormat().style("AOSP")',
+    "prettier":                    "Spotless: prettier() + prettier-plugin-java",
 }
 
 
 def load_outputs():
-    data = {}
+    data = {level: {} for level in JAVA_LEVELS}
     for level in JAVA_LEVELS:
-        data[level] = {}
-        for config in CONFIGS:
+        for config in INTERNAL_CONFIGS:
             path = OUTPUTS / level / f"{config}.java"
             if not path.exists():
                 print(f"WARNING: missing {path}", file=sys.stderr)
                 data[level][config] = ""
             else:
                 data[level][config] = path.read_text()
+        for slug in EXTERNAL_CONFIGS:
+            path = EXTERNAL_OUTPUTS / slug / f"{level}.java"
+            if not path.exists():
+                print(f"WARNING: missing {path}", file=sys.stderr)
+                data[level][slug] = ""
+            else:
+                data[level][slug] = path.read_text()
     return data
 
 
