@@ -47,6 +47,16 @@ Use **JDK 21+** to run Gradle here: the **Error Prone** compiler plugin needs a 
 
 CI runs tests, Spotless, Checkstyle, SpotBugs, Error Prone, and dependency health. Keep `./gradlew build` green locally.
 
+### `:core` test entry points
+
+| Gradle task | What runs |
+|---------------|-----------|
+| `./gradlew :core:test` | Default unit/integration suite (JUnit tags exclude `eval`). |
+| `./gradlew :core:evalTest` | Tagged **`eval`** harness (needs corpus env — see task description). Uses configuration-cache-friendly environment wiring. |
+| `./gradlew :core:showroomGoldenTest` | Tagged **`showroom-golden`** — asserts committed `examples/outputs/**` showroom bytes. |
+
+Plain `./gradlew assemble` at the repo root builds JVM artifacts only. To also build the MkDocs site (Python), run `./gradlew assembleWithDocs` or `./gradlew generateDocs` (same targets CI uses for docs publication).
+
 ## Docs checks
 
 Use one command for local docs verification (same entry point CI uses for GitHub Pages):
