@@ -59,14 +59,14 @@ Gradle projects live under `modules/` (logical names unchanged: `:core`, `:cli`,
 
 | Artifact | When to use |
 |----------|-------------|
-| **`io.github.agustafson:prince-of-space-core`** (normal POM) | Default for Gradle/Maven apps: small footprint; you resolve JavaParser and SLF4J alongside the formatter (or rely on your existing versions where compatible). |
-| **`io.github.agustafson:prince-of-space-bundled`** (single JAR, classifier default) | Classloader-sensitive embeds, tools that must not pull transitives, or environments where pinning one fat JAR is simpler than managing dependency alignment. Third-party packages are relocated under `io.princeofspace.shaded.*` so they do not clash with host classpath versions. |
+| **`io.github.agustafson.princeofspace:prince-of-space-core`** (normal POM) | Default for Gradle/Maven apps: small footprint; you resolve JavaParser and SLF4J alongside the formatter (or rely on your existing versions where compatible). |
+| **`io.github.agustafson.princeofspace:prince-of-space-bundled`** (single JAR, classifier default) | Classloader-sensitive embeds, tools that must not pull transitives, or environments where pinning one fat JAR is simpler than managing dependency alignment. Third-party packages are relocated under `io.princeofspace.shaded.*` so they do not clash with host classpath versions. |
 
 **Gradle — `core`:**
 
 ```kotlin
 dependencies {
-    implementation("io.github.agustafson:prince-of-space-core:VERSION")
+    implementation("io.github.agustafson.princeofspace:prince-of-space-core:VERSION")
 }
 ```
 
@@ -76,7 +76,7 @@ dependencies {
 dependencies {
     implementation(files("libs/prince-of-space-bundled-VERSION.jar"))
     // or from a repository that publishes the shadow artifact:
-    // implementation("io.github.agustafson:prince-of-space-bundled:VERSION")
+    // implementation("io.github.agustafson.princeofspace:prince-of-space-bundled:VERSION")
 }
 ```
 

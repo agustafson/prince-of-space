@@ -2,11 +2,11 @@
 
 <img src="docs/images/prince-of-space.jpg" alt="Prince of Space" align="right" width="140">
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.agustafson/prince-of-space-core.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.agustafson/prince-of-space-core)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.agustafson.princeofspace/prince-of-space-core.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.agustafson.princeofspace/prince-of-space-core)
 [![CI](https://github.com/agustafson/prince-of-space/actions/workflows/ci.yml/badge.svg)](https://github.com/agustafson/prince-of-space/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-A beautiful, configurable Java code formatter — **published on Maven Central** ([`io.github.agustafson`](https://central.sonatype.com/namespace/io.github.agustafson)).
+A beautiful, configurable Java code formatter — **published on Maven Central** ([`io.github.agustafson.princeofspace`](https://central.sonatype.com/namespace/io.github.agustafson.princeofspace)).
 
 > *Named after the hilariously bad 1959 Japanese sci-fi film featured in [Mystery Science Theater 3000](https://www.imdb.com/title/tt0094517/) — specifically [Season 8, Episode 16](https://mst3k.fandom.com/wiki/MST3K_816_-_Prince_of_Space).
 
@@ -32,13 +32,19 @@ Prince of Space takes its philosophy from Prettier and ktlint: strong, readable 
 
 **Current release:** `0.1.0` — use that version in the snippets below, or follow the badge above for the latest.
 
+**Maven `groupId`:** New releases use **`io.github.agustafson.princeofspace`**. The **`0.1.0`** build already on Central is **`io.github.agustafson`** (same artifact IDs). Register the new namespace with Sonatype before the first publish under it.
+
 ### Library (Gradle)
+
+**Next releases** (once published under the new group):
 
 ```kotlin
 dependencies {
-    implementation("io.github.agustafson:prince-of-space-core:0.1.0")
+    implementation("io.github.agustafson.princeofspace:prince-of-space-core:VERSION")
 }
 ```
+
+**0.1.0** (existing Central coordinates): `io.github.agustafson:prince-of-space-core:0.1.0`
 
 ```java
 import io.princeofspace.Formatter;
@@ -50,13 +56,17 @@ String formatted = formatter.format(sourceCode);
 
 ### Library (Maven)
 
+**Next releases:**
+
 ```xml
 <dependency>
-    <groupId>io.github.agustafson</groupId>
+    <groupId>io.github.agustafson.princeofspace</groupId>
     <artifactId>prince-of-space-core</artifactId>
-    <version>0.1.0</version>
+    <version>VERSION</version>
 </dependency>
 ```
+
+**0.1.0:** use `<groupId>io.github.agustafson</groupId>` and `<version>0.1.0</version>`.
 
 ### CLI
 
@@ -89,7 +99,7 @@ spotless {
 }
 ```
 
-Put `io.github.agustafson:prince-of-space-spotless:0.1.0` on the classpath where your build imports `PrinceOfSpaceStep` (for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout). Maven: add the same coordinate as a dependency of `spotless-maven-plugin`, then use `PrinceOfSpaceStep.create(...)` in the plugin configuration.
+Put the Spotless module on the classpath where your build imports `PrinceOfSpaceStep` — for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout. Use `io.github.agustafson.princeofspace:prince-of-space-spotless:VERSION` for new releases, or `io.github.agustafson:prince-of-space-spotless:0.1.0` for the published **0.1.0** build only. Maven: add the same coordinate as a dependency of `spotless-maven-plugin`, then use `PrinceOfSpaceStep.create(...)` in the plugin configuration.
 
 ### IntelliJ Plugin
 
@@ -192,13 +202,13 @@ if (result instanceof FormatResult.Success success) {
 
 ## Artifacts (Maven Central)
 
-Group ID: **`io.github.agustafson`**. Replace `0.1.0` with the [latest release](https://central.sonatype.com/namespace/io.github.agustafson) if newer.
+Group ID: **`io.github.agustafson.princeofspace`** for new releases. Replace `VERSION` with the [latest release](https://central.sonatype.com/namespace/io.github.agustafson.princeofspace). Release **0.1.0** remains under **`io.github.agustafson`** until superseded.
 
 | Artifact | Coordinate | When to use |
 |----------|------------|-------------|
-| `prince-of-space-core` | `io.github.agustafson:prince-of-space-core:0.1.0` | Default — small footprint; JavaParser + SLF4J as normal transitives |
-| `prince-of-space-bundled` | `io.github.agustafson:prince-of-space-bundled:0.1.0` | Single fat JAR, dependencies relocated — no classpath clashes |
-| `prince-of-space-spotless` | `io.github.agustafson:prince-of-space-spotless:0.1.0` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) |
+| `prince-of-space-core` | `io.github.agustafson.princeofspace:prince-of-space-core:VERSION` | Default — small footprint; JavaParser + SLF4J as normal transitives |
+| `prince-of-space-bundled` | `io.github.agustafson.princeofspace:prince-of-space-bundled:VERSION` | Single fat JAR, dependencies relocated — no classpath clashes |
+| `prince-of-space-spotless` | `io.github.agustafson.princeofspace:prince-of-space-spotless:VERSION` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) |
 | CLI (shadow JAR) | Build from repo or attach to [GitHub Releases](https://github.com/agustafson/prince-of-space/releases) | Command-line formatting; not always published to Central |
 
 ## Non-goals

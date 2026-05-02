@@ -9,9 +9,9 @@ a human or agent can understand, verify, and if necessary recover from any step.
 ### 1. Register a Sonatype Central Portal account
 
 Go to <https://central.sonatype.com> and sign in with your GitHub account (`agustafson`).
-Register the namespace `io.github.agustafson`:
+Register the namespace `io.github.agustafson.princeofspace`:
 
-- **Namespace:** `io.github.agustafson`
+- **Namespace:** `io.github.agustafson.princeofspace`
 - **Verification:** Sonatype creates a temporary GitHub repository under your personal
   account; you verify by confirming the repo exists.
 
@@ -224,7 +224,7 @@ a bugfix → `fix` or `feat`. Mis-labeling work blurs the changelog and understa
 
 ## What is published to Maven Central
 
-Three artifacts are published under `io.github.agustafson`:
+Three artifacts are published under `io.github.agustafson.princeofspace`:
 
 | Artifact ID | Description |
 |-------------|-------------|
