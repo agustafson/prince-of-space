@@ -106,7 +106,7 @@ final class StringLiteralFormatter {
             ctx.printComment(n.getComment(), arg);
         }
         if (isLeadingCommentInsideArrayInitializer(n)) {
-            ctx.padToColumn0(anchorColumn);
+            ctx.padToColumn(anchorColumn);
         }
         int quotedLen = StringEscapeUtils.escapeJava(n.getValue()).length() + 2;
         int lineLen = fmt.lineLength();

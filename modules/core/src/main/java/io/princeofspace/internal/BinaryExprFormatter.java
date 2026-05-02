@@ -1,5 +1,6 @@
 package io.princeofspace.internal;
 
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.BinaryExpr;
 import com.github.javaparser.ast.expr.EnclosedExpr;
@@ -34,7 +35,7 @@ final class BinaryExprFormatter {
 
     /** Formats binary expressions with wrap-style-specific handling for comments and line budgets. */
     void format(BinaryExpr n, Void arg) {
-        if (n.getOperator() == BinaryExpr.Operator.AND || n.getOperator() == BinaryExpr.Operator.OR) {
+        if (isLogicalInfixChainOperator(n.getOperator())) {
             printBinaryLeadingComments(n, arg);
             List<Expression> parts = new ArrayList<>();
             collectSameOp(n.getOperator(), (Expression) n, parts);
@@ -57,7 +58,7 @@ final class BinaryExprFormatter {
             }
             String os = n.getOperator().asString();
             if (ctx.config().wrapStyle() == WrapStyle.BALANCED || ctx.config().wrapStyle() == WrapStyle.NARROW) {
-                boolean prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(0), arg);
+                boolean prevTrailing = printOperandWithTrailingCommentChainCont(parts.get(0), arg);
                 for (int i = 1; i < parts.size(); i++) {
                     boolean interOperandComment = CommentUtils.hasCommentBetweenNodes(parts.get(i - 1), parts.get(i));
                     if (CommentUtils.hasLeadingLineOrBlockComment(parts.get(i)) || interOperandComment) {
@@ -70,57 +71,11 @@ final class BinaryExprFormatter {
                         ctx.printCont();
                         ctx.print(os);
                         ctx.print(" ");
-                        prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(i), arg);
+                        prevTrailing = printOperandWithTrailingCommentChainCont(parts.get(i), arg);
                     }
                 }
             } else {
                 // WIDE: greedy packing (continuation indent affects only column position, not line budget)
-                printBinaryGreedy(parts, os, arg);
-            }
-            return;
-        }
-        if (n.getOperator() == BinaryExpr.Operator.BINARY_AND
-                || n.getOperator() == BinaryExpr.Operator.BINARY_OR
-                || n.getOperator() == BinaryExpr.Operator.XOR) {
-            printBinaryLeadingComments(n, arg);
-            List<Expression> parts = new ArrayList<>();
-            collectSameOp(n.getOperator(), (Expression) n, parts);
-            int flat = ctx.column();
-            for (Expression p : parts) {
-                flat += WidthMeasurer.flatWidth(p, ctx.config()) + LOGICAL_OPERATOR_WITH_SPACES_WIDTH;
-            }
-            if (!CommentUtils.anyOperandHasLeadingLineOrBlockComment(parts)
-                    && !CommentUtils.anyOperandHasTrailingLineOrBlockComment(parts)
-                    && flat <= ctx.config().lineLength()) {
-                ctx.accept(parts.get(0), arg);
-                String os = n.getOperator().asString();
-                for (int i = 1; i < parts.size(); i++) {
-                    ctx.print(" ");
-                    ctx.print(os);
-                    ctx.print(" ");
-                    ctx.accept(parts.get(i), arg);
-                }
-                return;
-            }
-            String os = n.getOperator().asString();
-            if (ctx.config().wrapStyle() == WrapStyle.BALANCED || ctx.config().wrapStyle() == WrapStyle.NARROW) {
-                boolean prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(0), arg);
-                for (int i = 1; i < parts.size(); i++) {
-                    boolean interOperandComment = CommentUtils.hasCommentBetweenNodes(parts.get(i - 1), parts.get(i));
-                    if (CommentUtils.hasLeadingLineOrBlockComment(parts.get(i)) || interOperandComment) {
-                        printBinaryChainOperandWithInterposedLeadingComments(parts.get(i), os, arg);
-                        prevTrailing = false;
-                    } else {
-                        if (!prevTrailing) {
-                            ctx.println();
-                        }
-                        ctx.printCont();
-                        ctx.print(os);
-                        ctx.print(" ");
-                        prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(i), arg);
-                    }
-                }
-            } else {
                 printBinaryGreedy(parts, os, arg);
             }
             return;
@@ -205,7 +160,7 @@ final class BinaryExprFormatter {
                 ctx.printCont();
             }
         }
-        boolean prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(0), arg);
+        boolean prevTrailing = printOperandWithTrailingCommentChainCont(parts.get(0), arg);
         for (int i = 1; i < parts.size(); i++) {
             if (CommentUtils.hasLeadingLineOrBlockComment(parts.get(i))) {
                 printBinaryChainOperandWithInterposedLeadingComments(parts.get(i), "+", arg);
@@ -219,7 +174,7 @@ final class BinaryExprFormatter {
                 if (i - 1 < plusOrphanSplits.size() && plusOrphanSplits.size() == parts.size() - 1) {
                     printOrphansFromNode(plusOrphanSplits.get(i - 1), arg);
                 }
-                prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(i), arg);
+                prevTrailing = printOperandWithTrailingCommentChainCont(parts.get(i), arg);
             }
         }
     }
@@ -268,6 +223,14 @@ final class BinaryExprFormatter {
         return false;
     }
 
+    private static boolean isLogicalInfixChainOperator(BinaryExpr.Operator op) {
+        return op == BinaryExpr.Operator.AND
+                || op == BinaryExpr.Operator.OR
+                || op == BinaryExpr.Operator.BINARY_AND
+                || op == BinaryExpr.Operator.BINARY_OR
+                || op == BinaryExpr.Operator.XOR;
+    }
+
     /**
      * Flattens adjacent binary nodes that share the same operator. Implemented iteratively so
      * very deep chains (e.g. long string-concat trees after chunking) cannot overflow the stack.
@@ -296,7 +259,7 @@ final class BinaryExprFormatter {
 
     /** Greedily packs binary operands while respecting line length. */
     void printBinaryGreedy(List<Expression> parts, String op, Void arg, int budget) {
-        boolean prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(0), arg);
+        boolean prevTrailing = printOperandWithTrailingCommentChainCont(parts.get(0), arg);
         int used = ctx.column();
         for (int i = 1; i < parts.size(); i++) {
             int opLen = op.length() + 2; // " op "
@@ -324,7 +287,7 @@ final class BinaryExprFormatter {
                 ctx.print(" ");
                 used += opLen;
             }
-            prevTrailing = printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(parts.get(i), arg);
+            prevTrailing = printOperandWithTrailingCommentChainCont(parts.get(i), arg);
             used = ctx.column();
         }
     }
@@ -376,7 +339,7 @@ final class BinaryExprFormatter {
         return true;
     }
 
-    private boolean printExprWithTrailingCommentAfterWithMethodChainContinuationIndent(
+    private boolean printOperandWithTrailingCommentChainCont(
             Expression expr, Void arg) {
         if (!isMethodChainExpression(stripEnclosed(expr))) {
             return printExprWithTrailingCommentAfter(expr, arg);
@@ -430,6 +393,12 @@ final class BinaryExprFormatter {
      * Binary chain operands with leading line/block comments must not print {@code "|| //"} (or
      * {@code "+ //"}) on one line: line comments end with a newline, so print orphan + owned
      * comments first, then the operator, then a comment-free clone of the operand.
+     *
+     * <p>The operand {@linkplain Expression#clone() clone} has no {@linkplain Node#getParentNode() parent} in the AST,
+     * so visitor logic that resolves layout via ancestors ({@code findAncestor}, etc.) cannot see the enclosing binary.
+     * JavaParser does not expose a supported way to re-attach clones from {@code io.princeofspace}
+     * ({@code Node#setAsParentNodeOf} is {@code protected}). Operand shapes rarely depend on that context; when they do,
+     * layout may degrade silently — documented limitation (code review #29).
      */
     void printBinaryChainOperandWithInterposedLeadingComments(
             Expression operand, String op, Void arg) {

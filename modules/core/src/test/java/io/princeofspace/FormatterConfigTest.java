@@ -23,6 +23,8 @@ class FormatterConfigTest {
         assertThat(config.closingParenOnNewLine()).isEqualTo(FormatterConfig.DEFAULT_CLOSING_PAREN_ON_NEW_LINE);
         assertThat(config.trailingCommas()).isEqualTo(FormatterConfig.DEFAULT_TRAILING_COMMAS);
         assertThat(config.javaLanguageLevel()).isEqualTo(FormatterConfig.DEFAULT_JAVA_LANGUAGE_LEVEL);
+        assertThat(FormatterConfig.defaultJavaVersion())
+                .isEqualTo(FormatterConfig.DEFAULT_JAVA_LANGUAGE_LEVEL.level());
     }
 
     @Test

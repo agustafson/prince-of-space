@@ -184,4 +184,38 @@ class CommentPreservationTest {
         assertThat(out).containsPattern("\\* first paragraph\\R\\s*\\*\\R\\s*\\* second paragraph");
         assertThat(DEFAULT.format(out)).isEqualTo(out);
     }
+
+    @Test
+    void ifWithCommentBetweenConditionAndStatement_isIdempotent() {
+        String input =
+                """
+                class T {
+                    void m(boolean x) {
+                        if (x) /* guard */ return;
+                    }
+                }
+                """;
+        String out = DEFAULT.format(input);
+        assertThat(out).contains("/* guard */");
+        assertThat(DEFAULT.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void lambdaBlock_blankLineBetweenStatements_idempotentLikeMethodBody() {
+        String input =
+                """
+                class T {
+                    void m() {
+                        java.lang.Runnable r =
+                                () -> {
+                                    int a = 1;
+
+                                    int b = 2;
+                                };
+                    }
+                }
+                """;
+        String out = DEFAULT.format(input);
+        assertThat(DEFAULT.format(out)).isEqualTo(out);
+    }
 }

@@ -32,6 +32,64 @@ final class TypeClauseFormatter {
         this.fmt = fmt;
     }
 
+    private void wideContinuationGreedyKeywordTypes(
+            String keywordAndSpace, NodeList<ClassOrInterfaceType> types, Void arg) {
+        ctx.println();
+        ctx.printCont();
+        ctx.print(keywordAndSpace);
+        printTypeListGreedy(types, arg);
+    }
+
+    private void balancedCommaBrokenKeywordTypes(
+            String keywordAndSpace, NodeList<ClassOrInterfaceType> types, Void arg) {
+        ctx.println();
+        ctx.printCont();
+        ctx.print(keywordAndSpace);
+        ctx.accept(types.get(0), arg);
+        for (int i = 1; i < types.size(); i++) {
+            ctx.print(",");
+            ctx.println();
+            ctx.printCont();
+            ctx.accept(types.get(i), arg);
+        }
+    }
+
+    private void narrowKeywordStackedTypes(
+            String keywordToken, NodeList<ClassOrInterfaceType> types, Void arg) {
+        ctx.println();
+        ctx.printCont();
+        ctx.print(keywordToken);
+        for (int i = 0; i < types.size(); i++) {
+            ctx.println();
+            ctx.printNarrowListIndent();
+            ctx.accept(types.get(i), arg);
+            if (i < types.size() - 1) {
+                ctx.print(",");
+            }
+        }
+    }
+
+    /**
+     * Permits-specific wrapping: first continuation line is {@code permits <first>}; further types use
+     * continuation indent when {@link WrapStyle#BALANCED}, narrow indent otherwise.
+     */
+    private void permitsBrokenRest(NodeList<ClassOrInterfaceType> types, Void arg) {
+        ctx.println();
+        ctx.printCont();
+        ctx.print("permits ");
+        ctx.accept(types.get(0), arg);
+        for (int i = 1; i < types.size(); i++) {
+            ctx.print(",");
+            ctx.println();
+            if (fmt.wrapStyle() == WrapStyle.BALANCED) {
+                ctx.printCont();
+            } else {
+                ctx.printNarrowListIndent();
+            }
+            ctx.accept(types.get(i), arg);
+        }
+    }
+
     /** Estimates the width of a comma-separated list of class/interface type names (flat text). */
     int implementsTypesWidth(NodeList<ClassOrInterfaceType> types) {
         int w = 0;
@@ -67,36 +125,14 @@ final class TypeClauseFormatter {
             return false;
         }
         if (fmt.wrapStyle() == WrapStyle.WIDE) {
-            ctx.println();
-            ctx.printCont();
-            ctx.print("extends ");
-            printTypeListGreedy(types, arg);
+            wideContinuationGreedyKeywordTypes("extends ", types, arg);
             return true;
         }
         if (fmt.wrapStyle() == WrapStyle.BALANCED) {
-            ctx.println();
-            ctx.printCont();
-            ctx.print("extends ");
-            ctx.accept(types.get(0), arg);
-            for (int i = 1; i < types.size(); i++) {
-                ctx.print(",");
-                ctx.println();
-                ctx.printCont();
-                ctx.accept(types.get(i), arg);
-            }
+            balancedCommaBrokenKeywordTypes("extends ", types, arg);
             return true;
         }
-        ctx.println();
-        ctx.printCont();
-        ctx.print("extends");
-        for (int i = 0; i < types.size(); i++) {
-            ctx.println();
-            ctx.printNarrowListIndent();
-            ctx.accept(types.get(i), arg);
-            if (i < types.size() - 1) {
-                ctx.print(",");
-            }
-        }
+        narrowKeywordStackedTypes("extends", types, arg);
         return true;
     }
 
@@ -106,6 +142,9 @@ final class TypeClauseFormatter {
      * @return true if the clause wrapped to a new line
      */
     boolean printImplementsClause(NodeList<ClassOrInterfaceType> types, Void arg) {
+        if (types.isEmpty()) {
+            return false;
+        }
         int header = ctx.column();
         // Check if everything fits on the current line (include " {" trailing)
         int inlineWidth =
@@ -120,37 +159,14 @@ final class TypeClauseFormatter {
         }
         // Wrapping needed
         if (fmt.wrapStyle() == WrapStyle.WIDE) {
-            ctx.println();
-            ctx.printCont();
-            ctx.print("implements ");
-            printTypeListGreedy(types, arg);
+            wideContinuationGreedyKeywordTypes("implements ", types, arg);
             return true;
         }
         if (fmt.wrapStyle() == WrapStyle.BALANCED) {
-            ctx.println();
-            ctx.printCont();
-            ctx.print("implements ");
-            ctx.accept(types.get(0), arg);
-            for (int i = 1; i < types.size(); i++) {
-                ctx.print(",");
-                ctx.println();
-                ctx.printCont();
-                ctx.accept(types.get(i), arg);
-            }
+            balancedCommaBrokenKeywordTypes("implements ", types, arg);
             return true;
         }
-        // NARROW: implements keyword alone, types double-indented
-        ctx.println();
-        ctx.printCont();
-        ctx.print("implements");
-        for (int i = 0; i < types.size(); i++) {
-            ctx.println();
-            ctx.printNarrowListIndent();
-            ctx.accept(types.get(i), arg);
-            if (i < types.size() - 1) {
-                ctx.print(",");
-            }
-        }
+        narrowKeywordStackedTypes("implements", types, arg);
         return true;
     }
 
@@ -175,26 +191,10 @@ final class TypeClauseFormatter {
             return false;
         }
         if (fmt.wrapStyle() == WrapStyle.WIDE) {
-            ctx.println();
-            ctx.printCont();
-            ctx.print("permits ");
-            printTypeListGreedy(types, arg);
+            wideContinuationGreedyKeywordTypes("permits ", types, arg);
             return true;
         }
-        ctx.println();
-        ctx.printCont();
-        ctx.print("permits ");
-        ctx.accept(types.get(0), arg);
-        for (int i = 1; i < types.size(); i++) {
-            ctx.print(",");
-            ctx.println();
-            if (fmt.wrapStyle() == WrapStyle.BALANCED) {
-                ctx.printCont();
-            } else {
-                ctx.printNarrowListIndent();
-            }
-            ctx.accept(types.get(i), arg);
-        }
+        permitsBrokenRest(types, arg);
         return true;
     }
 

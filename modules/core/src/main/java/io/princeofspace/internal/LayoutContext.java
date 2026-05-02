@@ -22,6 +22,13 @@ import java.util.Optional;
 @SuppressWarnings("VoidUsed")
 record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPrinterVisitor visitor) {
 
+    /** Like {@link AutoCloseable} but {@link #close()} does not throw checked exceptions (try-with-resources friendly). */
+    @FunctionalInterface
+    interface SilentCloseable extends AutoCloseable {
+        @Override
+        void close();
+    }
+
     /** Returns the active formatter configuration. */
     FormatterConfig config() {
         return fmt;
@@ -66,18 +73,19 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
     }
 
     /**
-     * Pads the current line with spaces until the cursor column reaches at least {@code targetColumn}
-     * (0-based, per {@link com.github.javaparser.Position#getColumn}). Prefer this over
-     * {@code indentWithAlignTo} when the printer is already inside a nested {@code indent()} scope
-     * and alignment would otherwise throw or fall back to a one-level {@code indent()}.
+     * Pads the current line until the cursor reaches at least {@code targetColumn} (0-based, per
+     * {@link com.github.javaparser.Position#getColumn}). Handles tab indents via
+     * {@link #indentWithAlignToSafe}; for spaces, materializes lazy block-indent from
+     * {@link com.github.javaparser.printer.SourcePrinter} (see below) before measuring so callers
+     * do not double-count indent when aligning after {@link #println()}.
      *
      * <p>Right after {@code println()}, {@link com.github.javaparser.printer.SourcePrinter} reports
-     * column 0 even though its next {@code print()} will lazily emit the current block-indent
+     * column 0 even though the next {@code print()} will lazily emit the current block-indent
      * prefix; printing {@code targetColumn} raw spaces in that state would double-count the indent
-     * (yielding {@code blockIndent + targetColumn}). Force-materialize the auto-indent first by
-     * issuing an empty {@code print("")}, then measure {@link #column()} and pad the remainder.
+     * (yielding {@code blockIndent + targetColumn}). This method forces materialization with an empty
+     * {@code print("")} before padding when using spaces.
      */
-    void padToColumn0(int targetColumn) {
+    void padToColumn(int targetColumn) {
         if (fmt.indentStyle() == IndentStyle.TABS) {
             indentWithAlignToSafe(targetColumn);
             return;
@@ -125,6 +133,18 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
 
     void exitWrappedDelimitedListScope() {
         visitor.exitWrappedDelimitedListScope();
+    }
+
+    /**
+     * Enters a wrapped-delimited-list indent scope when {@code enabled}; {@link SilentCloseable#close()
+     * close()} exits. Use {@code try}-with-resources so paired exit always runs.
+     */
+    SilentCloseable wrappedDelimitedListScope(boolean enabled) {
+        if (!enabled) {
+            return () -> {};
+        }
+        enterWrappedDelimitedListScope();
+        return () -> exitWrappedDelimitedListScope();
     }
 
     /**
@@ -208,12 +228,12 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
                 continue;
             }
             if (pendingBlank) {
-                padToColumn0(anchorColumn);
+                padToColumn(anchorColumn);
                 print(" *");
                 println();
                 pendingBlank = false;
             }
-            padToColumn0(anchorColumn);
+            padToColumn(anchorColumn);
             if (trimmed.startsWith("*")) {
                 print(" " + trimmed);
             } else {
@@ -223,11 +243,11 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
             printedContentLine = true;
         }
         if (!printedContentLine) {
-            padToColumn0(anchorColumn);
+            padToColumn(anchorColumn);
             print(" *");
             println();
         }
-        padToColumn0(anchorColumn);
+        padToColumn(anchorColumn);
         print(" */");
         println();
     }

@@ -20,16 +20,11 @@ final class ArrayInitializerFormatter {
     private final LayoutContext ctx;
     private final FormatterConfig fmt;
     private final ArgumentListFormatter argumentListFormatter;
-    private final MethodChainFormatter methodChainFormatter;
 
-    ArrayInitializerFormatter(
-            LayoutContext ctx,
-            ArgumentListFormatter argumentListFormatter,
-            MethodChainFormatter methodChainFormatter) {
+    ArrayInitializerFormatter(LayoutContext ctx, ArgumentListFormatter argumentListFormatter) {
         this.ctx = ctx;
         this.fmt = ctx.config();
         this.argumentListFormatter = argumentListFormatter;
-        this.methodChainFormatter = methodChainFormatter;
     }
 
     // R4: inline vs multi-line from flat width; R5: WIDE packs, BALANCED/NARROW one element per line;
@@ -40,7 +35,7 @@ final class ArrayInitializerFormatter {
         int openBraceColumn = ctx.column();
         ctx.print("{");
         if (!isNullOrEmpty(n.getValues())) {
-            int arrayFlat = ctx.column() + methodChainFormatter.argsFlatWidth(n.getValues()) + 2;
+            int arrayFlat = ctx.column() + WidthMeasurer.argumentsFlatWidthForMethodCalls(n.getValues(), fmt) + 2;
             // Interior leading comments cannot fit inline: the default block-comment visitor emits a
             // trailing newline that breaks {a, /* sep */ b} layout and prevents convergence. Force
             // multi-line whenever any value carries a leading line/block comment.
@@ -89,7 +84,7 @@ final class ArrayInitializerFormatter {
         int nestedElementColumn = openBraceColumn + fmt.continuationIndentSize();
         ctx.println();
         if (alignToNestedArrayBrace) {
-            ctx.padToColumn0(nestedElementColumn);
+            ctx.padToColumn(nestedElementColumn);
         } else {
             ctx.printCont();
         }
@@ -101,7 +96,7 @@ final class ArrayInitializerFormatter {
                 ctx.print(",");
                 ctx.println();
                 if (alignToNestedArrayBrace) {
-                    ctx.padToColumn0(nestedElementColumn);
+                    ctx.padToColumn(nestedElementColumn);
                 } else {
                     ctx.printCont();
                 }
@@ -112,7 +107,7 @@ final class ArrayInitializerFormatter {
         }
         ctx.println();
         if (alignToNestedArrayBrace) {
-            ctx.padToColumn0(openBraceColumn);
+            ctx.padToColumn(openBraceColumn);
         }
         ctx.print("}");
     }
@@ -132,7 +127,7 @@ final class ArrayInitializerFormatter {
         Comment c = leading.get();
         if (c instanceof BlockComment bc) {
             ctx.printNormalizedBlockComment(bc, elementColumn);
-            ctx.padToColumn0(elementColumn);
+            ctx.padToColumn(elementColumn);
             expr.removeComment();
             ctx.accept(expr, arg);
         } else if (c instanceof LineComment lc) {
@@ -143,7 +138,7 @@ final class ArrayInitializerFormatter {
             }
             ctx.print(content);
             ctx.println();
-            ctx.padToColumn0(elementColumn);
+            ctx.padToColumn(elementColumn);
             expr.removeComment();
             ctx.accept(expr, arg);
         } else {

@@ -21,11 +21,9 @@ final class BlankLineNormalizer {
         // Pre-scan: build an index of line start offsets so we can inspect
         // previous/next non-blank lines without splitting or trimming.
         int len = source.length();
-        // lineStarts[i] = char offset where line i begins; lineEnds[i] = exclusive end (before \n).
-        // We over-allocate slightly then trim.
+        // Paired entries: bounds[2*i] = line start, bounds[2*i+1] = exclusive end (before \n).
         int estimatedLines = len / AVG_CHARS_PER_LINE_ESTIMATE + 1;
-        int[] lineStarts = new int[estimatedLines];
-        int[] lineEnds = new int[estimatedLines];
+        int[] lineBounds = new int[estimatedLines * 2];
         int lineCount = 0;
         int pos = 0;
         while (pos <= len) {
@@ -33,12 +31,10 @@ final class BlankLineNormalizer {
             if (nl < 0) {
                 nl = len;
             }
-            if (lineCount == lineStarts.length) {
-                lineStarts = grow(lineStarts);
-                lineEnds = grow(lineEnds);
+            if (lineCount * 2 >= lineBounds.length) {
+                lineBounds = growLineBounds(lineBounds);
             }
-            lineStarts[lineCount] = pos;
-            lineEnds[lineCount] = nl;
+            setLine(lineBounds, lineCount, pos, nl);
             lineCount++;
             pos = nl + 1;
             if (nl == len) {
@@ -52,13 +48,13 @@ final class BlankLineNormalizer {
         int lastKeptNonBlank = -1;
         boolean lastKeptWasBlank = false;
         for (int i = 0; i < lineCount; i++) {
-            if (!isBlankLine(source, lineStarts[i], lineEnds[i])) {
+            if (!isBlankLine(source, lineBounds, i)) {
                 keep[i] = true;
                 lastKeptNonBlank = i;
                 lastKeptWasBlank = false;
             } else {
                 keep[i] = shouldKeepBlank(
-                        source, lineStarts, lineEnds, lineCount, i, lastKeptNonBlank, lastKeptWasBlank);
+                        source, lineBounds, lineCount, i, lastKeptNonBlank, lastKeptWasBlank);
                 if (keep[i]) {
                     lastKeptWasBlank = true;
                 }
@@ -76,14 +72,37 @@ final class BlankLineNormalizer {
                 sb.append('\n');
             }
             first = false;
-            sb.append(source, lineStarts[i], lineEnds[i]);
+            sb.append(source, lineStart(lineBounds, i), lineEnd(lineBounds, i));
         }
         return sb.toString();
     }
 
+    private static int lineStart(int[] bounds, int lineIndex) {
+        return bounds[lineIndex * 2];
+    }
+
+    private static int lineEnd(int[] bounds, int lineIndex) {
+        return bounds[lineIndex * 2 + 1];
+    }
+
+    private static void setLine(int[] bounds, int lineIndex, int start, int end) {
+        bounds[lineIndex * 2] = start;
+        bounds[lineIndex * 2 + 1] = end;
+    }
+
+    private static int[] growLineBounds(int[] arr) {
+        int[] bigger = new int[arr.length * 2];
+        System.arraycopy(arr, 0, bigger, 0, arr.length);
+        return bigger;
+    }
+
     private static boolean shouldKeepBlank(
-            String source, int[] lineStarts, int[] lineEnds, int lineCount,
-            int blankIndex, int lastKeptNonBlank, boolean lastKeptWasBlank) {
+            String source,
+            int[] lineBounds,
+            int lineCount,
+            int blankIndex,
+            int lastKeptNonBlank,
+            boolean lastKeptWasBlank) {
 
         // Rule 3: no consecutive blank lines
         if (lastKeptWasBlank) {
@@ -93,7 +112,7 @@ final class BlankLineNormalizer {
         // Find next non-blank line (forward scan from blankIndex+1).
         int nextNonBlank = -1;
         for (int j = blankIndex + 1; j < lineCount; j++) {
-            if (!isBlankLine(source, lineStarts[j], lineEnds[j])) {
+            if (!isBlankLine(source, lineBounds, j)) {
                 nextNonBlank = j;
                 break;
             }
@@ -101,8 +120,10 @@ final class BlankLineNormalizer {
 
         // Preserve spacing groups inside import sections.
         if (lastKeptNonBlank >= 0 && nextNonBlank >= 0) {
-            boolean prevIsImport = isImportLine(source, lineStarts[lastKeptNonBlank], lineEnds[lastKeptNonBlank]);
-            boolean nextIsImport = isImportLine(source, lineStarts[nextNonBlank], lineEnds[nextNonBlank]);
+            boolean prevIsImport =
+                    isImportLine(source, lineStart(lineBounds, lastKeptNonBlank), lineEnd(lineBounds, lastKeptNonBlank));
+            boolean nextIsImport =
+                    isImportLine(source, lineStart(lineBounds, nextNonBlank), lineEnd(lineBounds, nextNonBlank));
             if (prevIsImport && nextIsImport) {
                 return true;
             }
@@ -110,20 +131,24 @@ final class BlankLineNormalizer {
 
         // Rule 1: no blank immediately after "{"
         if (lastKeptNonBlank >= 0
-                && trimmedEndsWith(source, lineStarts[lastKeptNonBlank], lineEnds[lastKeptNonBlank], '{')) {
+                && trimmedEndsWith(
+                        source, lineStart(lineBounds, lastKeptNonBlank), lineEnd(lineBounds, lastKeptNonBlank), '{')) {
             return false;
         }
 
         // Rule 2: no blank immediately before "}"
         if (nextNonBlank >= 0
-                && trimmedStartsWith(source, lineStarts[nextNonBlank], lineEnds[nextNonBlank], '}')) {
+                && trimmedStartsWith(
+                        source, lineStart(lineBounds, nextNonBlank), lineEnd(lineBounds, nextNonBlank), '}')) {
             return false;
         }
 
         return true;
     }
 
-    private static boolean isBlankLine(String s, int start, int end) {
+    private static boolean isBlankLine(String s, int[] bounds, int lineIndex) {
+        int start = lineStart(bounds, lineIndex);
+        int end = lineEnd(bounds, lineIndex);
         for (int i = start; i < end; i++) {
             if (!Character.isWhitespace(s.charAt(i))) {
                 return false;
@@ -164,11 +189,5 @@ final class BlankLineNormalizer {
             }
         }
         return false;
-    }
-
-    private static int[] grow(int[] arr) {
-        int[] bigger = new int[arr.length * 2];
-        System.arraycopy(arr, 0, bigger, 0, arr.length);
-        return bigger;
     }
 }

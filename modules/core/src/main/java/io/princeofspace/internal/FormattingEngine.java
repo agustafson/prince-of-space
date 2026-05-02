@@ -154,12 +154,19 @@ public final class FormattingEngine {
 
     private FormatResult printAfterTransform(CompilationUnit cu) {
         transform(cu);
-        return new FormatResult.Success(prettyPrinter.print(cu));
+        CompilationUnit toPrint = cu.clone();
+        return new FormatResult.Success(prettyPrinter.print(toPrint));
     }
 
     /**
      * Normalizes the AST before pretty-printing. {@link BraceEnforcer} adds block bodies to braceless
      * control flow.
+     *
+     * <p>During {@link PrettyPrinter#print}, the visitor may {@code remove()} comment nodes as they are
+     * printed (so they are not emitted twice). Printing runs on a {@linkplain CompilationUnit#clone()
+     * deep-cloned} compilation unit so the instance passed to {@link #singlePassFormat} is not stripped
+     * of comments by side-effect (the clone absorbs comment removals). Convergence still re-parses from
+     * source each outer iteration.
      */
     private void transform(CompilationUnit cu) {
         @SuppressWarnings("ConstantConditions") // Void visitor arg is java.lang.Void; null is the only value

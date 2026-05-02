@@ -98,7 +98,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     private static final int FOR_EACH_INLINE_SEPARATOR_WIDTH = 3;
 
     private final FormatterConfig fmt;
-    /** Matches {@link PrettyPrinter}'s {@code END_OF_LINE_CHARACTER} option (opening delimiter of text blocks). */
+    /** Matches {@link FormatterConfig#DEFAULT_PRINTER_LINE_SEPARATOR} / JavaParser {@code END_OF_LINE_CHARACTER}. */
     private final String printerEndOfLine;
     final LayoutContext ctx;
     private final BinaryExprFormatter binaryExprFormatter;
@@ -111,7 +111,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     /**
      * When {@code > 0}, {@link ArgumentListFormatter} continuation lines rely on printer indent from
-     * {@link #enterWrappedDelimitedListScope()} instead of explicit {@link LayoutContext#printCont()}
+     * {@link #enterWrappedDelimitedListScope()} instead of explicit {@link LayoutContext#ctx.printCont()}
      * so nested wrapped {@code (...)} lists stack R3 continuation correctly.
      */
     private int wrappedDelimitedListScopeDepth;
@@ -144,8 +144,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         this.declarationFormatter =
                 new DeclarationFormatter(ctx, fmt, argumentListFormatter, typeClauseFormatter);
         this.stringLiteralFormatter = new StringLiteralFormatter(ctx);
-        this.arrayInitializerFormatter =
-                new ArrayInitializerFormatter(ctx, argumentListFormatter, methodChainFormatter);
+        this.arrayInitializerFormatter = new ArrayInitializerFormatter(ctx, argumentListFormatter);
     }
 
     // ── bridge methods for LayoutContext ───────────────────────────────────────
@@ -334,7 +333,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 c.accept(this, null);
             }
             if (keepContinuationAfterOrphanComment) {
-                printCont();
+                ctx.printCont();
             }
             if (c.isOrphan()) {
                 c.remove();
@@ -460,7 +459,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (headerWrap) {
             printer.print(" :");
             printer.println();
-            printCont();
+            ctx.printCont();
             n.getIterable().accept(this, arg);
         } else {
             printer.print(" : ");
@@ -486,11 +485,12 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 Expression resource = resources.next();
                 if (first && CommentUtils.hasLeadingLineOrBlockComment(resource)) {
                     printer.println();
-                    printCont();
+                    ctx.printCont();
                 }
                 if (CommentUtils.hasLeadingLineOrBlockComment(resource) && resource.getComment().isPresent()) {
                     printComment(resource.getComment(), arg);
-                    printCont();
+                    ctx.printCont();
+                    // Disposable clone for comment-free print: no AST parent; ancestor layout may differ (#29).
                     Expression resourceWithoutLeadingComment = resource.clone();
                     resourceWithoutLeadingComment.removeComment();
                     for (Comment nestedComment : new ArrayList<>(resourceWithoutLeadingComment.getAllContainedComments())) {
@@ -504,7 +504,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 if (resources.hasNext()) {
                     printer.print(";");
                     printer.println();
-                    printCont();
+                    ctx.printCont();
                 }
             }
             if (fmt.closingParenOnNewLine() && n.getResources().size() > 1) {
@@ -523,7 +523,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     private boolean forStmtHeaderNeedsWrap(ForStmt n) {
-        return column() + FOR_LOOP_OPEN_PREFIX_WIDTH + forStmtHeaderInnerFlatWidth(n) + FOR_LOOP_HEADER_CLOSING_PAREN_WIDTH
+        return ctx.column() + FOR_LOOP_OPEN_PREFIX_WIDTH + forStmtHeaderInnerFlatWidth(n) + FOR_LOOP_HEADER_CLOSING_PAREN_WIDTH
                 > fmt.lineLength();
     }
 
@@ -584,7 +584,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     // R3: each wrapped header part starts at continuation column (2 * indentSize from block start).
     private void printForStmtHeaderWrappedBalanced(ForStmt n, Void arg) {
         printer.println();
-        printCont();
+        ctx.printCont();
         if (n.getInitialization() != null) {
             for (Iterator<Expression> i = n.getInitialization().iterator(); i.hasNext(); ) {
                 i.next().accept(this, arg);
@@ -595,13 +595,13 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
         printer.print(";");
         printer.println();
-        printCont();
+        ctx.printCont();
         if (n.getCompare().isPresent()) {
             n.getCompare().get().accept(this, arg);
         }
         printer.print(";");
         printer.println();
-        printCont();
+        ctx.printCont();
         if (n.getUpdate() != null) {
             for (Iterator<Expression> i = n.getUpdate().iterator(); i.hasNext(); ) {
                 i.next().accept(this, arg);
@@ -623,20 +623,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 + FOR_EACH_INLINE_SEPARATOR_WIDTH
                 + WidthMeasurer.flatWidth(n.getIterable(), fmt)
                 + FOR_LOOP_HEADER_CLOSING_PAREN_WIDTH;
-        return column() + oneLineWidth > fmt.lineLength();
-    }
-
-    private int column() {
-        return printer.getCursor().column;
-    }
-
-    /**
-     * Continuation indent: {@code continuationIndentSize} spaces, or that many tab characters when
-     * using tabs (same convention as {@link io.princeofspace.model.FormatterConfig}: {@code indentSize}
-     * is tabs per indent level in tab mode, not a pixel width).
-     */
-    private void printCont() {
-        ctx.printCont();
+        return ctx.column() + oneLineWidth > fmt.lineLength();
     }
 
     @Override
@@ -689,13 +676,13 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             boolean first = true;
             for (Type t : args) {
                 int need = t.toString().length() + (first ? 0 : 2);
-                if (first && column() + need > fmt.lineLength()) {
+                if (first && ctx.column() + need > fmt.lineLength()) {
                     printer.println();
-                    printCont();
-                } else if (!first && column() + need > fmt.lineLength()) {
+                    ctx.printCont();
+                } else if (!first && ctx.column() + need > fmt.lineLength()) {
                     printer.print(",");
                     printer.println();
-                    printCont();
+                    ctx.printCont();
                 } else if (!first) {
                     printer.print(", ");
                 }
@@ -705,7 +692,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         } else {
             for (Iterator<Type> i = args.iterator(); i.hasNext(); ) {
                 printer.println();
-                printCont();
+                ctx.printCont();
                 i.next().accept(this, arg);
                 if (i.hasNext()) {
                     printer.print(",");
@@ -726,10 +713,10 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printer.print("(");
         if (CommentUtils.hasLeadingLineOrBlockComment(n.getMemberValue())) {
             printer.println();
-            printCont();
+            ctx.printCont();
             n.getMemberValue().accept(this, arg);
             printer.println();
-            printCont();
+            ctx.printCont();
         } else {
             n.getMemberValue().accept(this, arg);
         }
@@ -767,14 +754,14 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
         for (Iterator<MemberValuePair> i = pairs.iterator(); i.hasNext(); ) {
             printer.println();
-            printCont();
+            ctx.printCont();
             i.next().accept(this, arg);
             if (i.hasNext()) {
                 printer.print(",");
             }
         }
         printer.println();
-        printCont();
+        ctx.printCont();
         printer.print(")");
     }
 
@@ -797,7 +784,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
         int flat =
-                column()
+                ctx.column()
                         + WidthMeasurer.flatWidth(n.getCondition(), fmt)
                         + TERNARY_OPERATOR_WIDTH
                         + WidthMeasurer.flatWidth(n.getThenExpr(), fmt)
@@ -813,11 +800,11 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
         n.getCondition().accept(this, arg);
         printer.println();
-        printCont();
+        ctx.printCont();
         printer.print("? ");
         n.getThenExpr().accept(this, arg);
         printer.println();
-        printCont();
+        ctx.printCont();
         printer.print(": ");
         n.getElseExpr().accept(this, arg);
     }
@@ -859,15 +846,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                                                                     args.get(0))
                                                             || argumentListFormatter.shouldBreakBeforeSingleWrappedArg(
                                                                     args.get(0)))));
-                    if (applyWrappedListIndent) {
-                        enterWrappedDelimitedListScope();
-                    }
-                    try {
+                    try (LayoutContext.SilentCloseable ignored = ctx.wrappedDelimitedListScope(applyWrappedListIndent)) {
                         argumentListFormatter.printCommaSeparatedExprs(args, arg);
-                    } finally {
-                        if (applyWrappedListIndent) {
-                            exitWrappedDelimitedListScope();
-                        }
                     }
                 }
             }
@@ -969,6 +949,21 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
         n.getName().accept(this, arg);
+        printExtraArrayDimensionsAfterDeclaratorName(n, arg);
+        if (n.getInitializer().isPresent()) {
+            Expression init = n.getInitializer().get();
+            printer.print(" =");
+            if (initializerBreaksAfterEquals(init)) {
+                printer.println();
+                ctx.printCont();
+            } else {
+                printer.print(" ");
+            }
+            init.accept(this, arg);
+        }
+    }
+
+    private void printExtraArrayDimensionsAfterDeclaratorName(VariableDeclarator n, Void arg) {
         n.findAncestor(NodeWithVariables.class)
                 .ifPresent(
                         ancestor ->
@@ -991,38 +986,26 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                                                         printer.print("[]");
                                                     }
                                                 }));
-        if (n.getInitializer().isPresent()) {
-            Expression init = n.getInitializer().get();
-            printer.print(" =");
-            if (CommentUtils.hasLeadingLineOrBlockComment(init)) {
-                printer.println();
-                printCont();
-            } else {
-                boolean inlineWouldOverflow = ctx.column() + 1 + WidthMeasurer.flatWidth(init, fmt) > fmt.lineLength();
-                int continuationRhsBudget =
-                        Math.max(1, fmt.lineLength() - (fmt.continuationIndentSize() + fmt.indentSize()));
-                boolean rhsFitsSingleContinuationLine = WidthMeasurer.flatWidth(init, fmt) <= continuationRhsBudget;
-                // Break before long string-like initializers when the combined line would exceed limits.
-                // Restrict to string literals, text blocks, and literal-only "+" chains so array/object
-                // initializers are not mis-measured via toString().
-                int tailWidth = stringLiteralFormatter.tailWidthAfterEqualsForInitializerBreakHeuristic(init);
-                boolean longStringLikeInitializer = stringLiteralFormatter.initializerNeedsForcedBreakBeforeChunking(init);
-                if ((inlineWouldOverflow && rhsFitsSingleContinuationLine)
-                        || (tailWidth >= 0 && ctx.column() + tailWidth > fmt.lineLength())) {
-                    printer.println();
-                    printCont();
-                } else if (longStringLikeInitializer) {
-                    // Width heuristics use JavaParser textual forms that can disagree for huge
-                    // literal-only + trees; still move the initializer to a continuation line so string
-                    // chunking sees the same leading indent on every format pass.
-                    printer.println();
-                    printCont();
-                } else {
-                    printer.print(" ");
-                }
-            }
-            init.accept(this, arg);
+    }
+
+    private boolean initializerBreaksAfterEquals(Expression init) {
+        if (CommentUtils.hasLeadingLineOrBlockComment(init)) {
+            return true;
         }
+        boolean inlineWouldOverflow =
+                ctx.column() + 1 + WidthMeasurer.flatWidth(init, fmt) > fmt.lineLength();
+        int continuationRhsBudget =
+                Math.max(1, fmt.lineLength() - (fmt.continuationIndentSize() + fmt.indentSize()));
+        boolean rhsFitsSingleContinuationLine =
+                WidthMeasurer.flatWidth(init, fmt) <= continuationRhsBudget;
+        int tailWidth = stringLiteralFormatter.tailWidthAfterEqualsForInitializerBreakHeuristic(init);
+        boolean longStringLikeInitializer =
+                stringLiteralFormatter.initializerNeedsForcedBreakBeforeChunking(init);
+        if ((inlineWouldOverflow && rhsFitsSingleContinuationLine)
+                || (tailWidth >= 0 && ctx.column() + tailWidth > fmt.lineLength())) {
+            return true;
+        }
+        return longStringLikeInitializer;
     }
 
     // R2: block lambda uses K&R '{'. R1: empty block with comments must print braces+comments so
@@ -1059,10 +1042,16 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.indent();
             @Nullable Statement prev = null;
             for (Statement s : block.getStatements()) {
+                // Mirror {@link #visit(BlockStmt)} blank-line rules (R9/R10): ignore gaps explained by comments.
                 if (prev != null && prev.getRange().isPresent() && s.getRange().isPresent()) {
                     int prevEnd = prev.getRange().get().end.line;
                     int curStart = s.getRange().get().begin.line;
-                    if (curStart > prevEnd + 1) {
+                    boolean hasInterveningComment = CommentUtils.hasCommentBetweenStatements(block, prev, s);
+                    boolean currentStatementPrintsCommentBeforeCode =
+                            CommentUtils.hasLineOrBlockCommentPrintedBeforeNode(s);
+                    if (curStart > prevEnd + 1
+                            && !hasInterveningComment
+                            && !currentStatementPrintsCommentBeforeCode) {
                         printer.println();
                     }
                 }
@@ -1090,7 +1079,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     private void printLambdaParameters(LambdaExpr n, Void arg) {
         int openParenStartColumn = 0;
         if (n.isEnclosingParameters()) {
-            openParenStartColumn = column();
+            openParenStartColumn = ctx.column();
             printer.print("(");
         }
         NodeList<Parameter> ps = n.getParameters();
@@ -1102,7 +1091,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             if (canWrapParams && argumentListFormatter.paramsNeedWrap(ps)) {
                 argumentListFormatter.printParametersListForLambda(ps, arg, openParenStartColumn);
                 printer.println();
-                ctx.padToColumn0(openParenStartColumn);
+                ctx.padToColumn(openParenStartColumn);
             } else {
                 for (int i = 0; i < ps.size(); i++) {
                     ps.get(i).accept(this, arg);
@@ -1180,13 +1169,13 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     // R4: ' when ' on same line if it fits; else R3 continuation with 'when' at margin.
     private void printSwitchWhenGuard(Expression guard, Void arg) {
-        int flat = column() + SWITCH_GUARD_KEYWORD_WIDTH + WidthMeasurer.flatWidth(guard, fmt);
+        int flat = ctx.column() + SWITCH_GUARD_KEYWORD_WIDTH + WidthMeasurer.flatWidth(guard, fmt);
         if (flat <= fmt.lineLength()) {
             printer.print(" when ");
             guard.accept(this, arg);
         } else {
             printer.println();
-            printCont();
+            ctx.printCont();
             printer.print("when ");
             guard.accept(this, arg);
         }

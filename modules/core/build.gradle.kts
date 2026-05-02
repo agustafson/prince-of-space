@@ -37,27 +37,28 @@ tasks.test {
     finalizedBy(tasks.jacocoTestReport)
 }
 
+fun envProvider(name: String) = providers.environmentVariable(name).orElse("")
+
 val evalTest by tasks.registering(Test::class) {
     description = "Runs the real-world evaluation harness (requires PRINCE_EVAL_ROOTS to be set)."
     group = "verification"
-    // Reads PRINCE_EVAL_* from the invoking environment; must not be frozen by configuration cache.
-    notCompatibleWithConfigurationCache("eval harness uses environment variables")
     useJUnitPlatform {
         includeTags("eval")
     }
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
-    environment("PRINCE_EVAL_ROOTS", System.getenv("PRINCE_EVAL_ROOTS") ?: "")
-    environment("PRINCE_EVAL_REPORT_DIR", System.getenv("PRINCE_EVAL_REPORT_DIR") ?: "")
-    environment("PRINCE_EVAL_REPORT_SLUG", System.getenv("PRINCE_EVAL_REPORT_SLUG") ?: "")
-    environment("PRINCE_EVAL_LINE_LENGTH", System.getenv("PRINCE_EVAL_LINE_LENGTH") ?: "")
-    environment("PRINCE_EVAL_WRAP_STYLE", System.getenv("PRINCE_EVAL_WRAP_STYLE") ?: "")
-    environment("PRINCE_EVAL_MAX_OVER_LONG_SAMPLES", System.getenv("PRINCE_EVAL_MAX_OVER_LONG_SAMPLES") ?: "")
-    environment("MAX_OVER_LONG_LINE_SAMPLES", System.getenv("MAX_OVER_LONG_LINE_SAMPLES") ?: "")
-    environment("PRINCE_EVAL_SKIP_SECOND_FORMAT", System.getenv("PRINCE_EVAL_SKIP_SECOND_FORMAT") ?: "")
+    environment("PRINCE_EVAL_ROOTS", envProvider("PRINCE_EVAL_ROOTS"))
+    environment("PRINCE_EVAL_REPORT_DIR", envProvider("PRINCE_EVAL_REPORT_DIR"))
+    environment("PRINCE_EVAL_REPORT_SLUG", envProvider("PRINCE_EVAL_REPORT_SLUG"))
+    environment("PRINCE_EVAL_LINE_LENGTH", envProvider("PRINCE_EVAL_LINE_LENGTH"))
+    environment("PRINCE_EVAL_WRAP_STYLE", envProvider("PRINCE_EVAL_WRAP_STYLE"))
+    environment("PRINCE_EVAL_MAX_OVER_LONG_SAMPLES", envProvider("PRINCE_EVAL_MAX_OVER_LONG_SAMPLES"))
+    environment("MAX_OVER_LONG_LINE_SAMPLES", envProvider("MAX_OVER_LONG_LINE_SAMPLES"))
+    environment("PRINCE_EVAL_SKIP_SECOND_FORMAT", envProvider("PRINCE_EVAL_SKIP_SECOND_FORMAT"))
     // Heap for the forked test worker only (Gradle daemon is separate). Override with PRINCE_EVAL_MAX_HEAP
     // if the default is too small for the corpus; PRINCE_EVAL_SKIP_SECOND_FORMAT=true also reduces use.
-    maxHeapSize = System.getenv("PRINCE_EVAL_MAX_HEAP")?.takeIf { it.isNotBlank() } ?: "1g"
+    maxHeapSize =
+        envProvider("PRINCE_EVAL_MAX_HEAP").map { v -> if (v.isBlank()) "1g" else v }.get()
     jvmArgs("-XX:+UseG1GC")
     extensions.configure<JacocoTaskExtension> {
         isEnabled = false

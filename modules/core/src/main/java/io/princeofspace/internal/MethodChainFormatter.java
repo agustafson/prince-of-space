@@ -12,7 +12,6 @@ import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.expr.SuperExpr;
 import com.github.javaparser.ast.expr.ThisExpr;
-import com.github.javaparser.ast.stmt.BlockStmt;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -147,36 +146,7 @@ final class MethodChainFormatter {
 
     /** Estimates one-line width of a comma-separated argument list. */
     int argsFlatWidth(NodeList<? extends Expression> args) {
-        int w = 0;
-        boolean first = true;
-        for (Expression a : args) {
-            if (!first) {
-                w += 2;
-            }
-            first = false;
-            if (a instanceof LambdaExpr lambda && lambda.getBody() instanceof BlockStmt) {
-                w += lambdaHeaderWidth(lambda);
-            } else {
-                w += WidthMeasurer.flatWidth(a, ctx.config());
-            }
-        }
-        return w;
-    }
-
-    /**
-     * One-line estimate for a block lambda when used in argument-wrap decisions.
-     * We only need header width here; counting the whole block body causes spurious wrapping.
-     */
-    private static int lambdaHeaderWidth(LambdaExpr lambda) {
-        int paramsWidth;
-        if (lambda.isEnclosingParameters()) {
-            paramsWidth = 2 + WidthMeasurer.commaSeparatedParameterWidth(lambda.getParameters());
-        } else if (lambda.getParameters().size() == SINGLE_ITEM_COUNT) {
-            paramsWidth = lambda.getParameter(0).toString().length();
-        } else {
-            paramsWidth = 2 + WidthMeasurer.commaSeparatedParameterWidth(lambda.getParameters());
-        }
-        return paramsWidth + " -> { }".length();
+        return WidthMeasurer.argumentsFlatWidthForMethodCalls(args, ctx.config());
     }
 
     /** Prints a chain on one physical line. */
@@ -300,14 +270,23 @@ final class MethodChainFormatter {
         return hasLambdaArgument && chainOneLineWidth(base, calls) > LAMBDA_HEAVY_CHAIN_WRAP_TRIGGER_WIDTH;
     }
 
-    /** Prints an expression clone without its owned comment. */
+    /**
+     * Prints an expression clone without its owned comment.
+     *
+     * <p>The clone has no {@linkplain Node#getParentNode() parent}; ancestor-sensitive layout inside the subtree may
+     * differ from printing the original node (code review #29).
+     */
     void printExpressionWithoutOwnComment(Expression expression, Void arg) {
         Expression copy = expression.clone();
         copy.removeComment();
         ctx.accept(copy, arg);
     }
 
-    /** Prints argument clones with comments removed to avoid duplicated hoisted comments. */
+    /**
+     * Prints argument clones with comments removed to avoid duplicated hoisted comments.
+     *
+     * <p>Each argument uses a parent-less subtree clone; see {@link #printExpressionWithoutOwnComment(Expression, Void)}.
+     */
     void printArgumentsWithoutComments(NodeList<? extends Expression> arguments, Void arg) {
         NodeList<Expression> copies = new NodeList<>();
         for (Expression expression : arguments) {

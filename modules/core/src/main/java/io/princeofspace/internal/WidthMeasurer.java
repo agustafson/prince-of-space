@@ -16,6 +16,7 @@ import com.github.javaparser.ast.expr.MethodReferenceExpr;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.expr.TextBlockLiteralExpr;
+import com.github.javaparser.ast.stmt.BlockStmt;
 import io.princeofspace.model.FormatterConfig;
 
 /**
@@ -32,6 +33,40 @@ final class WidthMeasurer {
             return expressionWidth(expression, fmt);
         }
         return node.toString().length();
+    }
+
+    /** Flat width of a comma-separated argument list for method-call wrap decisions (block lambdas: header only). */
+    static int argumentsFlatWidthForMethodCalls(NodeList<? extends Expression> args, FormatterConfig fmt) {
+        int w = 0;
+        boolean first = true;
+        for (Expression a : args) {
+            if (!first) {
+                w += 2;
+            }
+            first = false;
+            if (a instanceof LambdaExpr lambda && lambda.getBody() instanceof BlockStmt) {
+                w += blockLambdaHeaderWidthForCallFlatEstimate(lambda);
+            } else {
+                w += flatWidth(a, fmt);
+            }
+        }
+        return w;
+    }
+
+    /**
+     * Header-only width for {@code (params) -> { }} lambdas in argument-list flat-width estimates (not the full
+     * {@link #lambdaHeaderWidth} body measurement).
+     */
+    private static int blockLambdaHeaderWidthForCallFlatEstimate(LambdaExpr lambda) {
+        int paramsWidth;
+        if (lambda.isEnclosingParameters()) {
+            paramsWidth = 2 + commaSeparatedParameterWidth(lambda.getParameters());
+        } else if (lambda.getParameters().size() == SINGLE_PARAMETER_COUNT) {
+            paramsWidth = lambda.getParameter(0).toString().length();
+        } else {
+            paramsWidth = 2 + commaSeparatedParameterWidth(lambda.getParameters());
+        }
+        return paramsWidth + " -> { }".length();
     }
 
     private static int expressionWidth(Expression expression, FormatterConfig fmt) {

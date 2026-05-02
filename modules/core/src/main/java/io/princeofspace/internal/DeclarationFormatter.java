@@ -167,15 +167,8 @@ final class DeclarationFormatter {
                     }
                 });
         boolean paramsWrapped = !isNullOrEmpty(parameters) && argumentListFormatter.paramsNeedWrap(parameters);
-        if (paramsWrapped) {
-            ctx.enterWrappedDelimitedListScope();
-        }
-        try {
+        try (LayoutContext.SilentCloseable ignored = ctx.wrappedDelimitedListScope(paramsWrapped)) {
             argumentListFormatter.printParametersList(parameters, arg);
-        } finally {
-            if (paramsWrapped) {
-                ctx.exitWrappedDelimitedListScope();
-            }
         }
         if (fmt.closingParenOnNewLine() && paramsWrapped) {
             ctx.println();

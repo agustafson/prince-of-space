@@ -62,6 +62,27 @@ public record FormatterConfig(
     /** Default {@link #javaLanguageLevel()} for {@link #defaults()} and {@link Builder}. */
     public static final JavaLanguageLevel DEFAULT_JAVA_LANGUAGE_LEVEL = JavaLanguageLevel.of(17);
 
+    /**
+     * Default Java feature-release number for {@code --java-version}-style tooling (same value as
+     * {@link #DEFAULT_JAVA_LANGUAGE_LEVEL}{@code .level()}).
+     *
+     * @return the default feature-release number (e.g. {@code 17})
+     */
+    public static int defaultJavaVersion() {
+        return DEFAULT_JAVA_LANGUAGE_LEVEL.level();
+    }
+
+    /**
+     * Line separator passed to JavaParser's printer ({@code END_OF_LINE_CHARACTER}) and text-block delimiters.
+     * Not exposed as a user knob: deterministic LF output is required for CI goldens and cross-platform checks.
+     */
+    public static final String DEFAULT_PRINTER_LINE_SEPARATOR = "\n";
+
+    /**
+     * JavaParser {@code SPACE_AROUND_OPERATORS} setting; fixed to match the formatter's baseline operator spacing.
+     */
+    public static final boolean DEFAULT_PRINTER_SPACE_AROUND_OPERATORS = true;
+
     @Serial
     private static final long serialVersionUID = 1L;
 
