@@ -3,7 +3,6 @@ package io.princeofspace.intellij;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
-import com.intellij.openapi.components.StoragePathMacros;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.util.PsiUtil;
@@ -15,12 +14,13 @@ import io.princeofspace.model.JavaLanguageLevel;
 import io.princeofspace.model.WrapStyle;
 
 /**
- * Per-project Prince of Space options (workspace file). Mirrors {@link FormatterConfig} knobs plus
- * {@link ProjectState#formatOnSave} and language-level source selection.
+ * Per-project Prince of Space options stored under {@code .idea/prince-of-space.xml}, suitable to commit when teams
+ * track {@code .idea/}. Mirrors {@link FormatterConfig} knobs plus {@link ProjectState#formatOnSave} and
+ * language-level source selection.
  */
 @State(
         name = "PrinceOfSpaceProjectSettings",
-        storages = @Storage(StoragePathMacros.WORKSPACE_FILE)
+        storages = @Storage("prince-of-space.xml")
 )
 public final class PrinceOfSpaceProjectSettings implements PersistentStateComponent<ProjectState> {
 

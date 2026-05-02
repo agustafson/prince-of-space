@@ -1,6 +1,7 @@
 <idea-plugin>
     <id>io.princeofspace.intellij</id>
     <name>Prince of Space</name>
+    <idea-version since-build="233"/>
     <vendor url="https://github.com/prince-of-space/prince-of-space">prince-of-space</vendor>
     <description><![CDATA[Formats Java sources with the <a href="https://github.com/prince-of-space/prince-of-space">Prince of Space</a> formatter. Configure all formatter options under <b>Settings → Tools → Prince of Space</b>; use <b>Code → Reformat with Prince of Space…</b> or enable format on save.]]></description>
     <change-notes><![CDATA[Initial release: format current editor from IntelliJ language level.]]></change-notes>

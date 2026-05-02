@@ -1,11 +1,11 @@
 package io.princeofspace.intellij;
 
+import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.WrapStyle;
 
 import java.util.Objects;
 
-import static io.princeofspace.intellij.PrinceOfSpaceConfigurable.JAVA_LEVEL_DEFAULT;
 import static io.princeofspace.intellij.PrinceOfSpaceConfigurable.JAVA_LEVEL_MIN;
 
 interface PrinceOfSpaceState {
@@ -24,7 +24,7 @@ interface PrinceOfSpaceState {
         public String wrapStyle = WrapStyle.BALANCED.name();
         public boolean closingParenOnNewLine = true;
         public boolean trailingCommas = false;
-        public int javaRelease = JAVA_LEVEL_DEFAULT;
+        public int javaRelease = FormatterConfig.DEFAULT_JAVA_LANGUAGE_LEVEL.level();
 
         void normalizeAfterLoad() {
             if (indentStyle == null || indentStyle.isBlank()) {
@@ -35,7 +35,10 @@ interface PrinceOfSpaceState {
             }
             indentSize = clamp(indentSize, INDENT_SIZE_MIN, INDENT_SIZE_MAX, INDENT_SIZE_DEFAULT);
             lineLength = clamp(lineLength, LINE_LENGTH_MIN, LINE_LENGTH_MAX, LINE_LENGTH_DEFAULT);
-            javaRelease = javaRelease >= JAVA_LEVEL_MIN ? javaRelease : JAVA_LEVEL_DEFAULT;
+            javaRelease =
+                    javaRelease >= JAVA_LEVEL_MIN
+                            ? javaRelease
+                            : FormatterConfig.DEFAULT_JAVA_LANGUAGE_LEVEL.level();
         }
 
         public CommonState copy() {

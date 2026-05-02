@@ -37,8 +37,9 @@ public final class PrinceFormatRunner {
         Formatter formatter = new Formatter(config);
         VirtualFile vf = javaFile.getVirtualFile();
         Path nioPath = vf != null ? javaNioPath(vf) : null;
+        Path diagnosticPath = diagnosticPathFor(javaFile, vf, nioPath);
         try {
-            String formatted = nioPath != null ? formatter.format(text, nioPath) : formatter.format(text);
+            String formatted = formatter.format(text, diagnosticPath);
             if (formatted.equals(text)) {
                 return;
             }
@@ -68,5 +69,19 @@ public final class PrinceFormatRunner {
             // non-local or unsupported VFS
         }
         return null;
+    }
+
+    /**
+     * Prefer a real NIO path for diagnostics; fall back to the virtual file's presentable name so parser warnings are not
+     * logged as {@code <unknown>}.
+     */
+    static Path diagnosticPathFor(PsiJavaFile javaFile, @Nullable VirtualFile vf, @Nullable Path nioPath) {
+        if (nioPath != null) {
+            return nioPath;
+        }
+        if (vf != null) {
+            return Path.of(vf.getPresentableName());
+        }
+        return Path.of(javaFile.getName());
     }
 }

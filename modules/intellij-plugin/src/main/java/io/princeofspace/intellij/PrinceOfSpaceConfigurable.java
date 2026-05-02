@@ -10,6 +10,7 @@ import com.intellij.util.ui.FormBuilder;
 import io.princeofspace.Formatter;
 import io.princeofspace.intellij.PrinceOfSpaceState.CommonState;
 import io.princeofspace.intellij.PrinceOfSpaceState.ProjectState;
+import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.WrapStyle;
 import org.jetbrains.annotations.Nls;
@@ -38,7 +39,7 @@ import static java.util.Objects.requireNonNull;
 @NullUnmarked
 public final class PrinceOfSpaceConfigurable implements Configurable {
 
-    public static final int JAVA_LEVEL_DEFAULT = 17;
+    public static final int JAVA_LEVEL_DEFAULT = FormatterConfig.DEFAULT_JAVA_LANGUAGE_LEVEL.level();
     public static final int JAVA_LEVEL_MIN = 8;
     private final PrinceOfSpaceProjectSettings settings;
     private final PrinceOfSpaceGlobalSettings globalSettings;
@@ -50,6 +51,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
 
     private ComboBox<String> indentStyleCombo;
     private JSpinner indentSizeSpinner;
+    private JBLabel indentClampNote;
     private JSpinner lineLengthSpinner;
     private ComboBox<String> wrapStyleCombo;
     private JBCheckBox closingParenOnNewLine;
@@ -81,6 +83,10 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
 
         indentStyleCombo = new ComboBox<>(Arrays.stream(IndentStyle.values()).map(Enum::name).toArray(String[]::new));
         indentSizeSpinner = new JSpinner(new SpinnerNumberModel(4, 1, 32, 1));
+        indentClampNote =
+                new JBLabel(
+                        "Some values were adjusted to the supported ranges (indent 1–32, line length 20–500).");
+        indentClampNote.setVisible(false);
         lineLengthSpinner = new JSpinner(new SpinnerNumberModel(120, 20, 500, 1));
         wrapStyleCombo = new ComboBox<>(Arrays.stream(WrapStyle.values()).map(Enum::name).toArray(String[]::new));
         closingParenOnNewLine = new JBCheckBox("Place closing \")\" on its own line when argument lists wrap");
@@ -104,6 +110,7 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
                         .addComponent(boldSection("Indentation"))
                         .addLabeledComponent("Indent style:", indentStyleCombo)
                         .addLabeledComponent("Indent size (units per block level):", indentSizeSpinner)
+                        .addComponent(indentClampNote)
                         .addVerticalGap(8)
                         .addComponent(boldSection("Line width"))
                         .addLabeledComponent("Line length:", lineLengthSpinner)
@@ -206,8 +213,16 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
 
     private void loadUiFromState(
         ProjectState projectState, CommonState globalState) {
+        ProjectState projectBefore = projectState.copy();
+        CommonState globalBefore = globalState.copy();
         projectState.commonState.normalizeAfterLoad();
         globalState.normalizeAfterLoad();
+        boolean clamped =
+                projectBefore.commonState.indentSize != projectState.commonState.indentSize
+                        || projectBefore.commonState.lineLength != projectState.commonState.lineLength
+                        || globalBefore.indentSize != globalState.indentSize
+                        || globalBefore.lineLength != globalState.lineLength;
+        indentClampNote.setVisible(clamped);
         formatOnSave.setSelected(projectState.formatOnSave);
         useGlobalFormatterSettings.setSelected(projectState.useGlobalFormatterSettings);
         if (projectState.useGlobalFormatterSettings) {
