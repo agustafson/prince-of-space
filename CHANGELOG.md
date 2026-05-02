@@ -33,10 +33,10 @@ First release on **Maven Central** (`io.github.agustafson`).
 - **IntelliJ plugin** (`:intellij-plugin`) — Settings UI for all 8 options, language level from module or fixed release, optional format-on-save, and **Code > Reformat with Prince of Space...** action.
 - **VS Code extension** (`modules/vscode-extension/`) — TypeScript extension registering a Java formatting provider, delegating to the CLI shadow JAR.
 - **Bundled artifact** (`:core-bundled`) — Shadow JAR with all dependencies relocated under `io.princeofspace.shaded.*` for environments requiring zero transitive dependencies.
-- **Formatting pipeline** — Parse > LexicalPreservingPrinter > BraceEnforcer > AnnotationArranger > PrettyPrinter > BlankLineNormalizer, with width-aware wrapping for method chains, argument lists, logical operators, type clauses, switch labels, lambda parameters, and generic type arguments.
+- **Formatting pipeline** — Parse > LexicalPreservingPrinter > BraceEnforcer > PrettyPrinter > BlankLineNormalizer, with width-aware wrapping for method chains, argument lists, logical operators, type clauses, switch labels, lambda parameters, and generic type arguments.
 - **Comment preservation** — line, block, Javadoc, end-of-line, between-statement, and type-use comments preserved through formatting.
 - **Showroom golden tests** — 4 Java levels (8, 17, 21, 25) x 12 config combinations = 48 golden files in `examples/inputs/` and `examples/outputs/`.
-- **Test suite** — 200+ tests including unit tests for internal components (`FormattingEngine`, `AnnotationArranger`), wrapping regressions, comment preservation, idempotency fuzz testing, and examples corpus validation.
+- **Test suite** — 200+ tests including unit tests for internal components (`FormattingEngine`), wrapping regressions, comment preservation, idempotency regression matrix testing, and examples corpus validation.
 - **Real-world eval harness** — validated against Guava (3,221 files) and Spring Framework (9,198 files) with zero parse errors and zero idempotency failures.
 - **Static analysis** — Error Prone, NullAway, SpotBugs, Checkstyle, and Spotless enforced in CI.
 - **CI** — GitHub Actions: build on push/PR across Java 17, 21, and 25; manual release workflow with Nyx version inference and Sonatype Central Portal upload.

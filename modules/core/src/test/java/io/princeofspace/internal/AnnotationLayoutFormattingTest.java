@@ -7,11 +7,10 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * {@link AnnotationArranger} is part of the transform pipeline; end-to-end layout for annotations is
- * primarily determined by the pretty printer. These tests document the required shapes from
- * {@code docs/formatting-rules.md} and guard regressions.
+ * End-to-end annotation layout is enforced by the pretty printer (after {@link BraceEnforcer} on the AST).
+ * These tests document required shapes from {@code docs/formatting-rules.md} and guard regressions.
  */
-class AnnotationArrangerTest {
+class AnnotationLayoutFormattingTest {
 
     @Test
     void declarationAnnotations_eachOnOwnLine() {

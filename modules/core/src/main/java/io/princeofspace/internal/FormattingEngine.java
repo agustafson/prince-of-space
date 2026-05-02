@@ -158,15 +158,12 @@ public final class FormattingEngine {
     }
 
     /**
-     * Normalizes the AST before pretty-printing. {@link BraceEnforcer} adds block bodies to
-     * braceless control flow. {@link AnnotationArranger} is deliberately a no-op
-     * {@link com.github.javaparser.ast.visitor.ModifierVisitor} today: it keeps a stable extension
-     * point in the pipeline for future annotation-attachment fixes without changing output.
+     * Normalizes the AST before pretty-printing. {@link BraceEnforcer} adds block bodies to braceless
+     * control flow.
      */
     private void transform(CompilationUnit cu) {
         @SuppressWarnings("ConstantConditions") // Void visitor arg is java.lang.Void; null is the only value
         Void visitorArg = null;
         new BraceEnforcer().visit(cu, visitorArg);
-        new AnnotationArranger().visit(cu, visitorArg);
     }
 }
