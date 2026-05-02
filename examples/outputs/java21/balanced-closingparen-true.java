@@ -1060,6 +1060,257 @@ public class FormatterShowcase
             .sum();
     }
 
+    // Scenario 68: Static initializer block with long multi-statement body
+    static final class Scenario68StaticInitializerHolder {
+        static final java.util.Map<String, java.util.List<String>> SCENARIO68_TABLE =
+                new java.util.HashMap<String, java.util.List<String>>();
+
+        static {
+            SCENARIO68_TABLE.put(
+                    "alpha-showroom-scenario68-extra-long-symbolic-handle",
+                    java.util.Arrays.asList(
+                            "showroom-scenario68-alpha-payload-extra-long-symbolic-handle-one",
+                            "showroom-scenario68-alpha-payload-extra-long-symbolic-handle-two"
+                    )
+            );
+            SCENARIO68_TABLE.put(
+                    "bravo-showroom-scenario68-extra-long-symbolic-handle",
+                    java.util.Arrays.asList(
+                            "showroom-scenario68-bravo-payload-extra-long-symbolic-handle-one",
+                            "showroom-scenario68-bravo-payload-extra-long-symbolic-handle-two"
+                    )
+            );
+            if (SCENARIO68_TABLE.size() < 2) {
+                throw new IllegalStateException("scenario68-static-init-extra-long-symbolic-handle");
+            }
+        }
+    }
+
+    // Scenario 69: Instance initializer block with long multi-statement body
+    static final class Scenario69InstanceInitializerHolder {
+        final java.util.List<String> scenario69TagsExtraLongSymbolicHandle = new java.util.ArrayList<String>();
+
+        {
+            scenario69TagsExtraLongSymbolicHandle.add(
+                    "showroom-scenario69-instance-init-extra-long-symbolic-handle-alpha"
+            );
+            scenario69TagsExtraLongSymbolicHandle.add(
+                    "showroom-scenario69-instance-init-extra-long-symbolic-handle-bravo"
+            );
+            scenario69TagsExtraLongSymbolicHandle.add(
+                    "showroom-scenario69-instance-init-extra-long-symbolic-handle-charlie"
+            );
+            if (scenario69TagsExtraLongSymbolicHandle.isEmpty()) {
+                throw new IllegalStateException("scenario69-instance-init-extra-long-symbolic-handle");
+            }
+        }
+    }
+
+    // Scenario 70: Method references to constructor and array constructor in stream chains
+    public String[] scenario70MethodReferencesToConstructorAndArrayConstructor() {
+        return items
+            .stream()
+            .filter(java.util.Objects::nonNull)
+            .map(StringBuilder::new)
+            .map(StringBuilder::toString)
+            .map(String::trim)
+            .toArray(String[]::new);
+    }
+
+    // Scenario 71: Method with long throws clause (multiple distinct exception types)
+    public void scenario71MethodWithLongThrowsClause(String inputExtraLongSymbolicHandle)
+            throws java.io.IOException,
+            java.lang.IllegalStateException,
+            java.lang.IllegalArgumentException,
+            java.lang.UnsupportedOperationException,
+            java.util.concurrent.TimeoutException,
+            java.lang.ClassNotFoundException {
+        if (inputExtraLongSymbolicHandle == null) {
+            throw new IllegalArgumentException("scenario71-input-extra-long-symbolic-handle");
+        }
+    }
+
+    // Scenario 72: Constructor with long parameter list and throws clause
+    static final class Scenario72ConstructorWithThrowsClause {
+        Scenario72ConstructorWithThrowsClause(
+                String alphaExtraLongSymbolicHandle,
+                String bravoExtraLongSymbolicHandle,
+                int charlieExtraLongSymbolicHandle,
+                long deltaExtraLongSymbolicHandle,
+                java.util.List<String> echoExtraLongSymbolicHandle
+        )
+                throws java.io.IOException,
+                java.lang.IllegalStateException,
+                java.util.concurrent.TimeoutException,
+                java.lang.ClassNotFoundException {
+            if (alphaExtraLongSymbolicHandle == null) {
+                throw new IllegalArgumentException(bravoExtraLongSymbolicHandle);
+            }
+        }
+    }
+
+    // Scenario 73: Long chain of cast expressions traversing nested generic data
+    public int scenario73CastChainsAcrossNestedGenerics(Object payloadExtraLongSymbolicHandle) {
+        return ((java.lang.Number) ((java.util.Map.Entry<?, ?>) ((java.util.List<?>) payloadExtraLongSymbolicHandle)
+                    .get(0))
+                    .getValue())
+                    .intValue()
+                + ((java.lang.CharSequence) ((java.util.Map.Entry<?, ?>) ((java.util.List<?>) payloadExtraLongSymbolicHandle)
+                    .get(1))
+                    .getKey())
+                    .length();
+    }
+
+    // Scenario 74: Labeled break/continue in nested loops with long label identifier
+    public int scenario74LabeledBreakContinueInNestedLoops(int[][] dataExtraLongSymbolicHandle) {
+        int total = 0;
+        showroomScenario74OuterLoopExtraLongLabelHandle: for (
+                int outerIndex = 0;
+                outerIndex < dataExtraLongSymbolicHandle.length;
+                outerIndex++) {
+            for (int innerIndex = 0; innerIndex < dataExtraLongSymbolicHandle[outerIndex].length; innerIndex++) {
+                if (dataExtraLongSymbolicHandle[outerIndex][innerIndex] < 0) {
+                    continue showroomScenario74OuterLoopExtraLongLabelHandle;
+                }
+                if (dataExtraLongSymbolicHandle[outerIndex][innerIndex] > 1000000) {
+                    break showroomScenario74OuterLoopExtraLongLabelHandle;
+                }
+                total += dataExtraLongSymbolicHandle[outerIndex][innerIndex];
+            }
+        }
+        return total;
+    }
+
+    // Scenario 75: Varargs parameter at declaration and a call site that wraps
+    public String scenario75VarargsParameterListAtDeclarationAndCallSite(
+            String headExtraLongSymbolicHandle,
+            String middleExtraLongSymbolicHandle,
+            String... trailingExtraLongSymbolicHandles
+    ) {
+        return headExtraLongSymbolicHandle
+                + middleExtraLongSymbolicHandle
+                + java.util.Arrays.toString(trailingExtraLongSymbolicHandles);
+    }
+
+    public String scenario75VarargsCallSiteWithLongArguments() {
+        return scenario75VarargsParameterListAtDeclarationAndCallSite(
+                "alpha-showroom-scenario75-extra-long-symbolic-handle",
+                "bravo-showroom-scenario75-extra-long-symbolic-handle",
+                "charlie-showroom-scenario75-extra-long-symbolic-handle",
+                "delta-showroom-scenario75-extra-long-symbolic-handle",
+                "echo-showroom-scenario75-extra-long-symbolic-handle"
+        );
+    }
+
+    // Scenario 76: Lambda returning lambda (curried) with long parameter handles
+    public java.util.function.Function<String, java.util.function.Function<String, String>> scenario76CurriedLambdaWithLongHandles() {
+        return prefixExtraLongSymbolicHandle -> suffixExtraLongSymbolicHandle -> prefixExtraLongSymbolicHandle
+                + ":"
+                + suffixExtraLongSymbolicHandle
+                + ":showroom-scenario76-curried-lambda-tail";
+    }
+
+    // Scenario 77: Enum with abstract method overridden in per-constant body
+    enum Scenario77AbstractEnumStrategy {
+        EAGER_SCENARIO77_EXTRA_LONG_SYMBOLIC_HANDLE {
+            @Override
+            public String describe(String inputExtraLongSymbolicHandle) {
+                return "eager:"
+                        + inputExtraLongSymbolicHandle.toUpperCase(java.util.Locale.ROOT)
+                        + ":showroom-scenario77-eager-tail";
+            }
+        }
+        ,
+        LAZY_SCENARIO77_EXTRA_LONG_SYMBOLIC_HANDLE {
+            @Override
+            public String describe(String inputExtraLongSymbolicHandle) {
+                return inputExtraLongSymbolicHandle == null
+                        ? "lazy:absent:showroom-scenario77-lazy-tail"
+                        : "lazy:"
+                        + inputExtraLongSymbolicHandle.toLowerCase(java.util.Locale.ROOT)
+                        + ":showroom-scenario77-lazy-tail";
+            }
+        }
+        ;
+        public abstract String describe(String inputExtraLongSymbolicHandle);
+    }
+
+    // Scenario 78: Sealed class with long permits clause and final subclasses
+    static sealed class Scenario78SealedHierarchyRoot
+            permits Scenario78SealedHierarchyRoot.AlphaExtraLongSymbolicHandle,
+            Scenario78SealedHierarchyRoot.BravoExtraLongSymbolicHandle,
+            Scenario78SealedHierarchyRoot.CharlieExtraLongSymbolicHandle,
+            Scenario78SealedHierarchyRoot.DeltaExtraLongSymbolicHandle,
+            Scenario78SealedHierarchyRoot.EchoExtraLongSymbolicHandle
+    {
+        protected final String tagExtraLongSymbolicHandle;
+
+        Scenario78SealedHierarchyRoot(String tagExtraLongSymbolicHandle) {
+            this.tagExtraLongSymbolicHandle = tagExtraLongSymbolicHandle;
+        }
+
+        static final class AlphaExtraLongSymbolicHandle extends Scenario78SealedHierarchyRoot {
+            AlphaExtraLongSymbolicHandle() {
+                super("alpha-showroom-scenario78-tail");
+            }
+        }
+
+        static final class BravoExtraLongSymbolicHandle extends Scenario78SealedHierarchyRoot {
+            BravoExtraLongSymbolicHandle() {
+                super("bravo-showroom-scenario78-tail");
+            }
+        }
+
+        static final class CharlieExtraLongSymbolicHandle extends Scenario78SealedHierarchyRoot {
+            CharlieExtraLongSymbolicHandle() {
+                super("charlie-showroom-scenario78-tail");
+            }
+        }
+
+        static final class DeltaExtraLongSymbolicHandle extends Scenario78SealedHierarchyRoot {
+            DeltaExtraLongSymbolicHandle() {
+                super("delta-showroom-scenario78-tail");
+            }
+        }
+
+        static final class EchoExtraLongSymbolicHandle extends Scenario78SealedHierarchyRoot {
+            EchoExtraLongSymbolicHandle() {
+                super("echo-showroom-scenario78-tail");
+            }
+        }
+    }
+
+    // Scenario 79: Local record and local class declared inside a method body
+    public String scenario79LocalRecordAndLocalClassInsideMethodBody(String inputExtraLongSymbolicHandle) {
+        record Scenario79LocalRecordExtraLongSymbolicHandle(
+                String tagExtraLongSymbolicHandle,
+                int rankExtraLongSymbolicHandle
+        ) {
+            String describe() {
+                return tagExtraLongSymbolicHandle
+                        + ":"
+                        + rankExtraLongSymbolicHandle
+                        + ":showroom-scenario79-local-record-tail";
+            }
+        }
+        class Scenario79LocalClassExtraLongSymbolicHandle {
+            String prefixExtraLongSymbolicHandle = "showroom-scenario79-local-class-prefix-extra-long-handle";
+
+            String compose(String suffixExtraLongSymbolicHandle) {
+                return prefixExtraLongSymbolicHandle
+                        + ":"
+                        + suffixExtraLongSymbolicHandle
+                        + ":showroom-scenario79-local-class-tail";
+            }
+        }
+        var localRecord = new Scenario79LocalRecordExtraLongSymbolicHandle(
+                inputExtraLongSymbolicHandle,
+                inputExtraLongSymbolicHandle == null ? 0 : inputExtraLongSymbolicHandle.length()
+        );
+        var localClass = new Scenario79LocalClassExtraLongSymbolicHandle();
+        return localRecord.describe() + "/" + localClass.compose(inputExtraLongSymbolicHandle);
+    }
+
     enum UpdateALItemsConversationExecutionStatusScenario54 {
         SUCCESS;
         String getI18nKeyScenario54() {
