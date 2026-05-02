@@ -20,11 +20,12 @@
         <module name="AvoidStarImport"/>
         <module name="RedundantImport"/>
         <module name="UnusedImports"/>
+        <!-- MagicNumber: Checker default ignoreNumbers (-1,0,1,2); hashCode ignored.
+             Field initializers checked (ignoreFieldDeclaration=false); @Option literals stay in annotations. -->
         <module name="MagicNumber">
-            <property name="ignoreNumbers" value="-1,0,1,2"/>
             <property name="ignoreHashCodeMethod" value="true"/>
             <property name="ignoreAnnotation" value="true"/>
-            <property name="ignoreFieldDeclaration" value="true"/>
+            <property name="ignoreFieldDeclaration" value="false"/>
         </module>
         <module name="SuppressWarningsHolder"/>
     </module>

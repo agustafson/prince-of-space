@@ -73,6 +73,8 @@ subprojects {
     }
 }
 
+// Declared in root settings via the Dependency Analysis Gradle Plugin; fails the build on declared-but-unused
+// dependencies and similar issues across subprojects (see docs/contributing.md PR checks).
 dependencyAnalysis {
   issues {
     all {
@@ -143,6 +145,9 @@ tasks.register("generateDocs") {
     description = "Generate docs."
     dependsOn(generateCompareHtml, docsSite)
 }
-tasks.assemble {
-    dependsOn("generateDocs")
+tasks.register("assembleWithDocs") {
+    group = "build"
+    description =
+        "Runs all assemble tasks plus generateDocs (MkDocs + Python). Plain `./gradlew assemble` stays JVM-only."
+    dependsOn(tasks.assemble, tasks.named("generateDocs"))
 }
