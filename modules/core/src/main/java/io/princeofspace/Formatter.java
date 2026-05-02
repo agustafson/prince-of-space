@@ -87,7 +87,7 @@ public final class Formatter {
             return success.formattedSource();
         }
         // FormatResult is sealed: Success | Failure — the cast is exhaustive.
-        throw new FormatterException(((FormatResult.Failure) result).message());
+        throw new FormatterException((FormatResult.Failure) result);
     }
 
     /**
@@ -120,6 +120,7 @@ public final class Formatter {
             return success.formattedSource();
         }
         // FormatResult is sealed: Success | Failure — the cast is exhaustive.
-        throw new FormatterException(filePath + ": " + ((FormatResult.Failure) result).message());
+        throw new FormatterException(
+                new FormatResult.PathScopedFailure(filePath, (FormatResult.Failure) result));
     }
 }

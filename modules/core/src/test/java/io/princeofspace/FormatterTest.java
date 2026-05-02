@@ -616,6 +616,21 @@ class FormatterTest {
     }
 
     @Test
+    void formatterException_fromFailure_isNonConvergent_whenUnderlyingNonConvergent() {
+        FormatterException direct = new FormatterException(new FormatResult.NonConvergent(3));
+        assertThat(direct.isNonConvergent()).isTrue();
+        assertThat(direct.formatFailure()).contains(new FormatResult.NonConvergent(3));
+
+        java.nio.file.Path p = java.nio.file.Path.of("X.java");
+        FormatterException scoped =
+                new FormatterException(
+                        new FormatResult.PathScopedFailure(p, new FormatResult.NonConvergent(2)));
+        assertThat(scoped.isNonConvergent()).isTrue();
+
+        assertThat(new FormatterException("parse").isNonConvergent()).isFalse();
+    }
+
+    @Test
     void formatResultWithPath_parseFailure_wrapsPathScopedFailure() {
         java.nio.file.Path path = java.nio.file.Path.of("src/Foo.java");
         FormatResult r = DEFAULT.formatResult("not java", path);

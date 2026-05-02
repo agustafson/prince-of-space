@@ -63,6 +63,9 @@ public sealed interface FormatResult permits FormatResult.Success, FormatResult.
 
     /**
      * Formatting changed output on each pass and did not reach a fixed point within the configured pass budget.
+     * This usually indicates a formatter defect. The CLI maps this failure to exit code {@code 3} (see
+     * {@code io.princeofspace.cli.Main}); {@link io.princeofspace.FormatterException#isNonConvergent()} exposes the
+     * same distinction for throwing callers.
      *
      * @param passesAttempted number of format passes performed
      */

@@ -2,6 +2,7 @@ package io.princeofspace.cli;
 
 import io.princeofspace.Formatter;
 import io.princeofspace.FormatterException;
+import io.princeofspace.model.FormatResult;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.JavaLanguageLevel;
@@ -22,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -35,6 +37,10 @@ import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 
 /**
  * Command-line entry for formatting Java sources. See {@code --help} for options.
+ *
+ * <p><b>Exit codes:</b> {@code 0} success; {@code 1} {@code --check} found files needing format; {@code 2}
+ * user error, parse failure, I/O, or other format failure; {@code 3} non-convergent format (likely formatter
+ * defect — see {@link FormatResult.NonConvergent}).
  *
  * <p>Picocli assigns {@link CommandLine.Option}-annotated fields via reflection before {@link #call()};
  * IntelliJ otherwise reports false positives (unused, local-variable, or final-field suggestions).
@@ -51,6 +57,8 @@ import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
         description = "Format Java source using the Prince of Space formatter.")
 public final class Main implements Callable<Integer> {
     private static final String JAVA_FILE_SUFFIX = ".java";
+    /** Exit when formatting fails to converge (likely formatter bug); distinct from parse/config failures ({@code 2}). */
+    private static final int EXIT_NON_CONVERGENT = 3;
 
     @CommandLine.Option(
             names = "--check",
@@ -156,12 +164,18 @@ public final class Main implements Callable<Integer> {
         try (BufferedReader r = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8))) {
             input = r.lines().collect(Collectors.joining("\n"));
         }
-        String out = formatter.format(input);
-        System.out.print(out);
-        if (!out.isEmpty() && !out.endsWith("\n")) {
-            System.out.println();
+        FormatResult result = formatter.formatResult(input);
+        if (result instanceof FormatResult.Success success) {
+            String out = success.formattedSource();
+            System.out.print(out);
+            if (!out.isEmpty() && !out.endsWith("\n")) {
+                System.out.println();
+            }
+            return 0;
         }
-        return 0;
+        FormatResult.Failure failure = (FormatResult.Failure) result;
+        System.err.println(failure.message());
+        return failureExitCode(failure);
     }
 
     @SuppressWarnings("PMD.CloseResource")
@@ -177,12 +191,25 @@ public final class Main implements Callable<Integer> {
                         executor.submit(
                                 () -> {
                                     String src = Files.readString(file, StandardCharsets.UTF_8);
-                                    String out = formatter.format(src, file);
-                                    return new BatchResult(file, src.equals(out), out);
+                                    FormatResult result = formatter.formatResult(src, file);
+                                    if (result instanceof FormatResult.Success success) {
+                                        String out = success.formattedSource();
+                                        return new BatchResult(file, src.equals(out), out, Optional.empty());
+                                    }
+                                    return new BatchResult(
+                                            file,
+                                            true,
+                                            src,
+                                            Optional.of((FormatResult.Failure) result));
                                 }));
             }
             for (Future<BatchResult> f : futures) {
                 BatchResult r = f.get();
+                if (r.failure().isPresent()) {
+                    FormatResult.Failure failure = r.failure().get();
+                    System.err.println(failure.message());
+                    return failureExitCode(failure);
+                }
                 if (verbose) {
                     System.err.println(r.path());
                 }
@@ -203,7 +230,23 @@ public final class Main implements Callable<Integer> {
         return 0;
     }
 
-    private record BatchResult(Path path, boolean unchanged, String formatted) {}
+    /**
+     * @param formatted formatted source when {@code failure} is empty; when present, equals original source
+     * @param failure when non-empty, formatting failed for this file
+     */
+    private record BatchResult(
+            Path path, boolean unchanged, String formatted, Optional<FormatResult.Failure> failure) {}
+
+    private static int failureExitCode(FormatResult.Failure failure) {
+        if (failure instanceof FormatResult.NonConvergent) {
+            return EXIT_NON_CONVERGENT;
+        }
+        if (failure instanceof FormatResult.PathScopedFailure pathScoped
+                && pathScoped.cause() instanceof FormatResult.NonConvergent) {
+            return EXIT_NON_CONVERGENT;
+        }
+        return 2;
+    }
 
     @SuppressWarnings("ConstantConditions")
     static List<Path> collectJavaFiles(List<Path> paths, boolean recursive) throws IOException {
