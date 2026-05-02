@@ -124,6 +124,11 @@ final class ArrayInitializerFormatter {
             ctx.accept(expr, arg);
             return;
         }
+        // Orphans that sit before this expression in the parent's child list must precede the node's
+        // owned leading comment (source order). Printing owned first then delegating to accept() would
+        // emit orphans second — JavaParser may attach either comment as owned vs orphan across
+        // re-parses, so wrong order oscillates between permutations and prevents convergence.
+        ctx.printOrphanCommentsBeforeThisChildNode(expr);
         Comment c = leading.get();
         if (c instanceof BlockComment bc) {
             ctx.printNormalizedBlockComment(bc, elementColumn);

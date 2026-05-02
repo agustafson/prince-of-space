@@ -2,6 +2,7 @@ package io.princeofspace.internal;
 
 import io.princeofspace.model.FormatResult;
 import io.princeofspace.model.FormatterConfig;
+import io.princeofspace.model.WrapStyle;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -70,6 +71,30 @@ class FormattingEngineTest {
         String out = ((FormatResult.Success) result).formattedSource();
         // Convergence proves the layout is stable; previously this oscillated and never converged.
         assertThat(((FormatResult.Success) eng.format(out)).formattedSource()).isEqualTo(out);
+    }
+
+    @Test
+    void arrayInitializer_leadingLineCommentPlusOwnedComment_converges() {
+        // Mirrors Spring ControllerAdviceBeanTests: two // lines before the first element — JavaParser
+        // may treat one as an orphan sibling and one as the element's owned comment across passes.
+        FormatterConfig cfg =
+                FormatterConfig.builder().lineLength(120).wrapStyle(WrapStyle.BALANCED).build();
+        FormattingEngine eng = new FormattingEngine(cfg);
+        String src =
+                "class T {\n"
+                        + "    void m() {\n"
+                        + "        Class<?>[] xs = {\n"
+                        + "                // First explains dependency ordering.\n"
+                        + "                // Second clarifies implementation detail.\n"
+                        + "                String.class,\n"
+                        + "                Integer.class,\n"
+                        + "        };\n"
+                        + "    }\n"
+                        + "}\n";
+        FormatResult result = eng.format(src);
+        assertThat(result).isInstanceOf(FormatResult.Success.class);
+        String once = ((FormatResult.Success) result).formattedSource();
+        assertThat(((FormatResult.Success) eng.format(once)).formattedSource()).isEqualTo(once);
     }
 
     @Test
