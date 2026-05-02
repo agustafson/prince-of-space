@@ -47,14 +47,15 @@ val evalTest by tasks.registering(Test::class) {
     }
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
-    environment("PRINCE_EVAL_ROOTS", envProvider("PRINCE_EVAL_ROOTS"))
-    environment("PRINCE_EVAL_REPORT_DIR", envProvider("PRINCE_EVAL_REPORT_DIR"))
-    environment("PRINCE_EVAL_REPORT_SLUG", envProvider("PRINCE_EVAL_REPORT_SLUG"))
-    environment("PRINCE_EVAL_LINE_LENGTH", envProvider("PRINCE_EVAL_LINE_LENGTH"))
-    environment("PRINCE_EVAL_WRAP_STYLE", envProvider("PRINCE_EVAL_WRAP_STYLE"))
-    environment("PRINCE_EVAL_MAX_OVER_LONG_SAMPLES", envProvider("PRINCE_EVAL_MAX_OVER_LONG_SAMPLES"))
-    environment("MAX_OVER_LONG_LINE_SAMPLES", envProvider("MAX_OVER_LONG_LINE_SAMPLES"))
-    environment("PRINCE_EVAL_SKIP_SECOND_FORMAT", envProvider("PRINCE_EVAL_SKIP_SECOND_FORMAT"))
+    // environment(name, Object) does not unwrap Gradle providers (they stringify and break CI).
+    environment("PRINCE_EVAL_ROOTS", envProvider("PRINCE_EVAL_ROOTS").get())
+    environment("PRINCE_EVAL_REPORT_DIR", envProvider("PRINCE_EVAL_REPORT_DIR").get())
+    environment("PRINCE_EVAL_REPORT_SLUG", envProvider("PRINCE_EVAL_REPORT_SLUG").get())
+    environment("PRINCE_EVAL_LINE_LENGTH", envProvider("PRINCE_EVAL_LINE_LENGTH").get())
+    environment("PRINCE_EVAL_WRAP_STYLE", envProvider("PRINCE_EVAL_WRAP_STYLE").get())
+    environment("PRINCE_EVAL_MAX_OVER_LONG_SAMPLES", envProvider("PRINCE_EVAL_MAX_OVER_LONG_SAMPLES").get())
+    environment("MAX_OVER_LONG_LINE_SAMPLES", envProvider("MAX_OVER_LONG_LINE_SAMPLES").get())
+    environment("PRINCE_EVAL_SKIP_SECOND_FORMAT", envProvider("PRINCE_EVAL_SKIP_SECOND_FORMAT").get())
     // Heap for the forked test worker only (Gradle daemon is separate). Override with PRINCE_EVAL_MAX_HEAP
     // if the default is too small for the corpus; PRINCE_EVAL_SKIP_SECOND_FORMAT=true also reduces use.
     maxHeapSize =
