@@ -8,6 +8,8 @@ import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.EnumConstantDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.Parameter;
+import com.github.javaparser.ast.body.ReceiverParameter;
 import com.github.javaparser.ast.body.RecordDeclaration;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.AnnotationExpr;
@@ -151,6 +153,36 @@ final class DeclarationFormatter {
         drainOrphanCommentsBeforeFirstBodyElement(typeDecl, members, null, arg);
     }
 
+    /**
+     * Prints formal parameters and closing {@code )} for constructors, methods, and records: optional
+     * receiver, wrapped parameter list when needed, optional newline before the closer, then {@code )}.
+     */
+    private void printFormalParametersAndClosingParen(
+            Optional<ReceiverParameter> receiverParameter, NodeList<Parameter> parameters, Void arg) {
+        receiverParameter.ifPresent(
+                rp -> {
+                    ctx.accept(rp, arg);
+                    if (!isNullOrEmpty(parameters)) {
+                        ctx.print(", ");
+                    }
+                });
+        boolean paramsWrapped = !isNullOrEmpty(parameters) && argumentListFormatter.paramsNeedWrap(parameters);
+        if (paramsWrapped) {
+            ctx.enterWrappedDelimitedListScope();
+        }
+        try {
+            argumentListFormatter.printParametersList(parameters, arg);
+        } finally {
+            if (paramsWrapped) {
+                ctx.exitWrappedDelimitedListScope();
+            }
+        }
+        if (fmt.closingParenOnNewLine() && paramsWrapped) {
+            ctx.println();
+        }
+        ctx.print(")");
+    }
+
     /** Prints a constructor declaration including receiver, parameters, {@code throws}, and body. */
     void formatConstructor(ConstructorDeclaration n, Void arg) {
         ctx.printOrphanCommentsBeforeThisChildNode(n);
@@ -163,29 +195,7 @@ final class DeclarationFormatter {
         }
         ctx.accept(n.getName(), arg);
         ctx.print("(");
-        n.getReceiverParameter()
-                .ifPresent(
-                        rp -> {
-                            ctx.accept(rp, arg);
-                            if (!isNullOrEmpty(n.getParameters())) {
-                                ctx.print(", ");
-                            }
-                        });
-        boolean paramsWrapped = !isNullOrEmpty(n.getParameters()) && argumentListFormatter.paramsNeedWrap(n.getParameters());
-        if (paramsWrapped) {
-            ctx.enterWrappedDelimitedListScope();
-        }
-        try {
-            argumentListFormatter.printParametersList(n.getParameters(), arg);
-        } finally {
-            if (paramsWrapped) {
-                ctx.exitWrappedDelimitedListScope();
-            }
-        }
-        if (fmt.closingParenOnNewLine() && paramsWrapped) {
-            ctx.println();
-        }
-        ctx.print(")");
+        printFormalParametersAndClosingParen(n.getReceiverParameter(), n.getParameters(), arg);
         typeClauseFormatter.printThrowsClause(n.getThrownExceptions(), arg);
         ctx.print(" ");
         ctx.accept(n.getBody(), arg);
@@ -216,29 +226,7 @@ final class DeclarationFormatter {
         ctx.print(" ");
         ctx.accept(n.getName(), arg);
         ctx.print("(");
-        n.getReceiverParameter()
-                .ifPresent(
-                        rp -> {
-                            ctx.accept(rp, arg);
-                            if (!isNullOrEmpty(n.getParameters())) {
-                                ctx.print(", ");
-                            }
-                        });
-        boolean paramsWrapped = !isNullOrEmpty(n.getParameters()) && argumentListFormatter.paramsNeedWrap(n.getParameters());
-        if (paramsWrapped) {
-            ctx.enterWrappedDelimitedListScope();
-        }
-        try {
-            argumentListFormatter.printParametersList(n.getParameters(), arg);
-        } finally {
-            if (paramsWrapped) {
-                ctx.exitWrappedDelimitedListScope();
-            }
-        }
-        if (fmt.closingParenOnNewLine() && paramsWrapped) {
-            ctx.println();
-        }
-        ctx.print(")");
+        printFormalParametersAndClosingParen(n.getReceiverParameter(), n.getParameters(), arg);
         typeClauseFormatter.printThrowsClause(n.getThrownExceptions(), arg);
         if (!n.getBody().isPresent()) {
             ctx.print(";");
@@ -270,21 +258,7 @@ final class DeclarationFormatter {
         ctx.accept(n.getName(), arg);
         argumentListFormatter.printTypeParameters(n.getTypeParameters(), arg);
         ctx.print("(");
-        boolean paramsWrapped = !isNullOrEmpty(n.getParameters()) && argumentListFormatter.paramsNeedWrap(n.getParameters());
-        if (paramsWrapped) {
-            ctx.enterWrappedDelimitedListScope();
-        }
-        try {
-            argumentListFormatter.printParametersList(n.getParameters(), arg);
-        } finally {
-            if (paramsWrapped) {
-                ctx.exitWrappedDelimitedListScope();
-            }
-        }
-        if (fmt.closingParenOnNewLine() && paramsWrapped) {
-            ctx.println();
-        }
-        ctx.print(")");
+        printFormalParametersAndClosingParen(Optional.empty(), n.getParameters(), arg);
         boolean typeClauseWrapped = false;
         if (!n.getImplementedTypes().isEmpty()) {
             typeClauseWrapped = typeClauseFormatter.printImplementsClause(n.getImplementedTypes(), arg);
