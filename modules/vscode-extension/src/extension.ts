@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { formatJavaSource, resolveCliJar } from "./formatter";
+import { disposeFormatterDaemons, formatJavaSource, resolveCliJar } from "./formatter";
 import { FormatterOptions, validateFormatterOptions } from "./cliArgs";
 
 async function formatJavaDocument(
@@ -46,6 +46,14 @@ async function formatJavaDocument(
 
 export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("princeOfSpace")) {
+        disposeFormatterDaemons();
+      }
+    }),
+  );
+
+  context.subscriptions.push(
     vscode.languages.registerDocumentFormattingEditProvider({ language: "java" }, {
       provideDocumentFormattingEdits: (doc, _opt, tok) => formatJavaDocument(doc, tok),
     }),
@@ -75,4 +83,6 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 }
 
-export function deactivate(): void {}
+export function deactivate(): void {
+  disposeFormatterDaemons();
+}

@@ -44,3 +44,13 @@ export function cliFormatterArgs(jar: string, opts: FormatterOptions): string[] 
   }
   return args;
 }
+
+/** JVM args for the framed stdio daemon ({@code --stdio-daemon}) used by the VS Code extension. */
+export function cliDaemonFormatterArgs(jar: string, opts: FormatterOptions): string[] {
+  const args = cliFormatterArgs(jar, opts);
+  const i = args.indexOf("--stdin");
+  if (i >= 0) {
+    args.splice(i, 1, "--stdio-daemon");
+  }
+  return args;
+}

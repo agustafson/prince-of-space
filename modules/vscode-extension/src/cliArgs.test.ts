@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { cliFormatterArgs, FormatterOptions, validateFormatterOptions } from "./cliArgs";
+import { cliDaemonFormatterArgs, cliFormatterArgs, FormatterOptions, validateFormatterOptions } from "./cliArgs";
 
 const defaults: FormatterOptions = {
   javaVersion: 21,
@@ -57,6 +57,16 @@ describe("cliFormatterArgs", () => {
     assert.ok(args.includes("2"));
     assert.ok(args.includes("80"));
     assert.ok(args.includes("NARROW"));
+  });
+  it("daemon args swap --stdin for --stdio-daemon", () => {
+    const daemon = cliDaemonFormatterArgs("/opt/prince.jar", defaults);
+    const stdin = cliFormatterArgs("/opt/prince.jar", defaults);
+    assert.ok(daemon.includes("--stdio-daemon"));
+    assert.ok(!daemon.includes("--stdin"));
+    assert.deepStrictEqual(
+      daemon.filter((a) => a !== "--stdio-daemon"),
+      stdin.filter((a) => a !== "--stdin"),
+    );
   });
 });
 
