@@ -225,3 +225,11 @@ Use it as the primary source of *why* design choices exist.
 - **Rationale:** Non-convergence is a different failure class from user/syntax errors. The no-op visitor added a transform pass and documentation burden with no behavior. Typed `FormatterException` preserves sealed `FormatResult` semantics for tools that still use `format(String)`.
 - **Consequences:** `io.princeofspace.cli.Main` documents exit codes; batch and stdin use `formatResult`. `AnnotationArrangerTest` renamed to `AnnotationLayoutFormattingTest` (end-to-end). `docs/architecture.md` pipeline and `CHANGELOG.md` updated.
 - **Related docs:** `docs/architecture.md`, `modules/cli/src/main/java/io/princeofspace/cli/Main.java`, `modules/core/src/main/java/io/princeofspace/FormatterException.java`, `modules/core/src/main/java/io/princeofspace/internal/FormattingEngine.java`
+
+### TDR-025: Maven Central `groupId` uses a project-scoped GitHub namespace
+- **Date:** 2026-05-02
+- **Status:** Accepted
+- **Decision:** Publish JVM artifacts under **`io.github.agustafson.princeofspace`** so Maven coordinates disambiguate this project from other libraries under the same GitHub user. The first release (**0.1.0**) remains at the legacy group **`io.github.agustafson`** on Central; **new releases** use the project-scoped group. Register **`io.github.agustafson.princeofspace`** with Sonatype Central Portal (namespace verification) before the first publish under it. Java **package** names stay **`io.princeofspace.*`** — unchanged; only Maven `groupId` / Gradle `group` move.
+- **Rationale:** A bare `io.github.<user>` group is fine for a single library but becomes ambiguous when multiple unrelated projects publish from the same account. A trailing segment (`princeofspace`, analogous to multi-segment groups such as Caffeine’s `com.github.ben-manes.caffeine`) keeps Central namespaces readable without coupling to Java source packages.
+- **Consequences:** `gradle.properties` `group=…`; POMs and staging uploads use the new `groupId`. `README.md`, `RELEASING.md`, and `docs/architecture.md` document the coordinates; integrators pin **`io.github.agustafson:…:0.1.0`** only for that build.
+- **Related docs:** `README.md`, `RELEASING.md`, `docs/architecture.md`, TDR-007

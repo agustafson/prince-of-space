@@ -18,7 +18,7 @@ Optional extras if you still have room: `code-style`, `ast`, `open-source`, `apa
 
 ## GitHub Release notes (short — for the `v0.1.0` release description)
 
-**Prince of Space 0.1.0** is the first public release on Maven Central under `io.github.agustafson`.
+**Prince of Space 0.1.0** is the first public release on Maven Central under `io.github.agustafson`. **Subsequent releases** use Maven groupId **`io.github.agustafson.princeofspace`** (register with Sonatype before publishing).
 
 **Artifacts:** `prince-of-space-core`, `prince-of-space-spotless`, `prince-of-space-bundled` — see [README](https://github.com/agustafson/prince-of-space#artifacts-maven-central) for coordinates.
 
@@ -45,7 +45,7 @@ Alternative shorter:
 You can post this as a reply to your own thread so the thread has context:
 
 > Source and docs: https://github.com/agustafson/prince-of-space
-> Maven coordinates: `io.github.agustafson:prince-of-space-core:0.1.0` (also `prince-of-space-spotless`, `prince-of-space-bundled`).
+> Maven coordinates (0.1.0): `io.github.agustafson:prince-of-space-core:0.1.0` (also `prince-of-space-spotless`, `prince-of-space-bundled`). Newer releases: `io.github.agustafson.princeofspace`.
 > Philosophy: strong defaults, minimal configuration (vs hundreds of IDE knobs). Happy to answer questions or take feedback.
 
 ---
@@ -63,7 +63,7 @@ Hi all,
 
 I’ve published **Prince of Space**, a Java source formatter we’ve been building with a **small, explicit configuration surface** (eight options: indentation, line length / wrapping style, trailing commas, etc.) instead of reproducing every IDE toggle. The goal is closer to **Prettier / ktlint**: strong defaults, idempotent output, and `format(format(x)) == format(x)`.
 
-**Maven Central:** `io.github.agustafson` — e.g. `io.github.agustafson:prince-of-space-core:0.1.0`. There are also **`prince-of-space-spotless`** (custom Spotless step) and **`prince-of-space-bundled`** (fat jar with relocated deps).
+**Maven Central:** `0.1.0` → `io.github.agustafson` (e.g. `io.github.agustafson:prince-of-space-core:0.1.0`). **Later releases** → `io.github.agustafson.princeofspace`. There are also **`prince-of-space-spotless`** (custom Spotless step) and **`prince-of-space-bundled`** (fat jar with relocated deps).
 
 **Integrations:** library API, **Spotless** (`PrinceOfSpaceStep`), **IntelliJ** plugin, **CLI** shadow jar, **VS Code** extension (via CLI).
 
