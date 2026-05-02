@@ -37,8 +37,10 @@ Default values are encoded both in the builder field initializers (`FormatterCon
 
 **Resolution:** Added public `FormatterConfig.DEFAULT_*` constants; `Builder` and `defaults()` use them. README and `docs/architecture.md` reference the same names; `FormatterConfig` class Javadoc links the constants.
 
-#### 5. **[QUAL]** `FormatResult.NonConvergent` exposed as a generic `Failure`
+#### 5. **[DONE]** `FormatResult.NonConvergent` exposed as a generic `Failure`
 A non-convergent format almost always indicates a *formatter bug*, not user input being invalid. Lumping it with `ParseFailure` and `EmptyCompilationUnit` means consumers (e.g. CLI, IDE plugin) cannot easily distinguish "your code is broken" from "the formatter is broken." Consider either a separate sealed branch or distinct treatment in user-facing tools (CLI should probably exit with a different code so it can be reported as a bug).
+
+**Resolution:** Sealed shape unchanged (still `Failure`). CLI maps `NonConvergent` to **exit code 3** (documented on `Main`); parse/other failures stay **2**. `FormatterException(FormatResult.Failure)` plus `isNonConvergent()` / `formatFailure()` for throwing callers. `FormatResult.NonConvergent` Javadoc cross-links CLI and `FormatterException`. TDR-024.
 
 #### 6. **[DONE]** `FormatterConfig.continuationIndentSize()` is a public method but undocumented as a knob
 The Javadoc on `continuationIndentSize()` (`FormatterConfig.java:52-63`) describes a *derived* value — fine — but it is not listed in the README, architecture.md, or canonical-formatting-rules.md as part of the public API surface. If consumers should not call it, mark it `@deprecated` or move the calculation `internal/`. If they should, document it in the public option table.
@@ -72,7 +74,7 @@ In both cases the user has set a system property explicitly and it's being ignor
 #### 11. **[DONE]** `transform()` doc-string is misleading
 `FormattingEngine.java:142` only mentions `BraceEnforcer` and `AnnotationArranger`, but `AnnotationArranger` is currently a no-op (see `AnnotationArranger.java:15`, an empty class extending `ModifierVisitor`). Either remove `AnnotationArranger` until it does something, or document why an empty hook is registered.
 
-**Resolution:** Added Javadoc on `FormattingEngine.transform` describing `BraceEnforcer` and documenting `AnnotationArranger` as an intentional no-op `ModifierVisitor` pipeline hook for future annotation-attachment work (see class Javadoc on `AnnotationArranger`).
+**Resolution:** Added Javadoc on `FormattingEngine.transform` describing `BraceEnforcer` and documenting `AnnotationArranger` as an intentional no-op `ModifierVisitor` pipeline hook for future annotation-attachment work (see class Javadoc on `AnnotationArranger`). **Superseded:** `AnnotationArranger` removed entirely (finding #54 / TDR-024); transform is `BraceEnforcer` only.
 
 ### Pretty-Print / Blank-Line Stage
 
@@ -239,8 +241,10 @@ Canonical Rule 5 says "Empty enums remain `enum E { }` compatible with Rule 9 (n
 
 **Resolution:** Comment documents that level 8 keeps the expanded empty-block shape for goldens/showcase consistency; 9+ uses compact `{}`.
 
-#### 39. **[QUAL]** Three copies of "wrap params, emit `)`"
+#### 39. **[DONE]** Three copies of "wrap params, emit `)`"
 `formatConstructor`, `formatMethod`, `formatRecord` each have the same 14-line `paramsWrapped` block (`DeclarationFormatter.java:178-192, 231-245, 275-289`). Extract.
+
+**Resolution:** Extracted `printFormalParametersAndClosingParen(Optional<ReceiverParameter>, NodeList<Parameter>, Void)` in `DeclarationFormatter`; three call sites pass receiver + params or `Optional.empty()` for records.
 
 #### 40. **[DONE]** `printNormalizedLeadingBlockComment` discards internal blank lines
 `StringLiteralFormatter.java:138-156` skips empty lines (`if (trimmed.isEmpty()) continue;`). If a user's leading block comment contains intentional blank separator lines, they will be silently removed.
@@ -315,8 +319,10 @@ Either merge into a single block, or hoist the rationale into a class-level comm
 - `SPACE_AROUND_OPERATORS = true` is a stylistic decision baked into the printer rather than the config.
 Move both to `FormatterConfig` knobs (or document why they are intentionally non-configurable).
 
-#### 54. **[QUAL]** `AnnotationArranger` is dead code
+#### 54. **[DONE]** `AnnotationArranger` is dead code
 Already noted in #11. Combined with the two-line comment in `AnnotationArranger.java:15`, the class adds a no-op transform pass to every format invocation. It also requires reading two javadoc paragraphs to understand why nothing happens. Delete or implement.
+
+**Resolution:** Removed `AnnotationArranger` and its `FormattingEngine` invocation; `AnnotationArrangerTest` renamed to `AnnotationLayoutFormattingTest` (same assertions). Pipeline/docs/CHANGELOG updated (TDR-024).
 
 ### CLI module
 
@@ -352,8 +358,10 @@ This is the documented behavior, but the doc on `--check` (`Main.java:56-58`) sa
 
 **Resolution:** moved the `new Formatter(config)` allocation out of the per-file lambda into the enclosing `formatterFunc(config)`. Spotless calls `formatterFunc` once per step and reuses the returned `FormatterFunc` for every file in the build, so a single `Formatter` (and its underlying `FormattingEngine` + parser config) now serves the entire run.
 
-#### 63. **[INC]** `FormatterStep.create` requires `Serializable` config but the contract is undocumented in the API
+#### 63. **[DONE]** `FormatterStep.create` requires `Serializable` config but the contract is undocumented in the API
 `PrinceOfSpaceStep.java:25-27` asserts via Javadoc that the config "must be Serializable", but `FormatterConfig` (record) does not declare `implements Serializable`. Records are auto-Serializable only when all components are. Today the config consists of primitives, enums, and `JavaLanguageLevel`; if any future config knob is non-serializable (a `Path`, `BiFunction<…>`, etc.), Spotless will silently fail at use-time inside the build classloader. Add a unit test that round-trips `FormatterConfig.defaults()` through `ObjectOutputStream`.
+
+**Resolution:** Expanded `PrinceOfSpaceStep.create` Javadoc: Spotless/classloader + configuration-cache rationale; `FormatterConfig` implements `Serializable`.
 
 ### IntelliJ plugin module
 
@@ -449,8 +457,10 @@ Resolution: replaced with `shadedJar_onlyContainsProjectAndMetaInfEntries` which
 
 **Resolution:** Renamed class to `IdempotencyRegressionMatrixTest`; clarified Javadoc (deterministic matrix, not fuzz). Updated `docs/architecture.md` and `docs/implementation-plan-stacked-closers.md` references.
 
-#### 84. **[BUG]** `IdempotencyRegressionMatrixTest` SNIPPETS array is tiny (6 entries)
+#### 84. **[DONE]** `IdempotencyRegressionMatrixTest` SNIPPETS array is tiny (6 entries)
 `IdempotencyRegressionMatrixTest.java` (formerly `IdempotencyFuzzTest`). With 200 iterations and 6 snippets, each snippet is exercised ~33 times — most variance comes from configs, not source shapes. Add more snippets (lambdas, switch expressions, text blocks, generics, annotations) or generate via `jqwik` (already a dependency).
+
+**Resolution:** Expanded `SNIPPETS` with switch expression, text block, generics, declaration annotation, and lambda-in-generic-call shapes (11 entries).
 
 #### 85. **[QUAL]** `InternalArchitectureTest.publicMethodsInInternalPackageAreAllowlisted` allowlist is brittle
 `InternalArchitectureTest.java:46-60` lists 5 class names by string. A rename will silently disable the check. Use `@SuppressWarnings("internal-public")` annotation + ArchUnit predicate, or a `List.of(...)` constant referenced symbolically. Also: re-check whether any of those 5 classes still *needs* public methods after the recent refactors.
@@ -477,14 +487,20 @@ Resolution: replaced with `shadedJar_onlyContainsProjectAndMetaInfEntries` which
 
 ### Documentation gaps
 
-#### 92. **[DOC]** No documented matrix of `WrapStyle × closingParenOnNewLine × trailingCommas`
+#### 92. **[DONE]** No documented matrix of `WrapStyle × closingParenOnNewLine × trailingCommas`
 The README and architecture.md describe each knob individually, but the actual interaction matrix (8 combinations × 4 Java levels) lives only in goldens at `examples/outputs/<level>/<config>.java`. The `compare.html` viewer shows them but isn't part of `docs/`. Link from `docs/formatting-rules.md` to the comparison viewer or generate a static matrix table at docs build time.
 
-#### 93. **[DOC]** `docs/canonical-formatting-rules.md` is referenced 3+ places but no rule index
+**Resolution:** Documented in `docs/formatting-rules.md` §5: showroom filenames encode `wrapStyle` × `closingParenOnNewLine`; `trailingCommas` covered elsewhere; points to `examples/outputs` and `FormatterShowcaseGoldenTest`.
+
+#### 93. **[DONE]** `docs/canonical-formatting-rules.md` is referenced 3+ places but no rule index
 Several findings above (#15, #33, #37) reference Rule 5/7/9. Consumers of the suggestions doc won't know which rule is which. Add an anchor index at the top of `canonical-formatting-rules.md` so that "R5" is link-targetable.
 
-#### 94. **[DOC]** Settings storage scope (`WORKSPACE_FILE` vs `PROJECT_FILE$`) is not documented
+**Resolution:** Added **Rule index** table (Rules 1–10 with anchor links) after **Scope** in `docs/canonical-formatting-rules.md`.
+
+#### 94. **[DONE]** Settings storage scope (`WORKSPACE_FILE` vs `PROJECT_FILE$`) is not documented
 Per finding #67, IntelliJ users may be surprised that `.idea/workspace.xml` is gitignored by default. Document the choice in `docs/architecture.md` or in the IntelliJ plugin README.
+
+**Resolution:** Documented workspace-scoped persistence and VCS implications in `modules/intellij-plugin/README.md`.
 
 ---
 
@@ -495,5 +511,5 @@ Per finding #67, IntelliJ users may be surprised that `.idea/workspace.xml` is g
 1. **High-impact bugs (silent data loss / incorrect output):** #14 (SwitchEntry duplication), #35–37 (record/enum implements), #40 (block-comment blank-line drop), #45 (array initializer comments), #62 (Spotless per-file Formatter allocation), #66 (settings race), #71/72 (VS Code edit race), #79 (shaded-jar test gap).
 2. **Off-by-one / miscalibration:** #25 (ObjectCreationExpr type-arg width), #31 (lambda toString width), #32 (keyword widths), #74 (java-version validation). (Legacy Java 1–7 surface — finding #10 — to be removed entirely under "minimum-supported = 8".)
 3. **Concurrency / lifecycle:** #7 (per-pass JavaParser), #55 (CLI thread sharing), #65 (save-on-format reentrance).
-4. **API & doc cleanup:** #1–6 (public API consistency), #4 (defaults dedup), #11 (AnnotationArranger), #38 (Java 8 carve-out), #93 (rule index).
+4. **API & doc cleanup:** #1–6 (public API consistency), #4 (defaults dedup), #11 (`AnnotationArranger` removed — TDR-024), #38 (Java 8 carve-out), #93 (rule index — done).
 5. **Refactor opportunities (high-leverage):** #21, #27, #34, #39 (duplicated comma-list / type-clause / clause / params code), #20 (VariableDeclarator helper extraction).

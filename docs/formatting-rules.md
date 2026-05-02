@@ -120,6 +120,12 @@ doSomething(
 
 This applies consistently to both method parameter declarations and method call arguments.
 
+**Showroom cross-product (`wrapStyle` × `closingParenOnNewLine`).** Regenerated goldens under
+`examples/outputs/<javaLevel>/` use filenames `<wide|balanced|narrow>-closingparen-<true|false>.java` from a
+single `FormatterShowcase` input. That gives a full matrix of those two knobs at each supported level in
+`FormatterShowcaseGoldenTest`. **`trailingCommas` is not part of that filename matrix**; it is covered by
+dedicated tests and by multi-line enum/array scenarios when the construct applies.
+
 Nested wrapped-call behavior follows opener placement:
 
 ```java

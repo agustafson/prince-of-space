@@ -52,7 +52,7 @@ Gradle projects live under `modules/` (logical names unchanged: `:core`, `:cli`,
 - `modules/core-bundled` (`:core-bundled`) — Shaded fat jar (no transitive deps)
 - `modules/spotless` (`:spotless`) — Spotless FormatterStep integration
 - `modules/cli` (`:cli`) — Command-line tool (picocli); `--java-version N` creates `JavaLanguageLevel.of(N)` which is translated to a JavaParser `LanguageLevel` inside `FormattingEngine` when parsing
-- `modules/intellij-plugin` (`:intellij-plugin`) — IntelliJ Platform plugin: **Settings → Tools → Prince of Space** persists full `FormatterConfig` (workspace-scoped), optional format-on-save, and language level from the module or a fixed release; **Code → Reformat with Prince of Space…** uses the same configuration. Develop with `./gradlew :intellij-plugin:runIde`, package with `./gradlew :intellij-plugin:buildPlugin`
+- `modules/intellij-plugin` (`:intellij-plugin`) — IntelliJ Platform plugin: **Settings → Tools → Prince of Space** persists full `FormatterConfig` (workspace-scoped; see `modules/intellij-plugin/README.md`), optional format-on-save, and language level from the module or a fixed release; **Code → Reformat with Prince of Space…** uses the same configuration. Develop with `./gradlew :intellij-plugin:runIde`, package with `./gradlew :intellij-plugin:buildPlugin`
 - `modules/vscode-extension/` — VS Code extension (Node/TypeScript; **not** a Gradle subproject): registers a **Java document formatting** provider and **Prince of Space: Format Document**; runs `java -jar` on the **CLI shadow JAR** (`:cli:shadowJar`), resolving `modules/cli/build/libs/prince-of-space-cli-*.jar` from the workspace unless `princeOfSpace.cliJar` is set
 
 ### `core` vs `core-bundled`
@@ -124,7 +124,7 @@ For **`indentSize`**, the numeric value is a count of **spaces** when using spac
 
 ## Pipeline (`FormattingEngine`)
 
-Parse → `LexicalPreservingPrinter.setup` (comment/token coherence for transforms) → `BraceEnforcer` / `AnnotationArranger` → `PrettyPrinter` (comments and Javadoc enabled) → `BlankLineNormalizer`.
+Parse → `LexicalPreservingPrinter.setup` (comment/token coherence for transforms) → `BraceEnforcer` → `PrettyPrinter` (comments and Javadoc enabled) → `BlankLineNormalizer`.
 
 ## Testing
 

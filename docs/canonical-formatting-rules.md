@@ -21,6 +21,21 @@ These rules define output shape for Java formatting in `modules/core`.
 - Continuation indent is derived as `2 * indentSize` and is not configurable.
 - Any new public knob requires a TDR entry and updates to this file.
 
+## Rule index
+
+| Rule | Summary |
+|------|---------|
+| [Rule 1](#rule-1-idempotency-is-mandatory) | Idempotency |
+| [Rule 2](#rule-2-braces-and-brace-placement) | Braces (always braced bodies; K&R `{`) |
+| [Rule 3](#rule-3-indentation) | Block indent + continuation indent (`2 * indentSize`; chains exception in Rule 7) |
+| [Rule 4](#rule-4-line-length-and-wrapping-trigger) | Line length / wrap trigger |
+| [Rule 5](#rule-5-wrapstyle-must-be-construct-uniform) | `wrapStyle` uniformity (+ enum exception) |
+| [Rule 6](#rule-6-wrapped-binaryoperator-chains) | Wrapped binary and operator chains |
+| [Rule 7](#rule-7-method-chains) | Method chains |
+| [Rule 8](#rule-8-closing-delimiter-placement) | Closing `)` / delimiter placement |
+| [Rule 9](#rule-9-blank-lines) | Blank lines |
+| [Rule 10](#rule-10-comments-and-annotation-safety) | Comments and annotations |
+
 ## Normative Rules
 
 ### Rule 1: Idempotency is mandatory

@@ -37,7 +37,34 @@ class IdempotencyRegressionMatrixTest {
                 return "a" + "b" + "c";
             }
         }
+        """,
         """
+        class T {
+            int f(int x) {
+                return switch (x) {
+                    case 0 -> 1;
+                    default -> 0;
+                };
+            }
+        }
+        """,
+        """
+        class T {
+            String tb() {
+                return \"""
+                        hello
+                        \""";
+            }
+        }
+        """,
+        "class T { java.util.List<String> g() { return java.util.List.of(); } }",
+        """
+        class T {
+            @Deprecated
+            void m() {}
+        }
+        """,
+        "class T { void m(java.util.function.Supplier<String> s) { s.get(); } }"
     };
 
     private static int fuzzIterations() {

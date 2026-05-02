@@ -118,7 +118,7 @@ Use it as the primary source of *why* design choices exist.
 ### TDR-013: Showroom rule-uniformity migration is complete
 - **Date:** 2026-04
 - **Status:** Accepted
-- **Decision:** The showroom rule-uniformity work is complete: `wrapStyle` behavior is consistent across the showroom’s list-like and wrapping constructs, with regression coverage in `WrappingFormattingTest` and an overview check in `RuleUniformityTest`. (Earlier stepwise tasks spanned `WidthMeasurer` introduction, `BALANCED` string concat alignment with TDR-011, shared comma-list wrapping for enum/array/type parameters, `extends` clause wrapping, `closingParenOnNewLine` unification, try-with-resources/`for`/`switch` wrapping, and `AnnotationArranger` / `BlankLineNormalizer` alignment.)
+- **Decision:** The showroom rule-uniformity work is complete: `wrapStyle` behavior is consistent across the showroom’s list-like and wrapping constructs, with regression coverage in `WrappingFormattingTest` and an overview check in `RuleUniformityTest`. (Earlier stepwise tasks spanned `WidthMeasurer` introduction, `BALANCED` string concat alignment with TDR-011, shared comma-list wrapping for enum/array/type parameters, `extends` clause wrapping, `closingParenOnNewLine` unification, try-with-resources/`for`/`switch` wrapping, and `BlankLineNormalizer` alignment.)
 - **Rationale:** One wrap vocabulary (`wide` / `balanced` / `narrow`) keeps configuration predictable; the migration aligned docs, the Java printer, and golden outputs.
 - **Consequences:** Further wrapping tweaks should update `docs/formatting-rules.md` and the showroom in lockstep; avoid reintroducing per-construct ad-hoc wrap semantics without a TDR.
 - **Related docs:** `docs/formatting-rules.md`, `modules/core/src/test/java/io/princeofspace/RuleUniformityTest.java`
@@ -217,3 +217,11 @@ Use it as the primary source of *why* design choices exist.
 - **Rationale:** Enums behave like small tables of identifiers; cramming constants onto fewer lines hides structure and defeats diff-friendly editing. Packing also interacted badly with comment re-attachment widths in greedy mode.
 - **Consequences:** `DeclarationFormatter#printEnumConstants` ignores `WrapStyle`; the prior one-line shortcut when the enum had only constants under the line budget is removed. Tests and showroom goldens (`FormatterShowcase` enum sections) reflect the stacked layout everywhere.
 - **Related docs:** `docs/canonical-formatting-rules.md` (Rule 5), `docs/formatting-rules.md` (Enum constants), `modules/core/src/main/java/io/princeofspace/internal/DeclarationFormatter.java`
+
+### TDR-024: CLI exit code 3 for non-convergent format; remove no-op `AnnotationArranger` pass
+- **Date:** 2026-05-01
+- **Status:** Accepted
+- **Decision:** (1) The CLI uses **exit code 3** when the engine returns `FormatResult.NonConvergent` (including when path-scoped), distinct from **2** for parse/config/IO and other failures, so automation can flag likely formatter defects. (2) The empty `AnnotationArranger` `ModifierVisitor` is **removed** from the transform pipeline; annotation layout remains the pretty printer’s responsibility. (3) `FormatterException` can be constructed with a `FormatResult.Failure` and exposes `isNonConvergent()` / `formatFailure()` for throwing API users.
+- **Rationale:** Non-convergence is a different failure class from user/syntax errors. The no-op visitor added a transform pass and documentation burden with no behavior. Typed `FormatterException` preserves sealed `FormatResult` semantics for tools that still use `format(String)`.
+- **Consequences:** `io.princeofspace.cli.Main` documents exit codes; batch and stdin use `formatResult`. `AnnotationArrangerTest` renamed to `AnnotationLayoutFormattingTest` (end-to-end). `docs/architecture.md` pipeline and `CHANGELOG.md` updated.
+- **Related docs:** `docs/architecture.md`, `modules/cli/src/main/java/io/princeofspace/cli/Main.java`, `modules/core/src/main/java/io/princeofspace/FormatterException.java`, `modules/core/src/main/java/io/princeofspace/internal/FormattingEngine.java`

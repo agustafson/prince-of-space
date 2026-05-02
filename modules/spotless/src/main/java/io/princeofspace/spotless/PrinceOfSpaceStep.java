@@ -19,6 +19,11 @@ public final class PrinceOfSpaceStep {
     /**
      * Creates {@link FormatterStep} based on the provided {@link FormatterConfig}.
      *
+     * <p>Spotless requires the state object passed to {@link FormatterStep#create} to be
+     * {@link java.io.Serializable} so the step can be isolated in a separate classloader and still
+     * round-trip through Gradle’s configuration cache. {@link FormatterConfig} implements
+     * {@code Serializable} for that contract; do not pass a non-serializable config wrapper.
+     *
      * @param config formatter options (must be {@link java.io.Serializable})
      * @return {@link FormatterStep} based on the provided {@link FormatterConfig}
      */
