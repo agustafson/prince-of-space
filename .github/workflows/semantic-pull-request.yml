@@ -9,9 +9,16 @@ permissions:
 
 jobs:
   conventional:
-    if: github.actor != 'dependabot[bot]'
+    # Job-level `if` skips the entire job for Dependabot; skipped jobs do not always satisfy
+    # required checks or auto-merge. Always run the job: validate titles for humans, no-op for bots.
     runs-on: ubuntu-latest
     steps:
-      - uses: amannn/action-semantic-pull-request@v6
+      - name: Validate conventional PR title
+        if: github.actor != 'dependabot[bot]'
+        uses: amannn/action-semantic-pull-request@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Skip title validation (Dependabot)
+        if: github.actor == 'dependabot[bot]'
+        run: echo "Dependabot PR — semantic title check not applicable"
