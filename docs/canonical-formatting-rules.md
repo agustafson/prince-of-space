@@ -46,6 +46,8 @@ These rules define output shape for Java formatting in `modules/core`.
 
 - Control-flow bodies (`if/else/for/for-each/while/do`) are always braced.
 - Opening braces use K&R style (same line as declaration/header).
+- **Wrapped declaration headers (`extends` / `implements` / `permits` / `throws`):** when a class / interface / record / enum header wraps because a type clause does not fit on one line, the body's opening `{` follows the same `closingParenOnNewLine` policy used by Rule 8 for closing delimiters: with `closingParenOnNewLine=true` the `{` lands on its **own line** at the declaration's block-indent column; with `closingParenOnNewLine=false` it **trails the last clause item** inline. This preserves the K&R intent (visible body opener) while keeping the `{` consistent with how every other wrapped delimited structure is closed.
+- **Labeled statements:** a labeled statement (`label: stmt`) prints the label and the labeled statement opener on the **same line** (`label: for (…) {`, `label: while (…) {`). Header and body wrapping of the statement then follow that statement's own rules unchanged.
 
 ### Rule 3: Indentation
 
@@ -72,6 +74,8 @@ These rules define output shape for Java formatting in `modules/core`.
 
 **Enum constant lists (explicit exception):** `enum` constant declarations are never collapsed onto a shared line (`{ A, B, C }` on one line never appears; `wrapStyle` does **not** apply greedy packing across constants). Each constant occupies its own line after the enum’s `{` (comma-separated, then `;` when declarations follow). Empty enums remain `enum E { }` compatible with Rule 9 (no blank lines inside empty blocks beyond what the formatter already coalesces). See **TDR-023**.
 
+**Per-constant anonymous bodies:** when one or more enum constants carry an anonymous class body (`CONST { … }`), the trailing comma between constants and the `;` introducing later member declarations land on **their own line** at the constant's indent column, regardless of `wrapStyle` or `closingParenOnNewLine`. The body braces of each constant therefore visually close before the separator that follows them.
+
 ### Rule 6: Wrapped binary/operator chains
 
 - Wrapped binary/logical chains place operators at the start of continuation lines.
@@ -83,6 +87,7 @@ These rules define output shape for Java formatting in `modules/core`.
 - Chain segments are indented by exactly **`indentSize`** (one block-indent unit) relative to the receiver's line, rather than the `2 * indentSize` continuation indent used for delimited list continuations (Rule 3). The leading `.` on every segment provides its own visual delimiter, so a single indent step is sufficient and reduces excess depth in deeply chained code (see TDR-015).
 - When a wrapped method chain appears as an operand of a wrapped binary/logical chain (Rule 6), its segments are indented by one additional `indentSize` past the operator-line indent, so the chain remains visually distinct from the operator that introduces it.
 - Wrapping decisions for chain segments still follow Rule 5 (`wide` / `balanced` / `narrow`).
+- **Cast expressions in a chain receiver:** cast expressions (`(T) expr`) and the parenthesized cast wrappers around them are printed **inline** as part of the chain's receiver expression — they do not introduce their own indentation step. A wrapped chain whose receiver begins with one or more casts indents subsequent `.segment(…)` calls relative to the chain's normal anchor (per the bullets above), not relative to any cast boundary.
 
 ### Rule 8: Closing delimiter placement
 
