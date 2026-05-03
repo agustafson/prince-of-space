@@ -398,6 +398,11 @@ jobs:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
+          # Secrets pasted into GitHub may include a trailing newline; Go's net/http rejects
+          # Authorization headers containing CR/LF (gh GraphQL: "invalid header field value").
+          GITHUB_TOKEN="$(printf '%s' "${GITHUB_TOKEN:-}" | tr -d '\r\n')"
+          export GITHUB_TOKEN
+          export GH_TOKEN="$GITHUB_TOKEN"
           NOTES_FILE="$GITHUB_WORKSPACE/build/release-notes.md"
           CLI_JAR="modules/cli/build/libs/prince-of-space-cli-${RELEASE_VERSION}.jar"
           IJ_ZIP="$(ls modules/intellij-plugin/build/distributions/*.zip | head -1)"
@@ -434,6 +439,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_ACTIONS_PUSH_TOKEN || github.token }}
         run: |
           set -euo pipefail
+          # Same CR/LF strip as "Create GitHub Release" (token in git push URL).
+          GITHUB_TOKEN="$(printf '%s' "${GITHUB_TOKEN:-}" | tr -d '\r\n')"
+          export GITHUB_TOKEN
           IFS=. read -r major minor patch <<<"${RELEASE_VERSION}"
           NEXT_SNAPSHOT="${major}.${minor}.$((patch + 1))-SNAPSHOT"
           SNAPSHOT_ALREADY_SET=false

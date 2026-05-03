@@ -70,6 +70,8 @@ In GitHub: **Settings → Secrets and variables → Actions → New repository s
 | `GPG_PASSPHRASE`       | Passphrase for the GPG key                    |
 | `GH_ACTIONS_PUSH_TOKEN` (recommended) | Fine-grained PAT with **Contents: Read and write** on this repo. Used for checkout, pushing the post-release chore commit that bumps `gradle.properties` / README / `CHANGELOG.md`, and for `gh release`. If unset, the default `GITHUB_TOKEN` is used and **branch protection may block the push** — add the PAT or allow Actions to bypass protection. |
 
+Paste the token **without a trailing newline** (some editors add one). A stray newline can make `gh` fail against the GraphQL API with `invalid header field value for "Authorization"`; the release workflow strips CR/LF defensively.
+
 ### 5. Create the `release` GitHub Actions environment
 
 In **Settings → Environments**, create an environment named `release`. Optionally add
