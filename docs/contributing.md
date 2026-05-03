@@ -52,9 +52,10 @@ CI runs tests, Spotless, Checkstyle, SpotBugs, Error Prone, and dependency healt
 Workflows that commit back to the repo use **`permissions: contents: write`** and checkout with `token: ${{ secrets.GH_ACTIONS_PUSH_TOKEN || github.token }}`.
 
 1. **Repository default token:** In **Settings → Actions → General → Workflow permissions**, choose **Read and write permissions** (org policy can override this — an org owner may need to allow write access for `GITHUB_TOKEN`).
-2. **Protected branches / rulesets:** `GITHUB_TOKEN` still cannot push if branch protection blocks it. Either add **`github-actions[bot]`** (or **GitHub Actions**) to the ruleset **bypass** list for the affected branches, **or** create a fine-grained **personal access token** with **Contents: Read and write** on this repository, store it as the **`GH_ACTIONS_PUSH_TOKEN`** secret, and keep using the workflows as committed (they prefer that secret when set).
+2. **Repository rules (protected `main`):** A workflow’s **`GITHUB_TOKEN` is not the same as your user account** — it does **not** inherit your admin rights or your personal ruleset/bypass. The ruleset UI also does **not** offer a generic **“GitHub Actions”** actor in the bypass list; you add **people, teams, repository roles, or a GitHub App (integration)**. So a push that is valid for you in the browser can still be rejected in CI with `GH013: Repository rule violations`.
+3. **Practical fix for automated commits:** Create a **fine-grained personal access token** (or a **machine user** + PAT) with **Contents: Read and write** on this repository, store it as **`GH_ACTIONS_PUSH_TOKEN`**, and **add that PAT’s user** (or the machine account) to the ruleset **bypass** list if `main` requires PRs or status checks. Workflows already use `secrets.GH_ACTIONS_PUSH_TOKEN || github.token` so the PAT is preferred when set.
 
-Until bypass or `GH_ACTIONS_PUSH_TOKEN` is configured, automated pushes may fail while the rest of the workflow succeeds.
+Until **`GH_ACTIONS_PUSH_TOKEN`** plus bypass for that identity is configured (or you relax rules / switch to **branch + PR + merge** instead of direct push), automated pushes may fail while the rest of the workflow succeeds.
 
 ### `:core` test entry points
 
