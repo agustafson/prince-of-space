@@ -1,3 +1,4 @@
+import java.io.File
 import java.nio.charset.StandardCharsets
 
 import net.ltgt.gradle.errorprone.CheckSeverity
@@ -174,14 +175,15 @@ tasks.register("syncReadmeVersions") {
     group = "documentation"
     description =
         "Rewrite README Maven/Gradle coordinates and the Quick Start version line to match rootProject.version."
+    val versionString = version.toString()
+    val readmeFile = File(rootProject.rootDir, "README.md")
     onlyIf {
         val ci = System.getenv("CI") == "true"
         val allowInCi = System.getenv("RUN_README_SYNC") == "true"
         !ci || allowInCi
     }
     doLast {
-        val v = rootProject.version.toString()
-        val readmeFile = rootProject.layout.projectDirectory.file("README.md").asFile
+        val v = versionString
         var text = readmeFile.readText(StandardCharsets.UTF_8)
         val coord =
             Regex("(io\\.github\\.agustafson\\.princeofspace:prince-of-space-[a-z-]+:)([^\\s`\"]+)")
@@ -203,16 +205,17 @@ tasks.register("syncReadmePerfSection") {
     group = "documentation"
     description =
         "Replace the <!-- sync:perf:start --> … <!-- sync:perf:end --> block in README.md using docs/perf-results/spring-framework.md."
-    inputs.file(layout.projectDirectory.file("docs/perf-results/spring-framework.md"))
-    outputs.file(layout.projectDirectory.file("README.md"))
+    val readmeFile = File(rootProject.rootDir, "README.md")
+    val perfReportFile = File(rootProject.rootDir, "docs/perf-results/spring-framework.md")
+    inputs.file(perfReportFile)
+    outputs.file(readmeFile)
     onlyIf {
         val ci = System.getenv("CI") == "true"
         val allowInCi = System.getenv("RUN_README_SYNC") == "true"
         !ci || allowInCi
     }
     doLast {
-        val readmeFile = rootProject.layout.projectDirectory.file("README.md").asFile
-        val reportFile = rootProject.layout.projectDirectory.file("docs/perf-results/spring-framework.md").asFile
+        val reportFile = perfReportFile
         require(reportFile.exists()) {
             "Missing ${reportFile.path}; run :formatter-benchmark:run with PRINCE_BENCH_ROOT set first."
         }
