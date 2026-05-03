@@ -151,6 +151,7 @@ jobs:
           # Full history + tags for Nyx version inference.
           fetch-depth: 0
           fetch-tags: true
+          token: ${{ secrets.GH_ACTIONS_PUSH_TOKEN || github.token }}
 
       - uses: actions/setup-java@v5
         with:
@@ -387,7 +388,7 @@ jobs:
       - name: Create GitHub Release (with downloadable assets)
         if: ${{ !inputs.dry_run }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_ACTIONS_PUSH_TOKEN || github.token }}
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
@@ -423,7 +424,7 @@ jobs:
         if: ${{ !inputs.dry_run }}
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_ACTIONS_PUSH_TOKEN || github.token }}
         run: |
           set -euo pipefail
           IFS=. read -r major minor patch <<<"${RELEASE_VERSION}"

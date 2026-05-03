@@ -16,10 +16,13 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          token: ${{ secrets.GH_ACTIONS_PUSH_TOKEN || github.token }}
 
       - uses: actions/setup-java@v5
         with:

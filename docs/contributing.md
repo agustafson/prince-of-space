@@ -47,6 +47,15 @@ Use **JDK 21+** to run Gradle here: the **Error Prone** compiler plugin needs a 
 
 CI runs tests, Spotless, Checkstyle, SpotBugs, Error Prone, and dependency health. Keep `./gradlew build` green locally.
 
+### GitHub Actions pushes to `main` (README sync, benchmark refresh, release housekeeping)
+
+Workflows that commit back to the repo use **`permissions: contents: write`** and checkout with `token: ${{ secrets.GH_ACTIONS_PUSH_TOKEN || github.token }}`.
+
+1. **Repository default token:** In **Settings → Actions → General → Workflow permissions**, choose **Read and write permissions** (org policy can override this — an org owner may need to allow write access for `GITHUB_TOKEN`).
+2. **Protected branches / rulesets:** `GITHUB_TOKEN` still cannot push if branch protection blocks it. Either add **`github-actions[bot]`** (or **GitHub Actions**) to the ruleset **bypass** list for the affected branches, **or** create a fine-grained **personal access token** with **Contents: Read and write** on this repository, store it as the **`GH_ACTIONS_PUSH_TOKEN`** secret, and keep using the workflows as committed (they prefer that secret when set).
+
+Until bypass or `GH_ACTIONS_PUSH_TOKEN` is configured, automated pushes may fail while the rest of the workflow succeeds.
+
 ### `:core` test entry points
 
 | Gradle task | What runs |
