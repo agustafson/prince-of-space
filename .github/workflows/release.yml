@@ -15,6 +15,12 @@ name: Release
 #   GPG_PRIVATE_KEY         — Armored GPG private key (gpg --armor --export-secret-keys KEY_ID)
 #   GPG_PASSPHRASE          — Passphrase for the GPG key
 #
+# Recommended (repository write):
+#   GH_ACTIONS_PUSH_TOKEN   — Fine-grained PAT with contents:write so the workflow can push
+#                             the post-release chore commit (gradle.properties + changelog +
+#                             README coordinates) and create/upload GitHub Releases. Without it,
+#                             GITHUB_TOKEN is used (may be blocked by branch protection).
+#
 # See RELEASING.md for the full release checklist and how to set up these secrets.
 
 on:
@@ -417,10 +423,11 @@ jobs:
               "$VSIX"
           fi
 
-      # One chore commit per release: persist generated changelog updates and set the next
-      # local SNAPSHOT line (e.g. 0.1.1-SNAPSHOT after shipping v0.1.0). Does not affect
-      # CI version inference (tags + conventional commits).
-      - name: Persist changelog and bump gradle.properties to next patch SNAPSHOT
+      # One chore commit per release: persist Nyx changelog updates, set the next local
+      # SNAPSHOT in gradle.properties (e.g. 0.1.1-SNAPSHOT after v0.1.0), and run
+      # syncReadmeVersions so README Quick Start matches. Does not affect CI version
+      # inference (tags + conventional commits).
+      - name: Persist changelog, bump gradle.properties, sync README coordinates
         if: ${{ !inputs.dry_run }}
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
@@ -444,12 +451,14 @@ jobs:
           if [[ "${SNAPSHOT_ALREADY_SET}" == "false" ]]; then
             sed -i 's/^version=.*/version='"${NEXT_SNAPSHOT}"'/' gradle.properties
           fi
-          git add gradle.properties CHANGELOG.md
+          # syncReadmeVersions is normally skipped when CI=true; align README Quick Start with gradle.properties.
+          RUN_README_SYNC=true ./gradlew syncReadmeVersions --no-daemon
+          git add gradle.properties CHANGELOG.md README.md
           if git diff --cached --quiet; then
-            echo "No staged changelog/snapshot changes; skipping bump commit."
+            echo "No staged changelog/snapshot/readme changes; skipping bump commit."
             exit 0
           fi
-          git commit -m "chore: update changelog and set version to ${NEXT_SNAPSHOT} after v${RELEASE_VERSION}"
+          git commit -m "chore: update changelog, README coordinates, and set version to ${NEXT_SNAPSHOT} after v${RELEASE_VERSION}"
           # Branch protection may forbid direct pushes to main. Do not fail the release if this
           # housekeeping commit cannot be pushed; the next run can still use Nyx + tags safely.
           if ! git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${GITHUB_REF_NAME}"; then

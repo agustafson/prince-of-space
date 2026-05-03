@@ -68,6 +68,7 @@ In GitHub: **Settings → Secrets and variables → Actions → New repository s
 | `SONATYPE_CENTRAL_TOKEN` | Bearer token from central.sonatype.com       |
 | `GPG_PRIVATE_KEY`      | Armored GPG private key (`--armor --export-secret-keys`) |
 | `GPG_PASSPHRASE`       | Passphrase for the GPG key                    |
+| `GH_ACTIONS_PUSH_TOKEN` (recommended) | Fine-grained PAT with **Contents: Read and write** on this repo. Used for checkout, pushing the post-release chore commit that bumps `gradle.properties` / README / `CHANGELOG.md`, and for `gh release`. If unset, the default `GITHUB_TOKEN` is used and **branch protection may block the push** — add the PAT or allow Actions to bypass protection. |
 
 ### 5. Create the `release` GitHub Actions environment
 
