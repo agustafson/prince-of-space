@@ -176,17 +176,18 @@ tasks.register("assembleWithDocs") {
 tasks.register("syncReadmeVersions") {
     group = "documentation"
     description =
-        "Rewrite README Maven/Gradle coordinates and the Quick Start version line to match rootProject.version."
+        "Rewrite README Maven/Gradle coordinates to match readmeMavenCoordinatesVersion in gradle.properties (latest Central release copy-paste)."
     val readmeFile = File(rootProject.rootDir, "README.md")
     // Snapshot at configuration time so doLast does not capture Project (configuration cache).
-    val versionString = version.toString()
+    val readmeCoordsVersion =
+        providers.gradleProperty("readmeMavenCoordinatesVersion").orElse(version.toString())
     onlyIf {
         val ci = System.getenv("CI") == "true"
         val allowInCi = System.getenv("RUN_README_SYNC") == "true"
         !ci || allowInCi
     }
     doLast {
-        val v = versionString
+        val v = readmeCoordsVersion.get()
         var text = readmeFile.readText(StandardCharsets.UTF_8)
         val coord =
             Regex("(io\\.github\\.agustafson\\.princeofspace:prince-of-space-[a-z-]+:)([^\\s`\"]+)")

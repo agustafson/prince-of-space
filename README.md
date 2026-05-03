@@ -24,7 +24,7 @@ Prince of Space takes its philosophy from Prettier and ktlint: strong, readable 
 
 - **7 configuration options** covering indentation, line length, wrapping, and trailing commas
 - **Single-threshold line length** — one `lineLength` target keeps wrapping predictable and the configuration surface small
-- **Idempotent** — formatting already-formatted code produces identical output (`format(format(x)) == format(x)`)
+- **Idempotent (fixed-point output)** — once formatted, running the formatter again makes no further edits (`format(format(x)) == format(x)`). The default engine **converges** internally (repeat passes until stable within a budget) so one call usually suffices; see Rule 1 in [`docs/canonical-formatting-rules.md`](docs/canonical-formatting-rules.md).
 - **Java 8 through 25+** — parses any Java language level; runs on JDK 17+
 - **Multiple integrations** — library API, CLI, Spotless plugin, IntelliJ plugin, VS Code extension
 
@@ -57,11 +57,9 @@ _Report date: **2026-05-03**._
 
 ### Library (Gradle)
 
-**Next releases** (once published under the new group):
-
 ```kotlin
 dependencies {
-    implementation("io.github.agustafson.princeofspace:prince-of-space-core:2.1.3-SNAPSHOT")
+    implementation("io.github.agustafson.princeofspace:prince-of-space-core:2.1.2")
 }
 ```
 
@@ -75,13 +73,11 @@ String formatted = formatter.format(sourceCode);
 
 ### Library (Maven)
 
-**Next releases:**
-
 ```xml
 <dependency>
     <groupId>io.github.agustafson.princeofspace</groupId>
     <artifactId>prince-of-space-core</artifactId>
-    <version>2.1.3-SNAPSHOT</version>
+    <version>2.1.2</version>
 </dependency>
 ```
 
@@ -116,7 +112,7 @@ spotless {
 }
 ```
 
-Put the Spotless module on the classpath where your build imports `PrinceOfSpaceStep` — for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout. Use `io.github.agustafson.princeofspace:prince-of-space-spotless:2.1.3-SNAPSHOT` for new releases. Maven: add the same coordinate as a dependency of `spotless-maven-plugin`, then use `PrinceOfSpaceStep.create(...)` in the plugin configuration.
+Put the Spotless module on the classpath where your build imports `PrinceOfSpaceStep` — for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout. Use `io.github.agustafson.princeofspace:prince-of-space-spotless:2.1.2` (pin to the version on Maven Central). Maven: add the same coordinate as a dependency of `spotless-maven-plugin`, then use `PrinceOfSpaceStep.create(...)` in the plugin configuration.
 
 ### IntelliJ Plugin
 
@@ -207,6 +203,12 @@ The public API consists of four types:
 
 Supporting value types: `IndentStyle`, `WrapStyle`, `JavaLanguageLevel`.
 
+### Strict default vs fast single-pass (`Formatter` overload)
+
+`new Formatter(FormatterConfig)` runs the engine until output **converges** (fixed point within `prince.maxConvergencePasses`), which is what makes **Rule 1** idempotency hold for normal use.
+
+`new Formatter(FormatterConfig, boolean fastSinglePass)` with `fastSinglePass=true` performs **one** parse→print pass — useful for throughput benchmarks (`:formatter-benchmark`) comparing against other single-invocation JVM formatters. It is **not** a second public configuration knob alongside the seven formatting options: exposing “fast” in `FormatterConfig`, Spotless, or IDE plugins would tempt integrations to ship non-fixed-point output for speed. Prefer keeping fast mode for experiments and advanced callers who accept that tradeoff (see TDR-026 in [`docs/technical-decision-register.md`](docs/technical-decision-register.md)).
+
 ### Non-throwing API
 
 ```java
@@ -220,13 +222,13 @@ if (result instanceof FormatResult.Success success) {
 
 ## Artifacts (Maven Central)
 
-Group ID: **`io.github.agustafson.princeofspace`** for new releases. Published versions appear on [Maven Central](https://central.sonatype.com/namespace/io.github.agustafson.princeofspace); the coordinate snippets above track the repo `version` property (run `./gradlew syncReadmeVersions` after changing it).
+Group ID: **`io.github.agustafson.princeofspace`**. Published versions appear on [Maven Central](https://central.sonatype.com/namespace/io.github.agustafson.princeofspace). Quick Start coordinates are synced from **`readmeMavenCoordinatesVersion`** in `gradle.properties` (last Central release — run `./gradlew syncReadmeVersions` after changing it). Development builds use `version=` in the same file (often `*-SNAPSHOT`) and do not appear in README snippets.
 
 | Artifact | Coordinate | When to use |
 |----------|------------|-------------|
-| `prince-of-space-core` | `io.github.agustafson.princeofspace:prince-of-space-core:2.1.3-SNAPSHOT` | Default — small footprint; JavaParser + SLF4J as normal transitives |
-| `prince-of-space-bundled` | `io.github.agustafson.princeofspace:prince-of-space-bundled:2.1.3-SNAPSHOT` | Single fat JAR, dependencies relocated — no classpath clashes |
-| `prince-of-space-spotless` | `io.github.agustafson.princeofspace:prince-of-space-spotless:2.1.3-SNAPSHOT` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) |
+| `prince-of-space-core` | `io.github.agustafson.princeofspace:prince-of-space-core:2.1.2` | Default — small footprint; JavaParser + SLF4J as normal transitives |
+| `prince-of-space-bundled` | `io.github.agustafson.princeofspace:prince-of-space-bundled:2.1.2` | Single fat JAR, dependencies relocated — no classpath clashes |
+| `prince-of-space-spotless` | `io.github.agustafson.princeofspace:prince-of-space-spotless:2.1.2` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) |
 | CLI (shadow JAR) | Build from repo or attach to [GitHub Releases](https://github.com/agustafson/prince-of-space/releases) | Command-line formatting; not always published to Central |
 
 ## Non-goals

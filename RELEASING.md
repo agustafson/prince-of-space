@@ -181,7 +181,7 @@ The workflow will:
 6. Poll until the bundle is **VALIDATED** (checksums, signatures, POM requirements)
 7. Publish the deployment (artifacts available on Maven Central within ~15 minutes)
 8. Push a `vX.Y.Z` git tag, create a GitHub Release using Nyx-generated release notes, and attach those three files
-9. Commit Nyx-generated `CHANGELOG.md` updates and bump `gradle.properties` to the next patch `-SNAPSHOT` (best-effort push; warns on branch protection)
+9. Commit Nyx-generated `CHANGELOG.md` updates, bump `gradle.properties` `version=` to the next patch `-SNAPSHOT`, set **`readmeMavenCoordinatesVersion=`** to the version just shipped to Central, run `syncReadmeVersions`, and push (best-effort; warns on branch protection)
 
 Publishing the IntelliJ plugin to the **JetBrains Marketplace** and the VS Code extension to the **Visual Studio Marketplace** / Open VSX is still **manual** unless you add separate publishing steps and credentials.
 
@@ -203,6 +203,10 @@ The `version=` line in `gradle.properties` is a **local / non-release default** 
 patch SNAPSHOT (e.g. after shipping `v0.1.0`, main gets `version=0.1.1-SNAPSHOT`). That is
 **one `chore:` commit per release** — predictable churn. It does **not** drive CI
 inference; **Nyx + tags + conventional commits** do.
+
+The **`readmeMavenCoordinatesVersion=`** line tracks the **last version published to Maven Central**
+and feeds **`syncReadmeVersions`** so `README.md` Quick Start stays copy-pastable for integrators
+(the workflow sets it to the release version when bumping the SNAPSHOT line).
 
 If `git push` for that commit fails (e.g. branch protection), allow the GitHub Actions app
 to push to `main` or adjust protection rules.

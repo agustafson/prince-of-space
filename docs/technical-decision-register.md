@@ -241,3 +241,11 @@ Use it as the primary source of *why* design choices exist.
 - **Rationale:** Product idempotency (Rule 1) stays tied to strict convergence in normal use; benchmarks need an explicit, comparable “single format call” cost without implying the library skips convergence by default. Diagnostics must be reachable from the benchmark module without exposing internal packages.
 - **Consequences:** Corpus eval (`:core:evalTest`) and default `Formatter()` behavior unchanged. README/Spring throughput tables can list both strict and fast Prince rows. Integrators should not use fast mode unless they understand it does not prove a formatting fixed point.
 - **Related docs:** `docs/benchmarks.md`, `modules/formatter-benchmark`, `io.princeofspace.BenchDiagnostics`, `io.princeofspace.Formatter`
+
+### TDR-027: README Maven coordinates track last Central release, not dev SNAPSHOT
+- **Date:** 2026-05-03
+- **Status:** Accepted
+- **Decision:** Keep **`readmeMavenCoordinatesVersion=`** in `gradle.properties` as the version string **`syncReadmeVersions`** writes into `README.md`. After each successful publish, the release workflow sets it to **`RELEASE_VERSION`** while bumping **`version=`** to the next `-SNAPSHOT`.
+- **Rationale:** Local development uses a SNAPSHOT `version=` line; showing that in Quick Start misleads copy-paste integrators. Separating “latest artifact on Central” from “next patch line under development” keeps README honest without coupling Nyx inference to docs.
+- **Consequences:** Release housekeeping updates both properties; `.github/workflows/sync-readme-versions.yml` continues to trigger on `gradle.properties` edits.
+- **Related docs:** `README.md`, `RELEASING.md`, `docs/benchmarks.md`, `build.gradle.kts` (`syncReadmeVersions`)

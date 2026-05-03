@@ -5,6 +5,8 @@
 
 This document lists the key formatting decision points for the Prince of Space formatter. Each section describes a decision area, the options, what other formatters do, and our proposed default.
 
+**Stability:** Formatter output is **idempotent** — running format again on already formatted source leaves it unchanged (`format(format(x)) == format(x)`). The engine normally achieves that by **converging** (repeat internal passes until stable). Normative detail: **Rule 1** in [`canonical-formatting-rules.md`](canonical-formatting-rules.md).
+
 ---
 
 ## Part 1: Configuration Options (The Knobs)

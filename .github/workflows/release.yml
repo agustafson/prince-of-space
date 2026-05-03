@@ -459,6 +459,8 @@ jobs:
           if [[ "${SNAPSHOT_ALREADY_SET}" == "false" ]]; then
             sed -i 's/^version=.*/version='"${NEXT_SNAPSHOT}"'/' gradle.properties
           fi
+          # README Quick Start must show the version just published to Central, not the next -SNAPSHOT.
+          sed -i 's/^readmeMavenCoordinatesVersion=.*/readmeMavenCoordinatesVersion='"${RELEASE_VERSION}"'/' gradle.properties
           # syncReadmeVersions is normally skipped when CI=true; align README Quick Start with gradle.properties.
           RUN_README_SYNC=true ./gradlew syncReadmeVersions --no-daemon
           git add gradle.properties CHANGELOG.md README.md

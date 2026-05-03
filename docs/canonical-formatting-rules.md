@@ -42,6 +42,8 @@ These rules define output shape for Java formatting in `modules/core`.
 
 `format(format(x)) == format(x)` must hold for valid inputs.
 
+**Meaning:** Output `y = format(x)` must be a **fixed point** — formatting `y` again must not change it. That property is **idempotency**. The default engine reaches that fixed point by **convergence**: it repeats parse→print passes until two consecutive outputs match (bounded budget), so callers typically get a stable result from **one** `format(x)` invocation. A benchmark-only single-pass mode skips convergence and **does not guarantee** this rule across all inputs.
+
 ### Rule 2: Braces and brace placement
 
 - Control-flow bodies (`if/else/for/for-each/while/do`) are always braced.

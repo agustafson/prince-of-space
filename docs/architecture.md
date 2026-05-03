@@ -125,7 +125,9 @@ For **`indentSize`**, the numeric value is a count of **spaces** when using spac
 
 ## Pipeline (`FormattingEngine`)
 
-Parse → `LexicalPreservingPrinter.setup` (comment/token coherence for transforms) → `BraceEnforcer` → `PrettyPrinter` (comments and Javadoc enabled) → `BlankLineNormalizer`.
+Parse → transform visitors → `PrettyPrinter` (custom visitor; comments and Javadoc enabled) → `BlankLineNormalizer`.
+
+**Idempotency vs convergence:** Rule 1 requires **idempotency** (`format(format(x)) == format(x)`): formatted output must be a fixed point. The default engine achieves that by **convergence** — repeated parse→print passes until consecutive outputs match (bounded by `prince.maxConvergencePasses`). That is an implementation strategy for the same invariant, not a separate user-facing “run twice” API.
 
 ## Testing
 

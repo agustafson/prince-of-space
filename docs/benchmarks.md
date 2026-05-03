@@ -33,7 +33,7 @@ checkout; use a disposable clone or set `PRINCE_BENCH_SKIP_PRETTIER=true`.
 ## README automation
 
 - `./gradlew assemble` runs **`syncReadmeVersions`** locally so Gradle/Maven coordinates in `README.md`
-  track `gradle.properties` `version`.
+  track `gradle.properties` **`readmeMavenCoordinatesVersion`** (latest release on Central, not the dev `version` line).
 - GitHub Actions sets `CI=true`; **`syncReadmeVersions` / `syncReadmePerfSection` are skipped there unless**
   **`RUN_README_SYNC=true`** (avoids three parallel matrix jobs rewriting `README.md`).
 - **`.github/workflows/readme-benchmark.yml`** (push to `main` / `master`) clones Spring Framework,
