@@ -49,7 +49,6 @@ import java.util.concurrent.atomic.AtomicLong;
 public final class FormatterBenchmark {
 
     private static final long NANOSECONDS_PER_MILLISECOND = 1_000_000L;
-    private static final long MILLISECONDS_PER_SECOND = 1_000L;
     private static final int WARMUP_ITERATIONS = 2;
 
     /**
@@ -300,7 +299,7 @@ public final class FormatterBenchmark {
         }
         long elapsedMs = (System.nanoTime() - t0) / NANOSECONDS_PER_MILLISECOND;
         double msPerFile = files.isEmpty() ? 0.0 : (double) elapsedMs / files.size();
-        return new BenchRow(label, elapsedMs, msPerFile, failures.get());
+        return new BenchRow(label, msPerFile, failures.get());
     }
 
     private static String formatWith(
@@ -384,11 +383,10 @@ public final class FormatterBenchmark {
         }
 
         double msPerFile = files.isEmpty() ? 0.0 : (double) elapsedMs / files.size();
-        return new BenchRow(
-                "Prettier + prettier-plugin-java (batch via npx)", elapsedMs, msPerFile, 0);
+        return new BenchRow("Prettier + prettier-plugin-java (batch via npx)", msPerFile, 0);
     }
 
-    private record BenchRow(String name, long elapsedMs, double msPerFile, long failures) {}
+    private record BenchRow(String name, double msPerFile, long failures) {}
 
     private static void writeReport(
             Path reportPath,
@@ -431,8 +429,8 @@ public final class FormatterBenchmark {
 
                 ## Results
 
-                | Formatter | Wall time | ms / file | Failures |
-                |-----------|-----------|-----------|----------|
+                | Formatter | Avg ms / file | Failures |
+                |-----------|-----------------|----------|
                 %s
 
                 ## Tool versions
@@ -457,11 +455,8 @@ public final class FormatterBenchmark {
             tableRows.append(
                     String.format(
                             Locale.ROOT,
-                            "| %s | %d s | %.2f | %d |%n",
-                            row.name(),
-                            row.elapsedMs() / MILLISECONDS_PER_SECOND,
-                            row.msPerFile(),
-                            row.failures()));
+                            "| %s | %.2f | %d |%n",
+                            row.name(), row.msPerFile(), row.failures()));
         }
 
         String prettierNote =

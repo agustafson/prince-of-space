@@ -35,7 +35,7 @@ object SpringBenchmarkReadmeInsert {
         return sequenceOf(
             "_Auto-generated from [`docs/perf-results/spring-framework.md`](docs/perf-results/spring-framework.md) — do not edit between markers; run `./gradlew refreshSpringBenchmarkReadme` or CI._",
             "",
-            "Wall-clock run on the [Spring Framework](https://github.com/spring-projects/spring-framework) corpus (**$hash**, $filesBit files, same path filters as the external eval harness). Each JVM formatter runs in one process with warmup; $jvmLine",
+            "Throughput on the [Spring Framework](https://github.com/spring-projects/spring-framework) corpus (**$hash**, $filesBit files, same path filters as the external eval harness). **Avg ms / file** is total JVM wall time for the run divided by file count. Each JVM formatter runs in one process with warmup; $jvmLine",
             "",
             configLine,
             "",
