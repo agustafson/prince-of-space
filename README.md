@@ -34,7 +34,7 @@ Prince of Space takes its philosophy from Prettier and ktlint: strong, readable 
 
 _Auto-generated from [`docs/perf-results/spring-framework.md`](docs/perf-results/spring-framework.md) — do not edit between markers; run `./gradlew refreshSpringBenchmarkReadme` or CI._
 
-Wall-clock run on the [Spring Framework](https://github.com/spring-projects/spring-framework) corpus (**d9ecf94**, **9204** files, same path filters as the external eval harness). Each JVM formatter runs in one process with warmup; JVM: **21.0.2+13-58**
+Wall-clock run on the [Spring Framework](https://github.com/spring-projects/spring-framework) corpus (**d9ecf94**, **9204** files, same path filters as the external eval harness). Each JVM formatter runs in one process with warmup; JVM: **21.0.10+7-LTS**
 
 Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **BALANCED**, Java language level **17**). Other JVM formatters use **AOSP** style to align with `examples/external/outputs/` Spotless comparisons.
 
@@ -42,9 +42,10 @@ Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **B
 
 | Formatter | Wall time | ms / file | Failures |
 |-----------|-----------|-----------|----------|
-| Prince of Space | 181 s | 19.74 | 0 |
-| Google Java Format (AOSP) | 99 s | 10.79 | 0 |
-| Palantir Java Format (AOSP) | 101 s | 11.03 | 0 |
+| Prince of Space (strict, fixed-point) | 42 s | 4.57 | 0 |
+| Prince of Space (fast, single pass) | 17 s | 1.86 | 0 |
+| Google Java Format (AOSP) | 19 s | 2.16 | 0 |
+| Palantir Java Format (AOSP) | 19 s | 2.15 | 0 |
 
 Full detail and regeneration: `./gradlew :formatter-benchmark:run` with `PRINCE_BENCH_ROOT` pointing at a checkout. _Prettier throughput leg skipped in this run (`PRINCE_BENCH_SKIP_PRETTIER=true`)._ Eclipse JDT is not in this JVM harness (Spotless bootstraps it via Equo); see [`examples/external/outputs/eclipse/`](examples/external/outputs/eclipse/) for showroom output.
 
