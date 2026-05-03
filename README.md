@@ -16,7 +16,7 @@ A simple, configurable Java code formatter which produces well-arranged code —
 
 Java is almost unique among mainstream languages in having no agreed-upon default formatter. JavaScript has [Prettier](https://prettier.io/). Kotlin has [ktlint](https://pinterest.github.io/ktlint/). Go ships `gofmt` in the standard toolchain. Java has… bike-shedding arguments.
 
-The existing options don't fill the gap well. Google-java-format is completely unconfigurable — great if your team already agrees with Google's choices, a non-starter if you don't. The Eclipse and IntelliJ built-in formatters offer hundreds of knobs, which sounds like flexibility but in practice means every team configures them differently and the "formatter" becomes another source of style debates rather than the end of them.
+The existing options don't fill the gap well. See here for a good summary: https://jqno.nl/post/2024/08/24/why-are-there-no-decent-code-formatters-for-java/. Google-java-format is completely unconfigurable, and its love of double-indenting produces code which can be difficult to read. The Eclipse and IntelliJ built-in formatters offer hundreds of knobs, which sounds like flexibility but in practice means every team configures them differently and the "formatter" becomes another source of style debates rather than the end of them.
 
 Prince of Space takes its philosophy from Prettier and ktlint: strong, readable defaults with just enough configuration to resolve the handful of things teams genuinely disagree about. Minimal options with sensible defaults.
 
