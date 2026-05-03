@@ -2,7 +2,7 @@
 
 Date: 2026-05-03
 Corpus root (local): `/home/runner/work/prince-of-space/prince-of-space/spring-framework-bench`
-Git revision: `d9ecf94`
+Git revision: `39ff8e4`
 Files formatted: **9204**
 JVM: **21.0.10+7-LTS**
 JVM formatter workers (Prince / Google / Palantir): **1**
@@ -13,10 +13,10 @@ Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **B
 
 | Formatter | Avg ms / file | Failures |
 |-----------|-----------------|----------|
-| Prince of Space (strict, fixed-point) | 6.26 | 0 |
-| Prince of Space (fast, single pass) | 2.53 | 0 |
-| Google Java Format (AOSP) | 2.72 | 0 |
-| Palantir Java Format (AOSP) | 2.66 | 0 |
+| Prince of Space (strict, fixed-point) | 5.69 | 0 |
+| Prince of Space (fast, single pass) | 2.40 | 0 |
+| Google Java Format (AOSP) | 2.85 | 0 |
+| Palantir Java Format (AOSP) | 2.68 | 0 |
 
 ## Tool versions
 

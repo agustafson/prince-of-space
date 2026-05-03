@@ -174,7 +174,7 @@ Our priority is idempotency, resulting in slower run times. In real-world enviro
 
 _Auto-generated from [`docs/perf-results/spring-framework.md`](docs/perf-results/spring-framework.md) — do not edit between markers; run `./gradlew refreshSpringBenchmarkReadme` or CI._
 
-Throughput on the [Spring Framework](https://github.com/spring-projects/spring-framework) corpus (**d9ecf94**, **9204** files, same path filters as the external eval harness). **Avg ms / file** is total JVM wall time for the run divided by file count. Each JVM formatter runs in one process with warmup; JVM: **21.0.10+7-LTS**
+Throughput on the [Spring Framework](https://github.com/spring-projects/spring-framework) corpus (**39ff8e4**, **9204** files, same path filters as the external eval harness). **Avg ms / file** is total JVM wall time for the run divided by file count. Each JVM formatter runs in one process with warmup; JVM: **21.0.10+7-LTS**
 
 Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **BALANCED**, Java language level **17**). Other JVM formatters use **AOSP** style to align with `examples/external/outputs/` Spotless comparisons.
 
@@ -182,10 +182,10 @@ Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **B
 
 | Formatter | Avg ms / file | Failures |
 |-----------|-----------------|----------|
-| Prince of Space (strict, fixed-point) | 6.26 | 0 |
-| Prince of Space (fast, single pass) | 2.53 | 0 |
-| Google Java Format (AOSP) | 2.72 | 0 |
-| Palantir Java Format (AOSP) | 2.66 | 0 |
+| Prince of Space (strict, fixed-point) | 5.69 | 0 |
+| Prince of Space (fast, single pass) | 2.40 | 0 |
+| Google Java Format (AOSP) | 2.85 | 0 |
+| Palantir Java Format (AOSP) | 2.68 | 0 |
 
 Full detail and regeneration: `./gradlew :formatter-benchmark:run` with `PRINCE_BENCH_ROOT` pointing at a checkout. _Prettier throughput leg skipped in this run (`PRINCE_BENCH_SKIP_PRETTIER=true`)._ Eclipse JDT is not in this JVM harness (Spotless bootstraps it via Equo); see [`examples/external/outputs/eclipse/`](examples/external/outputs/eclipse/) for showroom output.
 
