@@ -6,7 +6,7 @@
 [![CI](https://github.com/agustafson/prince-of-space/actions/workflows/ci.yml/badge.svg)](https://github.com/agustafson/prince-of-space/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-A beautiful, configurable Java code formatter — **published on Maven Central** ([`io.github.agustafson.princeofspace`](https://central.sonatype.com/namespace/io.github.agustafson.princeofspace)).
+A simple, configurable Java code formatter which produces well-arranged code — ([`io.github.agustafson.princeofspace`](https://central.sonatype.com/namespace/io.github.agustafson.princeofspace)).
 
 > *Named after the hilariously bad 1959 Japanese sci-fi film featured in [Mystery Science Theater 3000](https://www.imdb.com/title/tt0094517/) — specifically [Season 8, Episode 16](https://mst3k.fandom.com/wiki/MST3K_816_-_Prince_of_Space).
 
@@ -55,10 +55,6 @@ _Report date: **2026-05-03**._
 
 ## Quick Start
 
-**`version` in [`gradle.properties`](gradle.properties):** `2.1.3-SNAPSHOT` — Gradle/Maven snippets below match this (`./gradlew assemble` runs `syncReadmeVersions`; you can also run `./gradlew syncReadmeVersions` after bumping the property). On GitHub Actions the default `CI` environment skips this step unless `RUN_README_SYNC=true` (see `sync-readme-versions` / `readme-benchmark` workflows). For the latest **published** `io.github.agustafson.princeofspace` artifact on Central, use the Maven Central badge above. The older **`io.github.agustafson`** coordinate line remains **0.1.0** only (same artifact IDs).
-
-**Maven `groupId`:** New releases use **`io.github.agustafson.princeofspace`**. The **`0.1.0`** build already on Central is **`io.github.agustafson`** (same artifact IDs). Register the new namespace with Sonatype before the first publish under it.
-
 ### Library (Gradle)
 
 **Next releases** (once published under the new group):
@@ -68,8 +64,6 @@ dependencies {
     implementation("io.github.agustafson.princeofspace:prince-of-space-core:2.1.3-SNAPSHOT")
 }
 ```
-
-**0.1.0** (existing Central coordinates): `io.github.agustafson:prince-of-space-core:0.1.0`
 
 ```java
 import io.princeofspace.Formatter;
@@ -90,8 +84,6 @@ String formatted = formatter.format(sourceCode);
     <version>2.1.3-SNAPSHOT</version>
 </dependency>
 ```
-
-**0.1.0:** use `<groupId>io.github.agustafson</groupId>` and `<version>0.1.0</version>`.
 
 ### CLI
 
@@ -124,7 +116,7 @@ spotless {
 }
 ```
 
-Put the Spotless module on the classpath where your build imports `PrinceOfSpaceStep` — for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout. Use `io.github.agustafson.princeofspace:prince-of-space-spotless:2.1.3-SNAPSHOT` for new releases, or `io.github.agustafson:prince-of-space-spotless:0.1.0` for the published **0.1.0** build only. Maven: add the same coordinate as a dependency of `spotless-maven-plugin`, then use `PrinceOfSpaceStep.create(...)` in the plugin configuration.
+Put the Spotless module on the classpath where your build imports `PrinceOfSpaceStep` — for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout. Use `io.github.agustafson.princeofspace:prince-of-space-spotless:2.1.3-SNAPSHOT` for new releases. Maven: add the same coordinate as a dependency of `spotless-maven-plugin`, then use `PrinceOfSpaceStep.create(...)` in the plugin configuration.
 
 ### IntelliJ Plugin
 
@@ -198,7 +190,7 @@ The `examples/` directory is the best way to evaluate how options affect real ou
 
 - **`examples/inputs/java{8,17,21,25}/FormatterShowcase.java`** — a single unformatted source file covering 46+ scenarios: constructors, method chains, lambdas, binary operators, generics, switch expressions, records, sealed types, text blocks, and more.
 - **`examples/outputs/java{8,17,21,25}/`** — 6 formatted versions per Java level (24 total), one for each combination of `wrapStyle` and `closingParenOnNewLine`.
-- **`examples/external/outputs/`** — the same showcase passed through [Spotless](https://github.com/diffplug/spotless) with other popular Java formatters (Google Java Format AOSP, Eclipse JDT, Palantir Java Format AOSP, Prettier with prettier-plugin-java), one file per Java level per formatter — useful when comparing pipelines.
+- **`examples/external/outputs/`** — the same showcase passed through [Spotless](https://github.com/diffplug/spotless) with other popular Java formatters (Google Java Format AOSP, Eclipse JDT, Palantir Java Format AOSP, Prettier with prettier-plugin-java), one file per Java level per formatter — useful when comparing formatters.
 
 Open **[`examples/compare.html`](examples/compare.html)** in a browser (or the GitHub Pages copy for this repo) for an interactive side-by-side diff: choose a Java level, then pick any two outputs on the left and right — Prince of Space configurations **or** one of the Spotless-driven alternatives above — to see how they differ on identical input. For a narrated walkthrough focused on Prince of Space options, see **[docs/output-showcase.md](docs/output-showcase.md)**.
 
@@ -228,7 +220,7 @@ if (result instanceof FormatResult.Success success) {
 
 ## Artifacts (Maven Central)
 
-Group ID: **`io.github.agustafson.princeofspace`** for new releases. Published versions appear on [Maven Central](https://central.sonatype.com/namespace/io.github.agustafson.princeofspace); the coordinate snippets above track the repo `version` property (run `./gradlew syncReadmeVersions` after changing it). Release **0.1.0** remains under **`io.github.agustafson`** until superseded.
+Group ID: **`io.github.agustafson.princeofspace`** for new releases. Published versions appear on [Maven Central](https://central.sonatype.com/namespace/io.github.agustafson.princeofspace); the coordinate snippets above track the repo `version` property (run `./gradlew syncReadmeVersions` after changing it).
 
 | Artifact | Coordinate | When to use |
 |----------|------------|-------------|
