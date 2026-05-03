@@ -12,10 +12,10 @@ import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.expr.SuperExpr;
 import com.github.javaparser.ast.expr.ThisExpr;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -56,12 +56,26 @@ final class MethodChainFormatter {
             ctx.printArguments(n.getArguments(), arg);
             return;
         }
-        MethodCallExpr outer = outermostCall(n);
-        if (!outer.equals(n)) {
-            return;
+        // Cheap dispatch: only the *outermost* call in a chain emits anything; the inner calls are
+        // visited recursively through the chain printers, but JavaParser's pretty-printer enters this
+        // override on every {@link MethodCallExpr#accept}. If our parent is also a {@link MethodCallExpr}
+        // and we are its scope, the chain is already being printed from the outer call — return now and
+        // skip the (otherwise repeated) {@link #outermostCall} walk plus chain collection. This avoids
+        // O(depth^2) work on long chains.
+        @Nullable Node parent = n.getParentNode().orElse(null);
+        if (parent instanceof MethodCallExpr parentCall && parentCall.getScope().isPresent()) {
+            // Reference equality intentional: AST nodes are identity-compared, and the parent's
+            // scope expression is the very same Node instance as {@code n} when {@code n} is a
+            // non-outermost call inside a chain. {@link Node#equals} is a deep structural compare
+            // (EqualsVisitor) — using it here would defeat the whole point of this fast-path.
+            @SuppressWarnings({"ReferenceEquality", "PMD.CompareObjectsWithEquals"})
+            boolean nIsParentScope = parentCall.getScope().get() == n;
+            if (nIsParentScope) {
+                return;
+            }
         }
-        List<MethodCallExpr> calls = chainInOrder(outer);
-        Optional<Expression> baseOpt = chainBase(outer);
+        List<MethodCallExpr> calls = chainInOrder(n);
+        Optional<Expression> baseOpt = chainBase(n);
         if (baseOpt.isEmpty()) {
             ctx.acceptDefaultBinaryExprOrMethodCall(n, arg);
             return;
@@ -76,26 +90,6 @@ final class MethodChainFormatter {
             return;
         }
         printChainBalancedOrNarrow(base, calls, arg);
-    }
-
-    /**
-     * Walks parent {@link MethodCallExpr} nodes while the child is still the direct scope, so
-     * {@code a().b().c()} yields the {@code c()} node as the unique entry point for printing the full chain.
-     */
-    private static MethodCallExpr outermostCall(MethodCallExpr n) {
-        MethodCallExpr cur = n;
-        while (true) {
-            Optional<Node> p = cur.getParentNode();
-            if (p.isEmpty() || !(p.get() instanceof MethodCallExpr parent)) {
-                break;
-            }
-            if (parent.getScope().isPresent() && Objects.equals(parent.getScope().get(), cur)) {
-                cur = parent;
-            } else {
-                break;
-            }
-        }
-        return cur;
     }
 
     /** Innermost call first: {@code [stream, filter]} for {@code items.stream().filter()}. */

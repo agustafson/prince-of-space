@@ -30,13 +30,27 @@ final class CommentUtils {
 
     /** Returns whether comments exist between two statements in the same block. */
     static boolean hasCommentBetweenStatements(BlockStmt block, Statement previous, Statement current) {
-        if (previous.getRange().isEmpty() || current.getRange().isEmpty()) {
+        return hasCommentBetweenStatements(block.getAllContainedComments(), previous, current);
+    }
+
+    /**
+     * Same predicate as {@link #hasCommentBetweenStatements(BlockStmt, Statement, Statement)} but
+     * receives a pre-collected list of the block's contained comments so the caller can amortize
+     * one {@link Node#getAllContainedComments()} traversal across all statement pairs in the block
+     * (the underlying call recursively walks the whole subtree and allocates a fresh
+     * {@link java.util.LinkedList}, so calling it once per pair is O(N²) per block).
+     */
+    static boolean hasCommentBetweenStatements(
+            List<Comment> blockContainedComments, Statement previous, Statement current) {
+        if (blockContainedComments.isEmpty()
+                || previous.getRange().isEmpty()
+                || current.getRange().isEmpty()) {
             return false;
         }
         int startLineExclusive = previous.getRange().get().end.line;
         int currentLine = current.getRange().get().begin.line;
         int currentColumn = current.getRange().get().begin.column;
-        for (Comment comment : block.getAllContainedComments()) {
+        for (Comment comment : blockContainedComments) {
             if (comment.getRange().isEmpty()) {
                 continue;
             }

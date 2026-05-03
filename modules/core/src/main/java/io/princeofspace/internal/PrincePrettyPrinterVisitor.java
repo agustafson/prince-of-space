@@ -50,9 +50,7 @@ import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.WrapStyle;
 import org.jspecify.annotations.Nullable;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -115,8 +113,16 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
      * so nested wrapped {@code (...)} lists stack R3 continuation correctly.
      */
     private int wrappedDelimitedListScopeDepth;
-    /** Tracks argument-list opener line numbers so nested co-line closers can compact to one closer run. */
-    private final Deque<Integer> argumentListOpenerLines = new ArrayDeque<>();
+    /**
+     * Tracks argument-list opener line numbers so nested co-line closers can compact to one closer run.
+     * Plain {@code int[]}-backed stack to avoid {@link Integer} autoboxing on a hot path: every method
+     * call in the AST pushes/peeks/pops here, so the per-visit allocations of a boxed stack add up.
+     */
+    private static final int ARGUMENT_LIST_OPENER_LINES_INITIAL_CAPACITY = 8;
+
+    private int[] argumentListOpenerLines = new int[ARGUMENT_LIST_OPENER_LINES_INITIAL_CAPACITY];
+
+    private int argumentListOpenerLinesTop = -1;
     /** True while printing a co-line nested closer run like {@code ));} on a single closer line. */
     private boolean compactArgumentCloserRunActive;
     /** Effective start column for a continuation line produced by printCont/printRawContinuation. */
@@ -238,6 +244,13 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (!getOption(ConfigOption.PRINT_COMMENTS).isPresent()) {
             return;
         }
+        // Fast path: trailing comments inside a node only show up via orphan comments. When the node
+        // has no orphan comments at all, the sorted-children walk would find nothing — skip the
+        // ArrayList allocation and the position sort entirely. This dominates pretty-printing time
+        // for comment-light Java code.
+        if (node.getOrphanComments().isEmpty()) {
+            return;
+        }
         List<Node> everything = new ArrayList<>(node.getChildNodes());
         PositionUtils.sortByBeginPosition(everything);
         if (everything.isEmpty()) {
@@ -299,11 +312,25 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (parent == null) {
             return;
         }
+        // Fast path: orphan comments are the only source of {@code Comment} instances in
+        // {@code parent.getChildNodes()} (owned comments live on their owners, not on the parent).
+        // When the parent has no orphan comments, the sort-and-scan below would always find nothing —
+        // skipping the ArrayList allocation and {@link PositionUtils#sortByBeginPosition} call here is
+        // the single biggest pretty-printing speedup for comment-light Java sources, because this
+        // override runs at the start of nearly every {@code visit} method.
+        if (parent.getOrphanComments().isEmpty()) {
+            return;
+        }
         List<Node> everything = new ArrayList<>(parent.getChildNodes());
         PositionUtils.sortByBeginPosition(everything);
         int positionOfTheChild = -1;
         for (int i = 0; i < everything.size(); i++) {
-            if (Objects.equals(everything.get(i), node)) {
+            // Reference equality intentional: AST nodes are identity-compared. {@link Node#equals} is
+            // a deep structural compare (EqualsVisitor) — using it here would walk every comment's
+            // subtree, blowing up this hot loop.
+            @SuppressWarnings({"ReferenceEquality", "PMD.CompareObjectsWithEquals"})
+            boolean isTarget = everything.get(i) == node;
+            if (isTarget) {
                 positionOfTheChild = i;
                 break;
             }
@@ -402,6 +429,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printer.println("{");
         if (n.getStatements() != null) {
             printer.indent();
+            // Precompute once per block visit: each statement-pair check below would otherwise
+            // re-walk the entire block subtree to collect comments (O(N²) per block).
+            List<Comment> containedComments = null;
             @Nullable Statement prev = null;
             for (Statement s : n.getStatements()) {
                 // R9 + R10: preserve intentional blank lines, but do not manufacture spacing around
@@ -409,13 +439,18 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 if (prev != null && prev.getRange().isPresent() && s.getRange().isPresent()) {
                     int prevEnd = prev.getRange().get().end.line;
                     int curStart = s.getRange().get().begin.line;
-                    boolean hasInterveningComment = CommentUtils.hasCommentBetweenStatements(n, prev, s);
-                    boolean currentStatementPrintsCommentBeforeCode =
-                            CommentUtils.hasLineOrBlockCommentPrintedBeforeNode(s);
-                    if (curStart > prevEnd + 1
-                            && !hasInterveningComment
-                            && !currentStatementPrintsCommentBeforeCode) {
-                        printer.println();
+                    if (curStart > prevEnd + 1) {
+                        if (containedComments == null) {
+                            containedComments = n.getAllContainedComments();
+                        }
+                        boolean hasInterveningComment =
+                                CommentUtils.hasCommentBetweenStatements(containedComments, prev, s);
+                        boolean currentStatementPrintsCommentBeforeCode =
+                                CommentUtils.hasLineOrBlockCommentPrintedBeforeNode(s);
+                        if (!hasInterveningComment
+                                && !currentStatementPrintsCommentBeforeCode) {
+                            printer.println();
+                        }
                     }
                 }
                 s.accept(this, arg);
@@ -813,8 +848,15 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     protected <T extends Expression> void printArguments(NodeList<T> args, Void arg) {
         int openerLine = printer.getCursor().line;
         boolean nestedOpenersAreColine =
-                !argumentListOpenerLines.isEmpty() && argumentListOpenerLines.peek() == openerLine;
-        argumentListOpenerLines.push(openerLine);
+                argumentListOpenerLinesTop >= 0
+                        && argumentListOpenerLines[argumentListOpenerLinesTop] == openerLine;
+        argumentListOpenerLinesTop++;
+        if (argumentListOpenerLinesTop >= argumentListOpenerLines.length) {
+            int[] grown = new int[argumentListOpenerLines.length * 2];
+            System.arraycopy(argumentListOpenerLines, 0, grown, 0, argumentListOpenerLines.length);
+            argumentListOpenerLines = grown;
+        }
+        argumentListOpenerLines[argumentListOpenerLinesTop] = openerLine;
         printer.print("(");
         boolean wrapped = false;
         boolean trailingLambda = false;
@@ -865,7 +907,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             }
             printer.print(")");
         } finally {
-            argumentListOpenerLines.pop();
+            argumentListOpenerLinesTop--;
             if (!nestedOpenersAreColine) {
                 compactArgumentCloserRunActive = false;
             }
@@ -1040,19 +1082,25 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.print("{");
             printer.println();
             printer.indent();
+            List<Comment> blockContainedComments = null;
             @Nullable Statement prev = null;
             for (Statement s : block.getStatements()) {
                 // Mirror {@link #visit(BlockStmt)} blank-line rules (R9/R10): ignore gaps explained by comments.
                 if (prev != null && prev.getRange().isPresent() && s.getRange().isPresent()) {
                     int prevEnd = prev.getRange().get().end.line;
                     int curStart = s.getRange().get().begin.line;
-                    boolean hasInterveningComment = CommentUtils.hasCommentBetweenStatements(block, prev, s);
-                    boolean currentStatementPrintsCommentBeforeCode =
-                            CommentUtils.hasLineOrBlockCommentPrintedBeforeNode(s);
-                    if (curStart > prevEnd + 1
-                            && !hasInterveningComment
-                            && !currentStatementPrintsCommentBeforeCode) {
-                        printer.println();
+                    if (curStart > prevEnd + 1) {
+                        if (blockContainedComments == null) {
+                            blockContainedComments = block.getAllContainedComments();
+                        }
+                        boolean hasInterveningComment =
+                                CommentUtils.hasCommentBetweenStatements(blockContainedComments, prev, s);
+                        boolean currentStatementPrintsCommentBeforeCode =
+                                CommentUtils.hasLineOrBlockCommentPrintedBeforeNode(s);
+                        if (!hasInterveningComment
+                                && !currentStatementPrintsCommentBeforeCode) {
+                            printer.println();
+                        }
                     }
                 }
                 s.accept(this, arg);

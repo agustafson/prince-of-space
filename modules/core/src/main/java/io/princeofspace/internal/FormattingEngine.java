@@ -5,7 +5,6 @@ import com.github.javaparser.ParseResult;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.Problem;
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import io.princeofspace.model.FormatResult;
 import io.princeofspace.model.FormatterConfig;
 
@@ -20,9 +19,16 @@ import java.util.List;
  * be visible to {@link io.princeofspace.Formatter}. All other classes in this package are
  * package-private implementation details.
  *
- * <p>Pipeline: parse → {@link LexicalPreservingPrinter#setup} → transform (AST visitors) → print
- * (pretty-print + blank-line normalization). Lexical preservation keeps comments and tokens
- * coherent when the AST is modified before printing.
+ * <p>Pipeline: parse → transform (AST visitors) → print (pretty-print + blank-line normalization).
+ *
+ * <p>Note: this engine intentionally does <em>not</em> call
+ * {@code LexicalPreservingPrinter.setup} — the printer is a custom
+ * {@code DefaultPrettyPrinterVisitor}-based subclass ({@link PrincePrettyPrinterVisitor}) that
+ * does not consult LPP node text. Skipping setup avoids attaching the LPP observer that would
+ * otherwise process every AST mutation made by the visitor (in particular orphan comment removals
+ * during printing) and pay the per-pass cost of building per-node {@code NodeText} state. This is
+ * safe because convergence still re-parses from output text on each iteration, so any mutations
+ * applied to the compilation unit during a single pass are discarded after printing.
  */
 public final class FormattingEngine {
 
@@ -147,15 +153,13 @@ public final class FormattingEngine {
         }
         return result
             .getResult()
-            .map(LexicalPreservingPrinter::setup)
             .map(this::printAfterTransform)
             .orElseGet(FormatResult.EmptyCompilationUnit::new);
     }
 
     private FormatResult printAfterTransform(CompilationUnit cu) {
         transform(cu);
-        CompilationUnit toPrint = cu.clone();
-        return new FormatResult.Success(prettyPrinter.print(toPrint));
+        return new FormatResult.Success(prettyPrinter.print(cu));
     }
 
     /**
@@ -163,10 +167,9 @@ public final class FormattingEngine {
      * control flow.
      *
      * <p>During {@link PrettyPrinter#print}, the visitor may {@code remove()} comment nodes as they are
-     * printed (so they are not emitted twice). Printing runs on a {@linkplain CompilationUnit#clone()
-     * deep-cloned} compilation unit so the instance passed to {@link #singlePassFormat} is not stripped
-     * of comments by side-effect (the clone absorbs comment removals). Convergence still re-parses from
-     * source each outer iteration.
+     * printed (so they are not emitted twice). The compilation unit passed in is local to this single
+     * pass — the convergence loop re-parses from output text on each iteration, so any mutation here
+     * is discarded after {@link #printAfterTransform} returns and never observed by callers.
      */
     private void transform(CompilationUnit cu) {
         @SuppressWarnings("ConstantConditions") // Void visitor arg is java.lang.Void; null is the only value
