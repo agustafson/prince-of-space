@@ -49,13 +49,54 @@ CI runs tests, Spotless, Checkstyle, SpotBugs, Error Prone, and dependency healt
 
 ### GitHub Actions pushes to `main` (README sync, benchmark refresh, release housekeeping)
 
-Workflows that commit back to the repo use **`permissions: contents: write`** and checkout with `token: ${{ secrets.GH_ACTIONS_PUSH_TOKEN || github.token }}`.
+Workflows that commit back to the repo use **`permissions: contents: write`** and checkout with `token: ${{ secrets.GH_ACTIONS_PUSH_TOKEN || github.token }}` (the PAT is used when the secret exists).
 
-1. **Repository default token:** In **Settings → Actions → General → Workflow permissions**, choose **Read and write permissions** (org policy can override this — an org owner may need to allow write access for `GITHUB_TOKEN`).
-2. **Repository rules (protected `main`):** A workflow’s **`GITHUB_TOKEN` is not the same as your user account** — it does **not** inherit your admin rights or your personal ruleset/bypass. The ruleset UI also does **not** offer a generic **“GitHub Actions”** actor in the bypass list; you add **people, teams, repository roles, or a GitHub App (integration)**. So a push that is valid for you in the browser can still be rejected in CI with `GH013: Repository rule violations`.
-3. **Practical fix for automated commits:** Create a **fine-grained personal access token** (or a **machine user** + PAT) with **Contents: Read and write** on this repository, store it as **`GH_ACTIONS_PUSH_TOKEN`**, and **add that PAT’s user** (or the machine account) to the ruleset **bypass** list if `main` requires PRs or status checks. Workflows already use `secrets.GH_ACTIONS_PUSH_TOKEN || github.token` so the PAT is preferred when set.
+**Why `GITHUB_TOKEN` is not enough on a protected `main`:** The default token authenticates as **`github-actions[bot]`**. That identity does **not** inherit *your* admin bypass, and rulesets do not list a generic “GitHub Actions” actor. Pushes can fail with `GH013: Repository rule violations` even with **Read and write** enabled.
 
-Until **`GH_ACTIONS_PUSH_TOKEN`** plus bypass for that identity is configured (or you relax rules / switch to **branch + PR + merge** instead of direct push), automated pushes may fail while the rest of the workflow succeeds.
+Use the two steps below when you need **direct pushes** to `main` from automation.
+
+#### Step 1 — Create a fine-grained PAT and add it as `GH_ACTIONS_PUSH_TOKEN`
+
+These substeps use **your GitHub account** (or a dedicated **machine user** — same flow, but every mention of “you” is that account).
+
+1. Open **GitHub → your avatar (top right) → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
+2. **Resource owner:** your account (or the org that owns `prince-of-space`, if the token must be org-scoped — match where the repo lives).
+3. **Repository access:** **Only select repositories**, then pick **`agustafson/prince-of-space`** (adjust if the repo path differs).
+4. **Permissions → Repository permissions:**
+   - **Contents:** **Read and write** (required for `git push`).
+   - Leave everything else **No access** unless you know you need it (least privilege).
+5. **Expiration:** choose something you can rotate (e.g. 90 days or 1 year). Put a calendar reminder to regenerate and update the secret before expiry.
+6. **Generate** and **copy the token once** (GitHub will not show it again).
+7. In the repo: **Settings → Secrets and variables → Actions → New repository secret**.
+   - **Name:** `GH_ACTIONS_PUSH_TOKEN` (must match exactly — workflows reference this name).
+   - **Value:** paste the token → **Add secret**.
+
+After the next workflow run, checkout uses this token, so **git operations run as the PAT owner’s account** (committer/app identity depends on git config in the workflow; your README workflows set `user.name` / `user.email` for `github-actions[bot]` for display only — the **authentication** is still the PAT).
+
+**Optional machine user:** Create a second GitHub account, add it as a **collaborator** with **Write** (or **Maintain**) on the repo, generate the PAT while logged in as that user, and use that token for `GH_ACTIONS_PUSH_TOKEN`. Then Step 2 adds **that** user to bypass, keeping automation separate from your personal account.
+
+#### Step 2 — Let that identity bypass the rules that block direct pushes
+
+Rules apply to **who is pushing**, not which secret name you used. The account that owns the PAT must be allowed to push to `main` under your rules.
+
+**If you use Repository rules** ( **Settings → Rules → Rulesets** , or org-level rulesets that include this repo):
+
+1. Open the **ruleset** that targets **`main`** (or `refs/heads/main` / default branch).
+2. Find **Bypass list** (wording may be **Bypass actors** or **Add bypass** depending on UI version).
+3. **Add bypass** and choose an actor type GitHub offers — commonly:
+   - **Repository role** → e.g. **Admin** (only if the PAT user is admin — avoid if you use your normal user and do not want automation tied to admin), or
+   - **Team** (if the PAT user is only in a team you add to bypass), or
+   - Most directly for a **personal PAT:** add the **user account** that owns the PAT if the UI lets you pick **People** / **Repository collaborator** (exact labels vary).
+4. Set **Bypass mode** to **Always** (not only “on pull request”) if you need **direct commits** to `main`.
+5. Save the ruleset.
+
+**If you still cannot find the PAT’s user in the list:** Some UIs only offer **roles, teams, and GitHub Apps**. Then either (a) invite that user with a role that appears in **Repository role** bypass (e.g. make the machine user **Admin** on this repo only — weigh risk), (b) put that user in a **team** and add **Team** to bypass, or (c) avoid bypass entirely and change the workflow to **push to a branch** and **merge via PR** (with optional auto-merge).
+
+**Classic branch protection** (older **Settings → Branches → Branch protection rule**): use **Restrict who can push** / allowlisted users or teams, or relax **Require a pull request before merging** for automation — prefer **rulesets** + bypass on new setups.
+
+#### After both steps
+
+Re-run a workflow that pushes (e.g. **Sync README coordinates** or push a no-op `gradle.properties` change). If it still fails, open the failed job log and search for **`GH013`** or **`remote: error`** — the message lists which rule blocked the push.
 
 ### `:core` test entry points
 
