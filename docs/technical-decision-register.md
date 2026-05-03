@@ -233,3 +233,11 @@ Use it as the primary source of *why* design choices exist.
 - **Rationale:** A bare `io.github.<user>` group is fine for a single library but becomes ambiguous when multiple unrelated projects publish from the same account. A trailing segment (`princeofspace`, analogous to multi-segment groups such as Caffeine’s `com.github.ben-manes.caffeine`) keeps Central namespaces readable without coupling to Java source packages.
 - **Consequences:** `gradle.properties` `group=…`; POMs and staging uploads use the new `groupId`. `README.md`, `RELEASING.md`, and `docs/architecture.md` document the coordinates; integrators pin **`io.github.agustafson:…:0.1.0`** only for that build.
 - **Related docs:** `README.md`, `RELEASING.md`, `docs/architecture.md`, TDR-007
+
+### TDR-026: Benchmark-only fast single-pass `Formatter` overload + `BenchDiagnostics`
+- **Date:** 2026-05-03
+- **Status:** Accepted
+- **Decision:** (1) Add an overload `Formatter(FormatterConfig, boolean fastSinglePass)` with default `false`. When `fastSinglePass` is `true`, the engine returns after one parse/transform/print pass (no fixed-point convergence loop), for throughput comparison against single-invocation JVM formatters in `:formatter-benchmark`. Default construction remains strict fixed-point formatting. (2) Add `io.princeofspace.BenchDiagnostics` controlled by `-Dprince.bench.diagnostics=true`, aggregating per-phase timings and pass-count histograms for optional Markdown sections in benchmark reports.
+- **Rationale:** Product idempotency (Rule 1) stays tied to strict convergence in normal use; benchmarks need an explicit, comparable “single format call” cost without implying the library skips convergence by default. Diagnostics must be reachable from the benchmark module without exposing internal packages.
+- **Consequences:** Corpus eval (`:core:evalTest`) and default `Formatter()` behavior unchanged. README/Spring throughput tables can list both strict and fast Prince rows. Integrators should not use fast mode unless they understand it does not prove a formatting fixed point.
+- **Related docs:** `docs/benchmarks.md`, `modules/formatter-benchmark`, `io.princeofspace.BenchDiagnostics`, `io.princeofspace.Formatter`

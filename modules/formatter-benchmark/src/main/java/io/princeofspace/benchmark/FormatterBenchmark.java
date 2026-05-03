@@ -1,5 +1,6 @@
 package io.princeofspace.benchmark;
 
+import io.princeofspace.BenchDiagnostics;
 import io.princeofspace.Formatter;
 import io.princeofspace.model.FormatResult;
 import io.princeofspace.model.FormatterConfig;
@@ -17,6 +18,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Formats every {@code .java} file under {@code PRINCE_BENCH_ROOT} with Prince of Space and other
@@ -32,6 +39,11 @@ import java.util.Set;
  *   <li>{@code PRINCE_BENCH_SKIP_PRETTIER} — set to {@code true} to skip the Prettier ({@code npx})
  *       leg (Unix/macOS; requires network on first {@code npx} run).
  *   <li>{@code PRINCE_BENCH_WARMUP} — set to {@code false} to skip in-process warmup passes.
+ *   <li>{@code PRINCE_BENCH_WORKERS} — optional parallel file workers (default {@code 1}) for JVM
+ *       formatter legs; same pool size is used for Prince, Google, and Palantir.
+ *   <li>{@code PRINCE_BENCH_DIAGNOSTICS} — set to {@code true} to enable {@code
+ *       -Dprince.bench.diagnostics=true} and emit a phase-timing section for the strict Prince leg
+ *       only.
  * </ul>
  */
 public final class FormatterBenchmark {
@@ -77,6 +89,8 @@ public final class FormatterBenchmark {
 
         boolean skipPrettier = truthy(System.getenv("PRINCE_BENCH_SKIP_PRETTIER"));
         boolean warmup = !"false".equalsIgnoreCase(System.getenv("PRINCE_BENCH_WARMUP"));
+        boolean benchDiagnostics = truthy(System.getenv("PRINCE_BENCH_DIAGNOSTICS"));
+        int workers = parseWorkerCount();
 
         List<Path> files = collectJavaFiles(root);
         files.sort(Comparator.comparing(Path::toString));
@@ -87,7 +101,8 @@ public final class FormatterBenchmark {
         String gitHash = gitShortHash(root);
         Path reportPath = resolveReportPath();
 
-        Formatter prince = new Formatter(FormatterConfig.defaults());
+        Formatter princeStrict = new Formatter(FormatterConfig.defaults(), false);
+        Formatter princeFast = new Formatter(FormatterConfig.defaults(), true);
         com.google.googlejavaformat.java.Formatter googleFmt =
                 new com.google.googlejavaformat.java.Formatter(
                         com.google.googlejavaformat.java.JavaFormatterOptions.builder()
@@ -100,59 +115,112 @@ public final class FormatterBenchmark {
                                 .build());
 
         List<BenchRow> rows = new ArrayList<>();
-        rows.add(runJvm("Prince of Space", prince, googleFmt, palantirFmt, root, files, Engine.PRINCE, warmup));
+
+        String diagMarkdown = "";
+        if (benchDiagnostics) {
+            System.setProperty("prince.bench.diagnostics", "true");
+            BenchDiagnostics.reset();
+        }
+
+        rows.add(
+                runJvm(
+                        "Prince of Space (strict, fixed-point)",
+                        princeStrict,
+                        princeFast,
+                        googleFmt,
+                        palantirFmt,
+                        root,
+                        files,
+                        Engine.PRINCE_STRICT,
+                        warmup,
+                        workers));
+
+        if (benchDiagnostics) {
+            diagMarkdown = BenchDiagnostics.toMarkdownSection().strip();
+            System.setProperty("prince.bench.diagnostics", "false");
+        }
+
+        rows.add(
+                runJvm(
+                        "Prince of Space (fast, single pass)",
+                        princeStrict,
+                        princeFast,
+                        googleFmt,
+                        palantirFmt,
+                        root,
+                        files,
+                        Engine.PRINCE_FAST,
+                        warmup,
+                        workers));
+
         rows.add(
                 runJvm(
                         "Google Java Format (AOSP)",
-                        prince,
+                        princeStrict,
+                        princeFast,
                         googleFmt,
                         palantirFmt,
                         root,
                         files,
                         Engine.GOOGLE,
-                        warmup));
+                        warmup,
+                        workers));
         rows.add(
                 runJvm(
                         "Palantir Java Format (AOSP)",
-                        prince,
+                        princeStrict,
+                        princeFast,
                         googleFmt,
                         palantirFmt,
                         root,
                         files,
                         Engine.PALANTIR,
-                        warmup));
+                        warmup,
+                        workers));
 
         if (!skipPrettier) {
             rows.add(runPrettier(root, files));
         }
 
-        writeReport(reportPath, root, gitHash, files.size(), rows, skipPrettier);
+        writeReport(reportPath, root, gitHash, files.size(), rows, skipPrettier, diagMarkdown, workers);
         System.out.printf("%nWrote %s%n", reportPath.toAbsolutePath());
     }
 
     private enum Engine {
-        PRINCE,
+        PRINCE_STRICT,
+        PRINCE_FAST,
         GOOGLE,
         PALANTIR
     }
 
-    @SuppressWarnings("PMD.EmptyCatchBlock")
+    private static int parseWorkerCount() {
+        String raw = System.getenv("PRINCE_BENCH_WORKERS");
+        if (raw == null || raw.isBlank()) {
+            return 1;
+        }
+        int n = Integer.parseInt(raw.strip());
+        return Math.max(1, n);
+    }
+
+    @SuppressWarnings({"PMD.EmptyCatchBlock", "PMD.CloseResource"})
     private static BenchRow runJvm(
             String label,
-            Formatter prince,
+            Formatter princeStrict,
+            Formatter princeFast,
             com.google.googlejavaformat.java.Formatter googleFmt,
             com.palantir.javaformat.java.Formatter palantirFmt,
             Path root,
             List<Path> files,
             Engine engine,
-            boolean warmup)
-            throws IOException {
+            boolean warmup,
+            int workers)
+            throws IOException, InterruptedException {
         if (warmup && !files.isEmpty()) {
             Path p = files.get(0);
             String sample = Files.readString(p, StandardCharsets.UTF_8);
             for (int i = 0; i < WARMUP_ITERATIONS; i++) {
                 try {
-                    formatWith(engine, prince, googleFmt, palantirFmt, sample, p);
+                    formatWith(engine, princeStrict, princeFast, googleFmt, palantirFmt, sample, p);
                 } catch (com.google.googlejavaformat.java.FormatterException
                         | com.palantir.javaformat.java.FormatterException e) {
                     // Warmup best-effort only — the first file may not suit every engine.
@@ -160,27 +228,85 @@ public final class FormatterBenchmark {
             }
         }
 
-        long fail = 0;
+        AtomicLong failures = new AtomicLong();
         long t0 = System.nanoTime();
-        for (Path file : files) {
-            String src = Files.readString(file, StandardCharsets.UTF_8);
+        if (workers <= 1 || files.isEmpty()) {
+            for (Path file : files) {
+                String src = Files.readString(file, StandardCharsets.UTF_8);
+                try {
+                    formatWith(engine, princeStrict, princeFast, googleFmt, palantirFmt, src, file);
+                } catch (com.google.googlejavaformat.java.FormatterException
+                        | com.palantir.javaformat.java.FormatterException
+                        | RuntimeException e) {
+                    failures.incrementAndGet();
+                    System.err.printf("%s — %s: %s%n", label, root.relativize(file), e.getMessage());
+                }
+            }
+        } else {
+            ExecutorService pool = Executors.newFixedThreadPool(workers);
             try {
-                formatWith(engine, prince, googleFmt, palantirFmt, src, file);
-            } catch (com.google.googlejavaformat.java.FormatterException
-                    | com.palantir.javaformat.java.FormatterException
-                    | RuntimeException e) {
-                fail++;
-                System.err.printf("%s — %s: %s%n", label, root.relativize(file), e.getMessage());
+                List<Future<?>> futures = new ArrayList<>(files.size());
+                for (Path file : files) {
+                    futures.add(
+                            pool.submit(
+                                    () -> {
+                                        try {
+                                            String src =
+                                                    Files.readString(file, StandardCharsets.UTF_8);
+                                            formatWith(
+                                                    engine,
+                                                    princeStrict,
+                                                    princeFast,
+                                                    googleFmt,
+                                                    palantirFmt,
+                                                    src,
+                                                    file);
+                                        } catch (com.google.googlejavaformat.java.FormatterException
+                                                | com.palantir.javaformat.java.FormatterException
+                                                | RuntimeException e) {
+                                            failures.incrementAndGet();
+                                            System.err.printf(
+                                                    "%s — %s: %s%n",
+                                                    label, root.relativize(file), e.getMessage());
+                                        } catch (IOException e) {
+                                            failures.incrementAndGet();
+                                            System.err.printf(
+                                                    "%s — %s: %s%n",
+                                                    label, root.relativize(file), e.getMessage());
+                                        }
+                                    }));
+                }
+                for (Future<?> f : futures) {
+                    try {
+                        f.get();
+                    } catch (ExecutionException e) {
+                        failures.incrementAndGet();
+                        Throwable cause = e.getCause();
+                        String msg = cause != null ? cause.getMessage() : e.getMessage();
+                        System.err.printf("%s: %s%n", label, msg);
+                    }
+                }
+            } finally {
+                pool.shutdown();
+                try {
+                    if (!pool.awaitTermination(1, TimeUnit.HOURS)) {
+                        pool.shutdownNow();
+                    }
+                } catch (InterruptedException e) {
+                    pool.shutdownNow();
+                    Thread.currentThread().interrupt();
+                }
             }
         }
         long elapsedMs = (System.nanoTime() - t0) / NANOSECONDS_PER_MILLISECOND;
         double msPerFile = files.isEmpty() ? 0.0 : (double) elapsedMs / files.size();
-        return new BenchRow(label, elapsedMs, msPerFile, fail);
+        return new BenchRow(label, elapsedMs, msPerFile, failures.get());
     }
 
     private static String formatWith(
             Engine engine,
-            Formatter prince,
+            Formatter princeStrict,
+            Formatter princeFast,
             com.google.googlejavaformat.java.Formatter googleFmt,
             com.palantir.javaformat.java.Formatter palantirFmt,
             String src,
@@ -188,8 +314,15 @@ public final class FormatterBenchmark {
             throws com.google.googlejavaformat.java.FormatterException,
                     com.palantir.javaformat.java.FormatterException {
         return switch (engine) {
-            case PRINCE -> {
-                FormatResult r = prince.formatResult(src, fileForDiag);
+            case PRINCE_STRICT -> {
+                FormatResult r = princeStrict.formatResult(src, fileForDiag);
+                if (r instanceof FormatResult.Success s) {
+                    yield s.formattedSource();
+                }
+                throw new IllegalStateException(r.toString());
+            }
+            case PRINCE_FAST -> {
+                FormatResult r = princeFast.formatResult(src, fileForDiag);
                 if (r instanceof FormatResult.Success s) {
                     yield s.formattedSource();
                 }
@@ -263,7 +396,9 @@ public final class FormatterBenchmark {
             String gitHash,
             int fileCount,
             List<BenchRow> rows,
-            boolean prettierSkipped)
+            boolean prettierSkipped,
+            String benchDiagnosticsMarkdown,
+            int workers)
             throws IOException {
         Files.createDirectories(reportPath.getParent());
 
@@ -290,6 +425,7 @@ public final class FormatterBenchmark {
                 Git revision: `%s`
                 Files formatted: **%d**
                 JVM: **%s**
+                JVM formatter workers (Prince / Google / Palantir): **%d**
 
                 Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **BALANCED**, Java language level **17**). Other JVM formatters use **AOSP** style to align with `examples/external/outputs/` Spotless comparisons.
 
@@ -300,6 +436,8 @@ public final class FormatterBenchmark {
                 %s
 
                 ## Tool versions
+
+                %s
 
                 %s
 
@@ -331,6 +469,8 @@ public final class FormatterBenchmark {
                         ? "_Prettier leg skipped (`PRINCE_BENCH_SKIP_PRETTIER=true`)._"
                         : "";
 
+        String diagBlock = benchDiagnosticsMarkdown.isBlank() ? "" : benchDiagnosticsMarkdown + "\n";
+
         String body =
                 String.format(
                         Locale.ROOT,
@@ -340,8 +480,10 @@ public final class FormatterBenchmark {
                         gitHash,
                         fileCount,
                         Runtime.version(),
+                        workers,
                         tableRows.toString().stripTrailing(),
                         versions,
+                        diagBlock,
                         prettierNote);
 
         Files.writeString(reportPath, body, StandardCharsets.UTF_8);

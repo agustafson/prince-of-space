@@ -1,6 +1,7 @@
 import java.nio.charset.StandardCharsets
 
 import net.ltgt.gradle.errorprone.CheckSeverity
+import org.gradle.api.tasks.testing.Test
 import net.ltgt.gradle.errorprone.errorprone
 
 plugins {
@@ -58,6 +59,14 @@ subprojects {
                 removeUnusedImports()
                 importOrder("", "java|javax", "\\#")
             }
+        }
+
+        tasks.withType<Test>().configureEach {
+            maxParallelForks =
+                providers.gradleProperty("test.maxParallelForks")
+                    .map(String::toInt)
+                    .orElse(1)
+                    .get()
         }
     }
 

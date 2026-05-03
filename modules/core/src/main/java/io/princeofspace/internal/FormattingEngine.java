@@ -5,6 +5,7 @@ import com.github.javaparser.ParseResult;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.Problem;
 import com.github.javaparser.ast.CompilationUnit;
+import io.princeofspace.BenchDiagnostics;
 import io.princeofspace.model.FormatResult;
 import io.princeofspace.model.FormatterConfig;
 
@@ -35,23 +36,42 @@ public final class FormattingEngine {
     private static final Logger LOG = System.getLogger(FormattingEngine.class.getName());
 
     private final int maxConvergencePasses;
+    private final boolean fastSinglePass;
     private final JavaParser parser;
     private final PrettyPrinter prettyPrinter;
 
     /**
-     * Creates a formatting engine bound to a formatter configuration.
+     * Creates a formatting engine bound to a formatter configuration (strict convergence toward a
+     * fixed point).
      *
      * @param config parser and layout options
      */
     public FormattingEngine(FormatterConfig config) {
-        this(config, CONFIGURED_MAX_CONVERGENCE_PASSES);
+        this(config, CONFIGURED_MAX_CONVERGENCE_PASSES, false);
+    }
+
+    /**
+     * Creates an engine with optional fast single-pass formatting (no convergence loop). Intended for
+     * throughput benchmarking versus single-invocation JVM formatters — not the default product path.
+     *
+     * @param config parser and layout options
+     * @param fastSinglePass when {@code true}, {@link #format(String)} returns after one successful
+     *     {@link #singlePassFormat(String)}
+     */
+    public FormattingEngine(FormatterConfig config, boolean fastSinglePass) {
+        this(config, CONFIGURED_MAX_CONVERGENCE_PASSES, fastSinglePass);
     }
 
     /**
      * Visible for tests to exercise convergence-boundary behavior deterministically.
      */
     FormattingEngine(FormatterConfig config, int maxConvergencePasses) {
+        this(config, maxConvergencePasses, false);
+    }
+
+    FormattingEngine(FormatterConfig config, int maxConvergencePasses, boolean fastSinglePass) {
         this.maxConvergencePasses = Math.max(0, maxConvergencePasses);
+        this.fastSinglePass = fastSinglePass;
         ParserConfiguration parserConfig = new ParserConfiguration()
                 .setLanguageLevel(JavaParserLanguageLevels.toLanguageLevel(config.javaLanguageLevel()));
         this.parser = new JavaParser(parserConfig);
@@ -73,15 +93,27 @@ public final class FormattingEngine {
     /**
      * Parses and formats the given source, or returns a typed failure without throwing.
      *
-     * <p>Internally applies up to a bounded number of additional format passes so that
-     * the returned source is a <em>fixed point</em>: formatting it again produces identical output.
-     * This guarantees idempotency ({@code format(format(x)).equals(format(x))}) even when
-     * JavaParser re-attaches comments differently after the first layout pass.
+     * <p>When {@link #fastSinglePass} is {@code false}, internally applies up to a bounded number of
+     * additional format passes so that the returned source is a <em>fixed point</em>: formatting it
+     * again produces identical output. This guarantees idempotency (
+     * {@code format(format(x)).equals(format(x))}) even when JavaParser re-attaches comments
+     * differently after the first layout pass.
+     *
+     * <p>When {@link #fastSinglePass} is {@code true}, returns after one successful parse/transform/print
+     * pass (benchmark throughput mode).
      *
      * @param sourceCode Java source text to format
      * @return {@link FormatResult.Success} with formatted source, or a {@link FormatResult.Failure}
      */
     public FormatResult format(String sourceCode) {
+        if (fastSinglePass) {
+            FormatResult result = singlePassFormat(sourceCode);
+            if (BenchDiagnostics.isEnabled() && result instanceof FormatResult.Success) {
+                BenchDiagnostics.recordFinishedFilePassCount(1);
+            }
+            return result;
+        }
+
         String current = sourceCode;
         for (int pass = 0; pass <= maxConvergencePasses; pass++) {
             FormatResult result = singlePassFormat(current);
@@ -94,6 +126,9 @@ public final class FormattingEngine {
                     LOG.log(Level.DEBUG,
                             "Convergence required {0} passes (budget {1})",
                             pass + 1, maxConvergencePasses + 1);
+                }
+                if (BenchDiagnostics.isEnabled()) {
+                    BenchDiagnostics.recordFinishedFilePassCount(pass + 1);
                 }
                 return success;
             }
@@ -146,20 +181,40 @@ public final class FormattingEngine {
     }
 
     private FormatResult singlePassFormat(String sourceCode) {
+        long t0 = System.nanoTime();
         ParseResult<CompilationUnit> result = parser.parse(sourceCode);
+        long tAfterParse = System.nanoTime();
         if (!result.isSuccessful()) {
+            if (BenchDiagnostics.isEnabled()) {
+                BenchDiagnostics.recordSinglePassPhases(tAfterParse - t0, 0, 0);
+            }
             List<String> problems = result.getProblems().stream().map(Problem::toString).toList();
             return new FormatResult.ParseFailure(problems);
         }
-        return result
-            .getResult()
-            .map(this::printAfterTransform)
-            .orElseGet(FormatResult.EmptyCompilationUnit::new);
+        return result.getResult()
+                .map(cu -> printAfterTransform(cu, t0, tAfterParse))
+                .orElseGet(
+                        () -> {
+                            if (BenchDiagnostics.isEnabled()) {
+                                BenchDiagnostics.recordSinglePassPhases(tAfterParse - t0, 0, 0);
+                            }
+                            return new FormatResult.EmptyCompilationUnit();
+                        });
     }
 
-    private FormatResult printAfterTransform(CompilationUnit cu) {
+    private FormatResult printAfterTransform(CompilationUnit cu, long t0, long tAfterParse) {
+        long tBeforeTransform = System.nanoTime();
         transform(cu);
-        return new FormatResult.Success(prettyPrinter.print(cu));
+        long tAfterTransform = System.nanoTime();
+        String printed = prettyPrinter.print(cu);
+        long tAfterPrint = System.nanoTime();
+        if (BenchDiagnostics.isEnabled()) {
+            BenchDiagnostics.recordSinglePassPhases(
+                    tAfterParse - t0,
+                    tAfterTransform - tBeforeTransform,
+                    tAfterPrint - tAfterTransform);
+        }
+        return new FormatResult.Success(printed);
     }
 
     /**

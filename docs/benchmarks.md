@@ -17,6 +17,15 @@ export PRINCE_BENCH_ROOT=/path/to/spring-framework
 ./gradlew :formatter-benchmark:run
 ```
 
+Optional environment variables:
+
+| Variable | Effect |
+|----------|--------|
+| `PRINCE_BENCH_WORKERS` | Parallel workers for JVM formatter legs (default `1`). Same pool size is used for Prince, Google Java Format, and Palantir. |
+| `PRINCE_BENCH_DIAGNOSTICS` | When `true`, sets `-Dprince.bench.diagnostics=true` for the **strict** Prince leg and appends phase-timing Markdown to the report. |
+
+For faster local Gradle test execution only (not CI defaults), try `./gradlew :core:test --max-workers=6 -Ptest.maxParallelForks=2`.
+
 Google Java Format / Palantir need JDK-internal javac exports — the `run` task adds the standard
 `--add-exports` flags (same idea as running those formatters on JDK 16+). Prettier rewrites the
 checkout; use a disposable clone or set `PRINCE_BENCH_SKIP_PRETTIER=true`.

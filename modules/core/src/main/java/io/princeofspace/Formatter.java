@@ -38,8 +38,23 @@ public final class Formatter {
      * @param config formatting options; must not be {@code null}
      */
     public Formatter(FormatterConfig config) {
+        this(config, false);
+    }
+
+    /**
+     * Creates a formatter with optional fast single-pass formatting (no convergence loop).
+     *
+     * <p>{@code fastSinglePass=true} is intended for throughput experiments (for example the
+     * {@code :formatter-benchmark} module). The default {@link Formatter#Formatter(FormatterConfig)}
+     * remains strict fixed-point formatting for correct idempotent output in the general case.
+     *
+     * @param config formatting options; must not be {@code null}
+     * @param fastSinglePass when {@code true}, format once per call without proving a fixed point
+     */
+    public Formatter(FormatterConfig config, boolean fastSinglePass) {
         this.config = requireNonNull(config, "config");
-        this.engine = ThreadLocal.withInitial(() -> new FormattingEngine(this.config));
+        this.engine =
+                ThreadLocal.withInitial(() -> new FormattingEngine(this.config, fastSinglePass));
     }
 
     /**
