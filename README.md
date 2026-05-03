@@ -30,6 +30,9 @@ Prince of Space takes its philosophy from Prettier and ktlint: strong, readable 
 
 ## Performance (Spring Framework)
 
+As you can see, Prince of Space takes twice as long when compared to alternatives, but is comparable when using fast (ie: non-strict) mode.
+Our priority is idempotency, resulting in slower run times. In real-world environments we would be using `spotless` and only formatting files which had changed since branching from `main`, minimising the number of files being formatted.
+
 <!-- sync:perf:start -->
 
 _Auto-generated from [`docs/perf-results/spring-framework.md`](docs/perf-results/spring-framework.md) — do not edit between markers; run `./gradlew refreshSpringBenchmarkReadme` or CI._
