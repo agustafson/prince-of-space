@@ -65,7 +65,7 @@ _Report date: **2026-05-03**._
 
 ```kotlin
 dependencies {
-    implementation("io.github.agustafson.princeofspace:prince-of-space-core:0.1.1-SNAPSHOT")
+    implementation("io.github.agustafson.princeofspace:prince-of-space-core:2.1.2")
 }
 ```
 
@@ -87,7 +87,7 @@ String formatted = formatter.format(sourceCode);
 <dependency>
     <groupId>io.github.agustafson.princeofspace</groupId>
     <artifactId>prince-of-space-core</artifactId>
-    <version>0.1.1-SNAPSHOT</version>
+    <version>2.1.2</version>
 </dependency>
 ```
 
@@ -124,7 +124,7 @@ spotless {
 }
 ```
 
-Put the Spotless module on the classpath where your build imports `PrinceOfSpaceStep` — for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout. Use `io.github.agustafson.princeofspace:prince-of-space-spotless:0.1.1-SNAPSHOT` for new releases, or `io.github.agustafson:prince-of-space-spotless:0.1.0` for the published **0.1.0** build only. Maven: add the same coordinate as a dependency of `spotless-maven-plugin`, then use `PrinceOfSpaceStep.create(...)` in the plugin configuration.
+Put the Spotless module on the classpath where your build imports `PrinceOfSpaceStep` — for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout. Use `io.github.agustafson.princeofspace:prince-of-space-spotless:2.1.2` for new releases, or `io.github.agustafson:prince-of-space-spotless:0.1.0` for the published **0.1.0** build only. Maven: add the same coordinate as a dependency of `spotless-maven-plugin`, then use `PrinceOfSpaceStep.create(...)` in the plugin configuration.
 
 ### IntelliJ Plugin
 
@@ -232,9 +232,9 @@ Group ID: **`io.github.agustafson.princeofspace`** for new releases. Published v
 
 | Artifact | Coordinate | When to use |
 |----------|------------|-------------|
-| `prince-of-space-core` | `io.github.agustafson.princeofspace:prince-of-space-core:0.1.1-SNAPSHOT` | Default — small footprint; JavaParser + SLF4J as normal transitives |
-| `prince-of-space-bundled` | `io.github.agustafson.princeofspace:prince-of-space-bundled:0.1.1-SNAPSHOT` | Single fat JAR, dependencies relocated — no classpath clashes |
-| `prince-of-space-spotless` | `io.github.agustafson.princeofspace:prince-of-space-spotless:0.1.1-SNAPSHOT` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) |
+| `prince-of-space-core` | `io.github.agustafson.princeofspace:prince-of-space-core:2.1.2` | Default — small footprint; JavaParser + SLF4J as normal transitives |
+| `prince-of-space-bundled` | `io.github.agustafson.princeofspace:prince-of-space-bundled:2.1.2` | Single fat JAR, dependencies relocated — no classpath clashes |
+| `prince-of-space-spotless` | `io.github.agustafson.princeofspace:prince-of-space-spotless:2.1.2` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) |
 | CLI (shadow JAR) | Build from repo or attach to [GitHub Releases](https://github.com/agustafson/prince-of-space/releases) | Command-line formatting; not always published to Central |
 
 ## Non-goals

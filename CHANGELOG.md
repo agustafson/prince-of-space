@@ -1,50 +1,10 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [Unreleased]
+## 2.1.2 (2026-05-03)
 
 ### Changed
 
-- **Maven Central `groupId`** — new releases use **`io.github.agustafson.princeofspace`** (was `io.github.agustafson`) so artifacts are namespaced per project under this GitHub account. Register the namespace with Sonatype before the next publish. Release **0.1.0** remains at the previous coordinates. See TDR-025.
-- **Formatting engine default convergence budget** — raised so `WrapStyle.WIDE` at a short line length can reach a stable fixed point on large corpora without reporting `NonConvergent`; tune with JVM property `prince.maxConvergencePasses`. See TDR-020.
-- **BREAKING: `continuationIndentSize` removed from public API** — continuation indent is now always `2 * indentSize` (e.g. 8 spaces with default indent of 4). This follows the Oracle/IntelliJ convention and ensures wrapped parameters are always visually distinct from the method body. The `FormatterConfig.Builder.continuationIndentSize()` method and the IntelliJ plugin's continuation indent spinner have been removed. Config options reduced from 8 to 7; showroom goldens from 48 to 24.
-- **Formatting: wrapped method chains now use `indentSize`, not `2 * indentSize`** — when a method chain wraps and each `.method(...)` segment goes on its own line, segments are now indented by a single `indentSize` step rather than the full continuation indent. Each chain segment already begins with a leading `.`, so the deeper continuation indent is redundant and only pushed deeply-nested chains far to the right. When a wrapped chain is an operand of a wrapped binary chain, segments still sit one `indentSize` past the operator line, preserving operator/operand visual separation. All 24 showroom goldens regenerated. See TDR-015 and `docs/canonical-formatting-rules.md` Rule 7.
-- **CI** — Release workflow uses Nyx again for version inference, pinned to a stable action version and configured so conventional `chore/docs/style/refactor/test/ci/perf/build` commits count as patch bumps.
+* [4befd] chore: refresh Spring benchmark README [skip ci] (github-actions[bot])
 
-### Fixed
+* [a68e3] ci: strip CR/LF from GitHub token before gh release and git push (Andrew Gustafson)
 
-- **Maven publication:** set explicit `artifactId` on `:core` and `:spotless` publications (`prince-of-space-core`, `prince-of-space-spotless`). Gradle’s default was the subproject name (`core`, `spotless`). The bundled artifact already used `prince-of-space-bundled`.
-
-## [0.1.0] — 2026-04-18
-
-First release on **Maven Central** (`io.github.agustafson`).
-
-### Added
-
-- **Core formatter** — AST-based Java code formatter using JavaParser, with convergence loop (up to 64 passes) guaranteeing idempotent output.
-- **8 configuration options** — `indentStyle`, `indentSize`, `lineLength`, `continuationIndentSize`, `wrapStyle`, `closingParenOnNewLine`, `trailingCommas`, `javaLanguageLevel` — exposed via `FormatterConfig` record with builder.
-- **`JavaLanguageLevel` record** — first-party type for language level configuration, replacing direct use of JavaParser's `LanguageLevel` in the public API. Supports any Java version (1–25+) with optional preview flag.
-- **Sealed `FormatResult` API** — `Formatter.formatResult()` returns `FormatResult.Success` or `FormatResult.Failure` (subtypes: `ParseFailure`, `EmptyCompilationUnit`) for non-throwing error handling.
-- **CLI** (`:cli`) — Picocli-based command-line tool with `--check`, `--stdin` (reads stdin, writes stdout), `--java-version`, recursive directory formatting, and git-aware file discovery.
-- **Spotless integration** (`:spotless`) — `PrinceOfSpaceStep` implementing Spotless `FormatterStep` with serializable configuration for classloader isolation.
-- **IntelliJ plugin** (`:intellij-plugin`) — Settings UI for all 8 options, language level from module or fixed release, optional format-on-save, and **Code > Reformat with Prince of Space...** action.
-- **VS Code extension** (`modules/vscode-extension/`) — TypeScript extension registering a Java formatting provider, delegating to the CLI shadow JAR.
-- **Bundled artifact** (`:core-bundled`) — Shadow JAR with all dependencies relocated under `io.princeofspace.shaded.*` for environments requiring zero transitive dependencies.
-- **Formatting pipeline** — Parse > LexicalPreservingPrinter > BraceEnforcer > PrettyPrinter > BlankLineNormalizer, with width-aware wrapping for method chains, argument lists, logical operators, type clauses, switch labels, lambda parameters, and generic type arguments.
-- **Comment preservation** — line, block, Javadoc, end-of-line, between-statement, and type-use comments preserved through formatting.
-- **Showroom golden tests** — 4 Java levels (8, 17, 21, 25) x 12 config combinations = 48 golden files in `examples/inputs/` and `examples/outputs/`.
-- **Test suite** — 200+ tests including unit tests for internal components (`FormattingEngine`), wrapping regressions, comment preservation, idempotency regression matrix testing, and examples corpus validation.
-- **Real-world eval harness** — validated against Guava (3,221 files) and Spring Framework (9,198 files) with zero parse errors and zero idempotency failures.
-- **Static analysis** — Error Prone, NullAway, SpotBugs, Checkstyle, and Spotless enforced in CI.
-- **CI** — GitHub Actions: build on push/PR across Java 17, 21, and 25; manual release workflow with Nyx version inference and Sonatype Central Portal upload.
-- **Documentation** — architecture guide, formatting decisions, technical decision register, contributing guide, showroom scenarios, benchmarks, and robustness harness docs.
-
-### Fixed
-
-- Idempotency across trailing comments, wrapped chains, lambda-call indentation, string literal wrapping, and comment-adjacent spacing.
-- IntelliJ plugin `untilBuild` set to unbounded (`provider { null }`) for forward compatibility.
-- Line length documentation clarified as a target (best-effort) rather than an absolute guarantee.
