@@ -10,6 +10,7 @@ javaparser = "3.28.0"
 jqwik = "1.9.3"
 jspecify = "1.0.0"
 junit = "6.0.3"
+maven-resolver = "1.9.22"
 mkdocs-build = "4.0.1"
 nullaway = "0.13.4"
 npm-prettier = "3.4.2"
@@ -38,6 +39,7 @@ junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }
 junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+maven-resolver-api = { module = "org.apache.maven.resolver:maven-resolver-api", version.ref = "maven-resolver" }
 nullaway = { module = "com.uber.nullaway:nullaway", version.ref = "nullaway" }
 palantir-java-format = { module = "com.palantir.javaformat:palantir-java-format", version.ref = "palantir-java-format" }
 picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
@@ -45,6 +47,7 @@ slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
 spotbugs-annotations = { module = "com.github.spotbugs:spotbugs-annotations", version.ref = "spotbugs-annotations" }
 spotless-lib = { module = "com.diffplug.spotless:spotless-lib", version.ref = "spotless-lib" }
+spotless-lib-extra = { module = "com.diffplug.spotless:spotless-lib-extra", version.ref = "spotless-lib" }
 
 [plugins]
 errorprone = { id = "net.ltgt.errorprone", version.ref = "errorprone-plugin" }

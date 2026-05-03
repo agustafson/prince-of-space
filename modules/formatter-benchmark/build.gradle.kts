@@ -10,7 +10,16 @@ base {
 dependencies {
     implementation(project(":core"))
     implementation(libs.google.java.format)
+    implementation(libs.jspecify)
+    implementation(libs.maven.resolver.api)
     implementation(libs.palantir.java.format)
+    implementation(libs.spotless.lib.extra)
+    runtimeOnly(libs.slf4j.simple)
+
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter.api)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 application {
@@ -31,6 +40,7 @@ val formatterJvmOpens =
 tasks.named<JavaExec>("run") {
     jvmArgs(formatterJvmOpens)
     systemProperty("PRINCE_BENCH_FORMATTER_VERSION", project.version.toString())
+    systemProperty("PRINCE_BENCH_ECLIPSE_VERSION", libs.versions.eclipse.jdt.get())
 }
 
 tasks.withType<JavaCompile>().configureEach {
@@ -38,13 +48,6 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 // Smoke coverage so `./gradlew build` keeps JaCoCo gates satisfied like other Java modules.
-dependencies {
-    testImplementation(platform(libs.junit.bom))
-    testImplementation(libs.junit.jupiter.api)
-    testRuntimeOnly(libs.junit.jupiter.engine)
-    testRuntimeOnly(libs.junit.platform.launcher)
-}
-
 tasks.test {
     useJUnitPlatform()
 }

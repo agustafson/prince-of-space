@@ -32,6 +32,13 @@ object SpringBenchmarkReadmeInsert {
                 "Optional Prettier runs via `npx` and **rewrites** sources — use a disposable clone."
             }
 
+        val eclipseNote =
+            if (report.contains("Eclipse JDT leg skipped")) {
+                "_Eclipse throughput leg skipped in this run (`PRINCE_BENCH_SKIP_ECLIPSE=true`)._"
+            } else {
+                "Eclipse JDT uses the same Spotless `eclipse()` stack as [`examples/external/outputs/eclipse/`](examples/external/outputs/eclipse/) (Equo P2 + Maven Central on first run)."
+            }
+
         return sequenceOf(
             "_Auto-generated from [`docs/perf-results/spring-framework.md`](docs/perf-results/spring-framework.md) — do not edit between markers; run `./gradlew refreshSpringBenchmarkReadme` or CI._",
             "",
@@ -41,7 +48,7 @@ object SpringBenchmarkReadmeInsert {
             "",
             tableMd,
             "",
-            "Full detail and regeneration: `./gradlew :formatter-benchmark:run` with `PRINCE_BENCH_ROOT` pointing at a checkout. $prettierNote Eclipse JDT is not in this JVM harness (Spotless bootstraps it via Equo); see [`examples/external/outputs/eclipse/`](examples/external/outputs/eclipse/) for showroom output.",
+            "Full detail and regeneration: `./gradlew :formatter-benchmark:run` with `PRINCE_BENCH_ROOT` pointing at a checkout. $prettierNote $eclipseNote",
             "",
             "_Report date: **$date**._",
         ).joinToString("\n")

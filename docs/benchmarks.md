@@ -8,7 +8,7 @@ small passes completes within generous wall-clock bounds on CI.
 ## Corpus throughput comparison (`:formatter-benchmark`)
 
 The Gradle module **`formatter-benchmark`** formats every `.java` file under `PRINCE_BENCH_ROOT` with
-Prince of Space, Google Java Format (AOSP), Palantir Java Format (AOSP), and optionally Prettier +
+Prince of Space, Google Java Format (AOSP), Palantir Java Format (AOSP), Eclipse JDT (Spotless `eclipse()` / Equo), and optionally Prettier +
 prettier-plugin-java (`npx`). Results are written to [`perf-results/spring-framework.md`](perf-results/spring-framework.md)
 (use `PRINCE_BENCH_REPORT` for another path).
 
@@ -21,7 +21,10 @@ Optional environment variables:
 
 | Variable | Effect |
 |----------|--------|
-| `PRINCE_BENCH_WORKERS` | Parallel workers for JVM formatter legs (default `1`). Same pool size is used for Prince, Google Java Format, and Palantir. |
+| `PRINCE_BENCH_WORKERS` | Parallel workers for JVM formatter legs (default `1`). Same pool size is used for Prince, Google Java Format, Palantir, and Eclipse. |
+| `PRINCE_BENCH_SKIP_ECLIPSE` | Set to `true` to skip the Eclipse JDT leg (no Equo P2 / Maven downloads). |
+| `PRINCE_BENCH_MAVEN_CACHE` | Directory for the benchmark’s Maven Central jar cache (defaults to `~/.cache/prince-bench-m2`). |
+| `PRINCE_BENCH_P2_CACHE` | Equo P2 cache root (defaults to `~/.cache/prince-bench-eclipse-p2`). |
 | `PRINCE_BENCH_DIAGNOSTICS` | When `true`, sets `-Dprince.bench.diagnostics=true` for the **strict** Prince leg and appends phase-timing Markdown to the report. |
 
 For faster local Gradle test execution only (not CI defaults), try `./gradlew :core:test --max-workers=6 -Ptest.maxParallelForks=2`.

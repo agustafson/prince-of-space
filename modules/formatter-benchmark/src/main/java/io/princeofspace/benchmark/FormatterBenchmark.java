@@ -1,10 +1,15 @@
 package io.princeofspace.benchmark;
 
+import com.diffplug.spotless.FormatterStep;
+import com.diffplug.spotless.extra.P2Provisioner;
+import com.diffplug.spotless.extra.java.EclipseJdtFormatterStep;
 import io.princeofspace.BenchDiagnostics;
 import io.princeofspace.Formatter;
 import io.princeofspace.model.FormatResult;
 import io.princeofspace.model.FormatterConfig;
+import org.jspecify.annotations.Nullable;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -17,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -38,9 +44,17 @@ import java.util.concurrent.atomic.AtomicLong;
  *       docs/perf-results/spring-framework.md} under the repo root).
  *   <li>{@code PRINCE_BENCH_SKIP_PRETTIER} — set to {@code true} to skip the Prettier ({@code npx})
  *       leg (Unix/macOS; requires network on first {@code npx} run).
+ *   <li>{@code PRINCE_BENCH_SKIP_ECLIPSE} — set to {@code true} to skip the Eclipse JDT leg (avoids
+ *       Equo P2 / Maven Central downloads).
+ *   <li>{@code PRINCE_BENCH_ECLIPSE_VERSION} — optional Eclipse formatter version (default from Gradle:
+ *       same value as {@code eclipse-jdt} in {@code gradle/libs.versions.toml}).
+ *   <li>{@code PRINCE_BENCH_MAVEN_CACHE} — optional directory for HTTP Maven jar cache (defaults to
+ *       {@code ~/.cache/prince-bench-m2}).
+ *   <li>{@code PRINCE_BENCH_P2_CACHE} — optional Equo P2 cache root (defaults to
+ *       {@code ~/.cache/prince-bench-eclipse-p2}).
  *   <li>{@code PRINCE_BENCH_WARMUP} — set to {@code false} to skip in-process warmup passes.
  *   <li>{@code PRINCE_BENCH_WORKERS} — optional parallel file workers (default {@code 1}) for JVM
- *       formatter legs; same pool size is used for Prince, Google, and Palantir.
+ *       formatter legs; same pool size is used for Prince, Google, Palantir, and Eclipse.
  *   <li>{@code PRINCE_BENCH_DIAGNOSTICS} — set to {@code true} to enable {@code
  *       -Dprince.bench.diagnostics=true} and emit a phase-timing section for the strict Prince leg
  *       only.
@@ -87,6 +101,7 @@ public final class FormatterBenchmark {
         }
 
         boolean skipPrettier = truthy(System.getenv("PRINCE_BENCH_SKIP_PRETTIER"));
+        boolean skipEclipse = truthy(System.getenv("PRINCE_BENCH_SKIP_ECLIPSE"));
         boolean warmup = !"false".equalsIgnoreCase(System.getenv("PRINCE_BENCH_WARMUP"));
         boolean benchDiagnostics = truthy(System.getenv("PRINCE_BENCH_DIAGNOSTICS"));
         int workers = parseWorkerCount();
@@ -113,6 +128,20 @@ public final class FormatterBenchmark {
                                 .style(com.palantir.javaformat.java.JavaFormatterOptions.Style.AOSP)
                                 .build());
 
+        FormatterStep eclipseStep = null;
+        if (!skipEclipse) {
+            Path mavenCacheRoot = mavenCacheRoot();
+            Files.createDirectories(mavenCacheRoot);
+            File p2Cache = eclipseP2CacheDir();
+            Files.createDirectories(p2Cache.toPath());
+            EclipseJdtFormatterStep.Builder eclipseBuilder =
+                    EclipseJdtFormatterStep.createBuilder(
+                            new HttpMavenProvisioner(mavenCacheRoot), P2Provisioner.createDefault());
+            eclipseBuilder.setVersion(eclipseVersionOrDefault());
+            eclipseBuilder.setCacheDirectory(p2Cache);
+            eclipseStep = eclipseBuilder.build();
+        }
+
         List<BenchRow> rows = new ArrayList<>();
 
         String diagMarkdown = "";
@@ -121,6 +150,7 @@ public final class FormatterBenchmark {
             BenchDiagnostics.reset();
         }
 
+        try {
         rows.add(
                 runJvm(
                         "Prince of Space (strict, fixed-point)",
@@ -128,6 +158,7 @@ public final class FormatterBenchmark {
                         princeFast,
                         googleFmt,
                         palantirFmt,
+                        eclipseStep,
                         root,
                         files,
                         Engine.PRINCE_STRICT,
@@ -146,6 +177,7 @@ public final class FormatterBenchmark {
                         princeFast,
                         googleFmt,
                         palantirFmt,
+                        eclipseStep,
                         root,
                         files,
                         Engine.PRINCE_FAST,
@@ -159,6 +191,7 @@ public final class FormatterBenchmark {
                         princeFast,
                         googleFmt,
                         palantirFmt,
+                        eclipseStep,
                         root,
                         files,
                         Engine.GOOGLE,
@@ -171,25 +204,57 @@ public final class FormatterBenchmark {
                         princeFast,
                         googleFmt,
                         palantirFmt,
+                        eclipseStep,
                         root,
                         files,
                         Engine.PALANTIR,
                         warmup,
                         workers));
 
+        if (!skipEclipse) {
+            rows.add(
+                    runJvm(
+                            "Eclipse JDT (Spotless default)",
+                            princeStrict,
+                            princeFast,
+                            googleFmt,
+                            palantirFmt,
+                            eclipseStep,
+                            root,
+                            files,
+                            Engine.ECLIPSE,
+                            warmup,
+                            workers));
+        }
+
         if (!skipPrettier) {
             rows.add(runPrettier(root, files));
         }
 
-        writeReport(reportPath, root, gitHash, files.size(), rows, skipPrettier, diagMarkdown, workers);
+        writeReport(
+                reportPath,
+                root,
+                gitHash,
+                files.size(),
+                rows,
+                skipPrettier,
+                skipEclipse,
+                diagMarkdown,
+                workers);
         System.out.printf("%nWrote %s%n", reportPath.toAbsolutePath());
+        } finally {
+            if (eclipseStep != null) {
+                eclipseStep.close();
+            }
+        }
     }
 
     private enum Engine {
         PRINCE_STRICT,
         PRINCE_FAST,
         GOOGLE,
-        PALANTIR
+        PALANTIR,
+        ECLIPSE
     }
 
     private static int parseWorkerCount() {
@@ -208,6 +273,7 @@ public final class FormatterBenchmark {
             Formatter princeFast,
             com.google.googlejavaformat.java.Formatter googleFmt,
             com.palantir.javaformat.java.Formatter palantirFmt,
+            @Nullable FormatterStep eclipseStep,
             Path root,
             List<Path> files,
             Engine engine,
@@ -219,9 +285,9 @@ public final class FormatterBenchmark {
             String sample = Files.readString(p, StandardCharsets.UTF_8);
             for (int i = 0; i < WARMUP_ITERATIONS; i++) {
                 try {
-                    formatWith(engine, princeStrict, princeFast, googleFmt, palantirFmt, sample, p);
-                } catch (com.google.googlejavaformat.java.FormatterException
-                        | com.palantir.javaformat.java.FormatterException e) {
+                    formatWith(
+                            engine, princeStrict, princeFast, googleFmt, palantirFmt, eclipseStep, sample, p);
+                } catch (Exception e) {
                     // Warmup best-effort only — the first file may not suit every engine.
                 }
             }
@@ -233,10 +299,9 @@ public final class FormatterBenchmark {
             for (Path file : files) {
                 String src = Files.readString(file, StandardCharsets.UTF_8);
                 try {
-                    formatWith(engine, princeStrict, princeFast, googleFmt, palantirFmt, src, file);
-                } catch (com.google.googlejavaformat.java.FormatterException
-                        | com.palantir.javaformat.java.FormatterException
-                        | RuntimeException e) {
+                    formatWith(
+                            engine, princeStrict, princeFast, googleFmt, palantirFmt, eclipseStep, src, file);
+                } catch (Exception e) {
                     failures.incrementAndGet();
                     System.err.printf("%s — %s: %s%n", label, root.relativize(file), e.getMessage());
                 }
@@ -258,16 +323,10 @@ public final class FormatterBenchmark {
                                                     princeFast,
                                                     googleFmt,
                                                     palantirFmt,
+                                                    eclipseStep,
                                                     src,
                                                     file);
-                                        } catch (com.google.googlejavaformat.java.FormatterException
-                                                | com.palantir.javaformat.java.FormatterException
-                                                | RuntimeException e) {
-                                            failures.incrementAndGet();
-                                            System.err.printf(
-                                                    "%s — %s: %s%n",
-                                                    label, root.relativize(file), e.getMessage());
-                                        } catch (IOException e) {
+                                        } catch (Exception e) {
                                             failures.incrementAndGet();
                                             System.err.printf(
                                                     "%s — %s: %s%n",
@@ -308,10 +367,10 @@ public final class FormatterBenchmark {
             Formatter princeFast,
             com.google.googlejavaformat.java.Formatter googleFmt,
             com.palantir.javaformat.java.Formatter palantirFmt,
+            @Nullable FormatterStep eclipseStep,
             String src,
             Path fileForDiag)
-            throws com.google.googlejavaformat.java.FormatterException,
-                    com.palantir.javaformat.java.FormatterException {
+            throws Exception {
         return switch (engine) {
             case PRINCE_STRICT -> {
                 FormatResult r = princeStrict.formatResult(src, fileForDiag);
@@ -329,6 +388,13 @@ public final class FormatterBenchmark {
             }
             case GOOGLE -> googleFmt.formatSource(src);
             case PALANTIR -> palantirFmt.formatSource(src);
+            case ECLIPSE -> {
+                FormatterStep step = Objects.requireNonNull(eclipseStep, "eclipseStep");
+                synchronized (step) {
+                    String formatted = step.format(src, fileForDiag.toFile());
+                    yield formatted != null ? formatted : src;
+                }
+            }
         };
     }
 
@@ -395,24 +461,38 @@ public final class FormatterBenchmark {
             int fileCount,
             List<BenchRow> rows,
             boolean prettierSkipped,
+            boolean eclipseSkipped,
             String benchDiagnosticsMarkdown,
             int workers)
             throws IOException {
         Files.createDirectories(reportPath.getParent());
 
-        String versions =
+        String eclipseVersion = eclipseVersionOrDefault();
+        StringBuilder versions = new StringBuilder();
+        versions.append(
                 String.format(
                         Locale.ROOT,
                         "- Prince of Space: **%s** (Gradle `version` when launched via `./gradlew"
                                 + " :formatter-benchmark:run`)%n"
                                 + "- Google Java Format: %s (AOSP)%n"
-                                + "- Palantir Java Format: %s (AOSP)%n"
-                                + "- Prettier: %s + prettier-plugin-java %s (via `npx`)%n",
+                                + "- Palantir Java Format: %s (AOSP)%n",
                         princeFormatterVersion(),
                         googleJavaFormatJarVersion(),
-                        palantirJarVersion(),
+                        palantirJarVersion()));
+        if (!eclipseSkipped) {
+            versions.append(
+                    String.format(
+                            Locale.ROOT,
+                            "- Eclipse JDT: **%s** (Spotless `eclipse()`; same family as"
+                                    + " `examples/external/outputs/eclipse/`)%n",
+                            eclipseVersion));
+        }
+        versions.append(
+                String.format(
+                        Locale.ROOT,
+                        "- Prettier: %s + prettier-plugin-java %s (via `npx`)%n",
                         NPM_PRETTIER,
-                        NPM_PRETTIER_PLUGIN_JAVA);
+                        NPM_PRETTIER_PLUGIN_JAVA));
 
         String fmt =
                 """
@@ -423,9 +503,9 @@ public final class FormatterBenchmark {
                 Git revision: `%s`
                 Files formatted: **%d**
                 JVM: **%s**
-                JVM formatter workers (Prince / Google / Palantir): **%d**
+                JVM formatter workers (Prince / Google / Palantir / Eclipse): **%d**
 
-                Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **BALANCED**, Java language level **17**). Other JVM formatters use **AOSP** style to align with `examples/external/outputs/` Spotless comparisons.
+                Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **BALANCED**, Java language level **17**). Google Java Format and Palantir Java Format use **AOSP** style to align with `examples/external/outputs/` Spotless comparisons. Eclipse JDT uses Spotless `eclipse()` defaults (`examples/external/outputs/eclipse/`).
 
                 ## Results
 
@@ -459,10 +539,16 @@ public final class FormatterBenchmark {
                             row.name(), row.msPerFile(), row.failures()));
         }
 
-        String prettierNote =
-                prettierSkipped
-                        ? "_Prettier leg skipped (`PRINCE_BENCH_SKIP_PRETTIER=true`)._"
-                        : "";
+        StringBuilder legSkips = new StringBuilder();
+        if (prettierSkipped) {
+            legSkips.append("_Prettier leg skipped (`PRINCE_BENCH_SKIP_PRETTIER=true`)._");
+        }
+        if (eclipseSkipped) {
+            if (legSkips.length() > 0) {
+                legSkips.append("\n\n");
+            }
+            legSkips.append("_Eclipse JDT leg skipped (`PRINCE_BENCH_SKIP_ECLIPSE=true`)._");
+        }
 
         String diagBlock = benchDiagnosticsMarkdown.isBlank() ? "" : benchDiagnosticsMarkdown + "\n";
 
@@ -479,7 +565,7 @@ public final class FormatterBenchmark {
                         tableRows.toString().stripTrailing(),
                         versions,
                         diagBlock,
-                        prettierNote);
+                        legSkips);
 
         Files.writeString(reportPath, body, StandardCharsets.UTF_8);
     }
@@ -582,5 +668,34 @@ public final class FormatterBenchmark {
         }
         String s = raw.strip().toLowerCase(Locale.ROOT);
         return s.equals("1") || s.equals("true") || s.equals("yes");
+    }
+
+    private static String eclipseVersionOrDefault() {
+        String raw = System.getenv("PRINCE_BENCH_ECLIPSE_VERSION");
+        if (raw == null || raw.isBlank()) {
+            raw = System.getProperty("PRINCE_BENCH_ECLIPSE_VERSION");
+        }
+        return (raw != null && !raw.isBlank()) ? raw.strip() : "4.34";
+    }
+
+    private static Path mavenCacheRoot() {
+        String env = System.getenv("PRINCE_BENCH_MAVEN_CACHE");
+        if (env != null && !env.isBlank()) {
+            return Path.of(env.strip()).toAbsolutePath().normalize();
+        }
+        return Path.of(System.getProperty("user.home"), ".cache/prince-bench-m2")
+                .toAbsolutePath()
+                .normalize();
+    }
+
+    private static File eclipseP2CacheDir() {
+        String env = System.getenv("PRINCE_BENCH_P2_CACHE");
+        if (env != null && !env.isBlank()) {
+            return Path.of(env.strip()).toAbsolutePath().normalize().toFile();
+        }
+        return Path.of(System.getProperty("user.home"), ".cache/prince-bench-eclipse-p2")
+                .toAbsolutePath()
+                .normalize()
+                .toFile();
     }
 }
