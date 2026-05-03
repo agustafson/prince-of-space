@@ -28,9 +28,33 @@ Prince of Space takes its philosophy from Prettier and ktlint: strong, readable 
 - **Java 8 through 25+** — parses any Java language level; runs on JDK 17+
 - **Multiple integrations** — library API, CLI, Spotless plugin, IntelliJ plugin, VS Code extension
 
+## Performance (Spring Framework)
+
+<!-- sync:perf:start -->
+
+_Auto-generated from [`docs/perf-results/spring-framework.md`](docs/perf-results/spring-framework.md) — do not edit between markers; run `./gradlew refreshSpringBenchmarkReadme` or CI._
+
+Wall-clock run on the [Spring Framework](https://github.com/spring-projects/spring-framework) corpus (**d9ecf94**, **9204** files, same path filters as the external eval harness). Each JVM formatter runs in one process with warmup; JVM: **21.0.2+13-58**
+
+Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **BALANCED**, Java language level **17**). Other JVM formatters use **AOSP** style to align with `examples/external/outputs/` Spotless comparisons.
+
+## Results
+
+| Formatter | Wall time | ms / file | Failures |
+|-----------|-----------|-----------|----------|
+| Prince of Space | 181 s | 19.74 | 0 |
+| Google Java Format (AOSP) | 99 s | 10.79 | 0 |
+| Palantir Java Format (AOSP) | 101 s | 11.03 | 0 |
+
+Full detail and regeneration: `./gradlew :formatter-benchmark:run` with `PRINCE_BENCH_ROOT` pointing at a checkout. _Prettier throughput leg skipped in this run (`PRINCE_BENCH_SKIP_PRETTIER=true`)._ Eclipse JDT is not in this JVM harness (Spotless bootstraps it via Equo); see [`examples/external/outputs/eclipse/`](examples/external/outputs/eclipse/) for showroom output.
+
+_Report date: **2026-05-03**._
+
+<!-- sync:perf:end -->
+
 ## Quick Start
 
-**Current release:** `0.1.0` — use that version in the snippets below, or follow the badge above for the latest.
+**`version` in [`gradle.properties`](gradle.properties):** `0.1.1-SNAPSHOT` — Gradle/Maven snippets below match this (`./gradlew assemble` runs `syncReadmeVersions`; you can also run `./gradlew syncReadmeVersions` after bumping the property). On GitHub Actions the default `CI` environment skips this step unless `RUN_README_SYNC=true` (see `sync-readme-versions` / `readme-benchmark` workflows). For the latest **published** artifact on Central, use the badge above (**0.1.0** today under the legacy `io.github.agustafson` coordinates).
 
 **Maven `groupId`:** New releases use **`io.github.agustafson.princeofspace`**. The **`0.1.0`** build already on Central is **`io.github.agustafson`** (same artifact IDs). Register the new namespace with Sonatype before the first publish under it.
 
@@ -40,7 +64,7 @@ Prince of Space takes its philosophy from Prettier and ktlint: strong, readable 
 
 ```kotlin
 dependencies {
-    implementation("io.github.agustafson.princeofspace:prince-of-space-core:VERSION")
+    implementation("io.github.agustafson.princeofspace:prince-of-space-core:0.1.1-SNAPSHOT")
 }
 ```
 
@@ -62,7 +86,7 @@ String formatted = formatter.format(sourceCode);
 <dependency>
     <groupId>io.github.agustafson.princeofspace</groupId>
     <artifactId>prince-of-space-core</artifactId>
-    <version>VERSION</version>
+    <version>0.1.1-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -99,7 +123,7 @@ spotless {
 }
 ```
 
-Put the Spotless module on the classpath where your build imports `PrinceOfSpaceStep` — for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout. Use `io.github.agustafson.princeofspace:prince-of-space-spotless:VERSION` for new releases, or `io.github.agustafson:prince-of-space-spotless:0.1.0` for the published **0.1.0** build only. Maven: add the same coordinate as a dependency of `spotless-maven-plugin`, then use `PrinceOfSpaceStep.create(...)` in the plugin configuration.
+Put the Spotless module on the classpath where your build imports `PrinceOfSpaceStep` — for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout. Use `io.github.agustafson.princeofspace:prince-of-space-spotless:0.1.1-SNAPSHOT` for new releases, or `io.github.agustafson:prince-of-space-spotless:0.1.0` for the published **0.1.0** build only. Maven: add the same coordinate as a dependency of `spotless-maven-plugin`, then use `PrinceOfSpaceStep.create(...)` in the plugin configuration.
 
 ### IntelliJ Plugin
 
@@ -203,13 +227,13 @@ if (result instanceof FormatResult.Success success) {
 
 ## Artifacts (Maven Central)
 
-Group ID: **`io.github.agustafson.princeofspace`** for new releases. Replace `VERSION` with the [latest release](https://central.sonatype.com/namespace/io.github.agustafson.princeofspace). Release **0.1.0** remains under **`io.github.agustafson`** until superseded.
+Group ID: **`io.github.agustafson.princeofspace`** for new releases. Published versions appear on [Maven Central](https://central.sonatype.com/namespace/io.github.agustafson.princeofspace); the coordinate snippets above track the repo `version` property (run `./gradlew syncReadmeVersions` after changing it). Release **0.1.0** remains under **`io.github.agustafson`** until superseded.
 
 | Artifact | Coordinate | When to use |
 |----------|------------|-------------|
-| `prince-of-space-core` | `io.github.agustafson.princeofspace:prince-of-space-core:VERSION` | Default — small footprint; JavaParser + SLF4J as normal transitives |
-| `prince-of-space-bundled` | `io.github.agustafson.princeofspace:prince-of-space-bundled:VERSION` | Single fat JAR, dependencies relocated — no classpath clashes |
-| `prince-of-space-spotless` | `io.github.agustafson.princeofspace:prince-of-space-spotless:VERSION` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) |
+| `prince-of-space-core` | `io.github.agustafson.princeofspace:prince-of-space-core:0.1.1-SNAPSHOT` | Default — small footprint; JavaParser + SLF4J as normal transitives |
+| `prince-of-space-bundled` | `io.github.agustafson.princeofspace:prince-of-space-bundled:0.1.1-SNAPSHOT` | Single fat JAR, dependencies relocated — no classpath clashes |
+| `prince-of-space-spotless` | `io.github.agustafson.princeofspace:prince-of-space-spotless:0.1.1-SNAPSHOT` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) |
 | CLI (shadow JAR) | Build from repo or attach to [GitHub Releases](https://github.com/agustafson/prince-of-space/releases) | Command-line formatting; not always published to Central |
 
 ## Non-goals
@@ -241,6 +265,8 @@ See **[docs/index.md](docs/index.md)** for a full index. Key documents:
 | [SECURITY.md](SECURITY.md) | Vulnerability reporting |
 | [docs/formatting-rules.md](docs/formatting-rules.md) | All formatting rules and configuration options |
 | [docs/evaluation.md](docs/evaluation.md) | Real-world eval harness and latest results (Guava + Spring) |
+| [docs/benchmarks.md](docs/benchmarks.md) | Throughput harness (`:formatter-benchmark`) and smoke timings |
+| [docs/perf-results/spring-framework.md](docs/perf-results/spring-framework.md) | Latest Spring Framework corpus comparison vs other formatters |
 | [docs/technical-decision-register.md](docs/technical-decision-register.md) | Architectural decision log |
 
 ## License

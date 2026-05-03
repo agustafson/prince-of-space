@@ -18,7 +18,7 @@
 | [Decision Register](technical-decision-register.md) | Canonical log of architectural and product decisions with rationale |
 | [Showroom Scenarios](showroom-scenarios.md) | How the 24 showroom golden files are structured across Java levels and scenarios |
 | [Evaluation](evaluation.md) | Real-world evaluation harness: how to run it, latest results against Guava and Spring |
-| [Benchmarks](benchmarks.md) | Performance smoke tests and future JMH plans |
+| [Benchmarks](benchmarks.md) | Smoke tests, `:formatter-benchmark` throughput harness, future JMH plans |
 | [Changelog](changelog.md) | Release history |
 
 ## Background

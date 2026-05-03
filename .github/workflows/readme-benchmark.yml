@@ -1,0 +1,50 @@
+name: README Spring benchmark
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: readme-updates-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Clone Spring Framework (shallow)
+        run: git clone --depth 1 https://github.com/spring-projects/spring-framework "$GITHUB_WORKSPACE/spring-framework-bench"
+
+      - name: Run benchmark and refresh README
+        env:
+          PRINCE_BENCH_ROOT: ${{ github.workspace }}/spring-framework-bench
+          PRINCE_BENCH_SKIP_PRETTIER: "true"
+          RUN_README_SYNC: "true"
+        run: ./gradlew :formatter-benchmark:run syncReadmePerfSection syncReadmeVersions --no-daemon
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md docs/perf-results/spring-framework.md
+          if git diff --staged --quiet; then
+            echo "No benchmark/README changes."
+          else
+            git commit -m "chore: refresh Spring benchmark README [skip ci]"
+            git push
+          fi

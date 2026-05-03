@@ -1,3 +1,5 @@
+import java.nio.charset.StandardCharsets
+
 import net.ltgt.gradle.errorprone.CheckSeverity
 import net.ltgt.gradle.errorprone.errorprone
 
@@ -157,4 +159,142 @@ tasks.register("assembleWithDocs") {
     description =
         "Runs all assemble tasks plus generateDocs (MkDocs + Python). Plain `./gradlew assemble` stays JVM-only."
     dependsOn(tasks.assemble, tasks.named("generateDocs"))
+}
+
+tasks.register("syncReadmeVersions") {
+    group = "documentation"
+    description =
+        "Rewrite README Maven/Gradle coordinates and the Quick Start version line to match rootProject.version."
+    onlyIf {
+        val ci = System.getenv("CI") == "true"
+        val allowInCi = System.getenv("RUN_README_SYNC") == "true"
+        !ci || allowInCi
+    }
+    doLast {
+        val v = rootProject.version.toString()
+        val readmeFile = rootProject.layout.projectDirectory.file("README.md").asFile
+        var text = readmeFile.readText(StandardCharsets.UTF_8)
+        val coord =
+            Regex("(io\\.github\\.agustafson\\.princeofspace:prince-of-space-[a-z-]+:)([^\\s`\"]+)")
+        text = coord.replace(text) { mr -> "${mr.groupValues[1]}$v" }
+        val mavenCore =
+            Regex(
+                "(<groupId>io\\.github\\.agustafson\\.princeofspace</groupId>\\s*<artifactId>prince-of-space-core</artifactId>\\s*<version>)([^<]+)(</version>)",
+                setOf(RegexOption.MULTILINE),
+            )
+        text = mavenCore.replace(text) { mr -> "${mr.groupValues[1]}$v${mr.groupValues[3]}" }
+        val quickStart =
+            Regex("(gradle\\.properties\\]\\(gradle\\.properties\\):\\*\\* )`[^`]+`")
+        text = quickStart.replace(text) { mr -> "${mr.groupValues[1]}`$v`" }
+        readmeFile.writeText(text, StandardCharsets.UTF_8)
+    }
+}
+
+tasks.register("syncReadmePerfSection") {
+    group = "documentation"
+    description =
+        "Replace the <!-- sync:perf:start --> … <!-- sync:perf:end --> block in README.md using docs/perf-results/spring-framework.md."
+    inputs.file(layout.projectDirectory.file("docs/perf-results/spring-framework.md"))
+    outputs.file(layout.projectDirectory.file("README.md"))
+    onlyIf {
+        val ci = System.getenv("CI") == "true"
+        val allowInCi = System.getenv("RUN_README_SYNC") == "true"
+        !ci || allowInCi
+    }
+    doLast {
+        val readmeFile = rootProject.layout.projectDirectory.file("README.md").asFile
+        val reportFile = rootProject.layout.projectDirectory.file("docs/perf-results/spring-framework.md").asFile
+        require(reportFile.exists()) {
+            "Missing ${reportFile.path}; run :formatter-benchmark:run with PRINCE_BENCH_ROOT set first."
+        }
+        val readme = readmeFile.readText(StandardCharsets.UTF_8)
+        val startMarker = "<!-- sync:perf:start -->"
+        val endMarker = "<!-- sync:perf:end -->"
+        val startIdx = readme.indexOf(startMarker)
+        val endIdx = readme.indexOf(endMarker)
+        require(startIdx >= 0 && endIdx > startIdx) {
+            "README.md must contain '$startMarker' and '$endMarker' around the Spring benchmark section."
+        }
+
+        val report = reportFile.readText(StandardCharsets.UTF_8)
+        val generated = buildPerfReadmeInsert(report)
+
+        val before = readme.substring(0, startIdx + startMarker.length)
+        val after = readme.substring(endIdx)
+        readmeFile.writeText("$before\n\n$generated\n\n$after", StandardCharsets.UTF_8)
+    }
+}
+
+tasks.register("refreshSpringBenchmarkReadme") {
+    group = "documentation"
+    description =
+        "Run :formatter-benchmark:run (needs PRINCE_BENCH_ROOT), then sync README perf block and coordinates."
+}
+
+tasks.named("assemble") {
+    dependsOn(tasks.named("syncReadmeVersions"))
+}
+
+fun buildPerfReadmeInsert(report: String): String {
+    val lines = report.lines()
+    fun req(predicate: (String) -> Boolean): String =
+        lines.firstOrNull(predicate)
+            ?: error("Unexpected perf report shape — missing line in docs/perf-results/spring-framework.md")
+
+    val date = req { it.startsWith("Date:") }.removePrefix("Date:").trim()
+    val gitLine = req { it.startsWith("Git revision:") }
+    val hash =
+        gitLine.substringAfter('`').substringBefore('`').ifEmpty {
+            error("Could not parse git revision from perf report")
+        }
+    val filesLine = req { it.startsWith("Files formatted:") }
+    val filesBit = filesLine.removePrefix("Files formatted:").trim()
+    val jvmLine = req { it.startsWith("JVM:") }
+    val configLine = req { it.startsWith("Prince of Space uses") }
+
+    val idxResults = lines.indexOf("## Results")
+    val idxTool = lines.indexOf("## Tool versions")
+    require(idxResults >= 0 && idxTool > idxResults) { "Perf report missing ## Results / ## Tool versions" }
+    val tableMd = lines.subList(idxResults, idxTool).joinToString("\n").trim()
+
+    val prettierNote =
+        if (report.contains("Prettier leg skipped")) {
+            "_Prettier throughput leg skipped in this run (`PRINCE_BENCH_SKIP_PRETTIER=true`)._"
+        } else {
+            "Optional Prettier runs via `npx` and **rewrites** sources — use a disposable clone."
+        }
+
+    return sequenceOf(
+        "_Auto-generated from [`docs/perf-results/spring-framework.md`](docs/perf-results/spring-framework.md) — do not edit between markers; run `./gradlew refreshSpringBenchmarkReadme` or CI._",
+        "",
+        "Wall-clock run on the [Spring Framework](https://github.com/spring-projects/spring-framework) corpus (**$hash**, $filesBit files, same path filters as the external eval harness). Each JVM formatter runs in one process with warmup; $jvmLine",
+        "",
+        configLine,
+        "",
+        tableMd,
+        "",
+        "Full detail and regeneration: `./gradlew :formatter-benchmark:run` with `PRINCE_BENCH_ROOT` pointing at a checkout. $prettierNote Eclipse JDT is not in this JVM harness (Spotless bootstraps it via Equo); see [`examples/external/outputs/eclipse/`](examples/external/outputs/eclipse/) for showroom output.",
+        "",
+        "_Report date: **$date**._",
+    ).joinToString("\n")
+}
+
+afterEvaluate {
+    tasks.named("syncReadmePerfSection").configure {
+        mustRunAfter(project(":formatter-benchmark").tasks.named("run"))
+    }
+    tasks.named("syncReadmeVersions").configure {
+        mustRunAfter(tasks.named("syncReadmePerfSection"))
+    }
+    tasks.named("refreshSpringBenchmarkReadme").configure {
+        dependsOn(
+            project(":formatter-benchmark").tasks.named("run"),
+            tasks.named("syncReadmePerfSection"),
+            tasks.named("syncReadmeVersions"),
+        )
+    }
+    tasks.named("spotlessMarkdown").configure {
+        mustRunAfter(tasks.named("syncReadmePerfSection"))
+        mustRunAfter(tasks.named("syncReadmeVersions"))
+    }
 }
