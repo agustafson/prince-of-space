@@ -55,7 +55,7 @@ _Report date: **2026-05-03**._
 
 ## Quick Start
 
-**`version` in [`gradle.properties`](gradle.properties):** `0.1.1-SNAPSHOT` — Gradle/Maven snippets below match this (`./gradlew assemble` runs `syncReadmeVersions`; you can also run `./gradlew syncReadmeVersions` after bumping the property). On GitHub Actions the default `CI` environment skips this step unless `RUN_README_SYNC=true` (see `sync-readme-versions` / `readme-benchmark` workflows). For the latest **published** artifact on Central, use the badge above (**0.1.0** today under the legacy `io.github.agustafson` coordinates).
+**`version` in [`gradle.properties`](gradle.properties):** `2.1.3-SNAPSHOT` — Gradle/Maven snippets below match this (`./gradlew assemble` runs `syncReadmeVersions`; you can also run `./gradlew syncReadmeVersions` after bumping the property). On GitHub Actions the default `CI` environment skips this step unless `RUN_README_SYNC=true` (see `sync-readme-versions` / `readme-benchmark` workflows). For the latest **published** `io.github.agustafson.princeofspace` artifact on Central, use the Maven Central badge above. The older **`io.github.agustafson`** coordinate line remains **0.1.0** only (same artifact IDs).
 
 **Maven `groupId`:** New releases use **`io.github.agustafson.princeofspace`**. The **`0.1.0`** build already on Central is **`io.github.agustafson`** (same artifact IDs). Register the new namespace with Sonatype before the first publish under it.
 

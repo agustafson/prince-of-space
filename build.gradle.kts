@@ -177,8 +177,9 @@ tasks.register("syncReadmeVersions") {
     group = "documentation"
     description =
         "Rewrite README Maven/Gradle coordinates and the Quick Start version line to match rootProject.version."
-    val versionString = version.toString()
     val readmeFile = File(rootProject.rootDir, "README.md")
+    // Snapshot at configuration time so doLast does not capture Project (configuration cache).
+    val versionString = version.toString()
     onlyIf {
         val ci = System.getenv("CI") == "true"
         val allowInCi = System.getenv("RUN_README_SYNC") == "true"
@@ -196,8 +197,9 @@ tasks.register("syncReadmeVersions") {
                 setOf(RegexOption.MULTILINE),
             )
         text = mavenCore.replace(text) { mr -> "${mr.groupValues[1]}$v${mr.groupValues[3]}" }
+        // Link label is [`gradle.properties`] — there is no bare "gradle.properties](" substring.
         val quickStart =
-            Regex("(gradle\\.properties\\]\\(gradle\\.properties\\):\\*\\* )`[^`]+`")
+            Regex("(\\]\\(gradle\\.properties\\):\\*\\* )`[^`]+`")
         text = quickStart.replace(text) { mr -> "${mr.groupValues[1]}`$v`" }
         readmeFile.writeText(text, StandardCharsets.UTF_8)
     }
