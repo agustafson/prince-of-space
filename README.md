@@ -42,10 +42,10 @@ Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **B
 
 | Formatter | Wall time | ms / file | Failures |
 |-----------|-----------|-----------|----------|
-| Prince of Space (strict, fixed-point) | 54 s | 5.96 | 0 |
-| Prince of Space (fast, single pass) | 23 s | 2.60 | 0 |
-| Google Java Format (AOSP) | 28 s | 3.05 | 0 |
-| Palantir Java Format (AOSP) | 25 s | 2.82 | 0 |
+| Prince of Space (strict, fixed-point) | 69 s | 7.50 | 0 |
+| Prince of Space (fast, single pass) | 29 s | 3.20 | 0 |
+| Google Java Format (AOSP) | 29 s | 3.23 | 0 |
+| Palantir Java Format (AOSP) | 29 s | 3.19 | 0 |
 
 Full detail and regeneration: `./gradlew :formatter-benchmark:run` with `PRINCE_BENCH_ROOT` pointing at a checkout. _Prettier throughput leg skipped in this run (`PRINCE_BENCH_SKIP_PRETTIER=true`)._ Eclipse JDT is not in this JVM harness (Spotless bootstraps it via Equo); see [`examples/external/outputs/eclipse/`](examples/external/outputs/eclipse/) for showroom output.
 
@@ -65,7 +65,7 @@ _Report date: **2026-05-03**._
 
 ```kotlin
 dependencies {
-    implementation("io.github.agustafson.princeofspace:prince-of-space-core:2.1.2")
+    implementation("io.github.agustafson.princeofspace:prince-of-space-core:2.1.3-SNAPSHOT")
 }
 ```
 
@@ -87,7 +87,7 @@ String formatted = formatter.format(sourceCode);
 <dependency>
     <groupId>io.github.agustafson.princeofspace</groupId>
     <artifactId>prince-of-space-core</artifactId>
-    <version>2.1.2</version>
+    <version>2.1.3-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -124,7 +124,7 @@ spotless {
 }
 ```
 
-Put the Spotless module on the classpath where your build imports `PrinceOfSpaceStep` — for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout. Use `io.github.agustafson.princeofspace:prince-of-space-spotless:2.1.2` for new releases, or `io.github.agustafson:prince-of-space-spotless:0.1.0` for the published **0.1.0** build only. Maven: add the same coordinate as a dependency of `spotless-maven-plugin`, then use `PrinceOfSpaceStep.create(...)` in the plugin configuration.
+Put the Spotless module on the classpath where your build imports `PrinceOfSpaceStep` — for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout. Use `io.github.agustafson.princeofspace:prince-of-space-spotless:2.1.3-SNAPSHOT` for new releases, or `io.github.agustafson:prince-of-space-spotless:0.1.0` for the published **0.1.0** build only. Maven: add the same coordinate as a dependency of `spotless-maven-plugin`, then use `PrinceOfSpaceStep.create(...)` in the plugin configuration.
 
 ### IntelliJ Plugin
 
@@ -232,9 +232,9 @@ Group ID: **`io.github.agustafson.princeofspace`** for new releases. Published v
 
 | Artifact | Coordinate | When to use |
 |----------|------------|-------------|
-| `prince-of-space-core` | `io.github.agustafson.princeofspace:prince-of-space-core:2.1.2` | Default — small footprint; JavaParser + SLF4J as normal transitives |
-| `prince-of-space-bundled` | `io.github.agustafson.princeofspace:prince-of-space-bundled:2.1.2` | Single fat JAR, dependencies relocated — no classpath clashes |
-| `prince-of-space-spotless` | `io.github.agustafson.princeofspace:prince-of-space-spotless:2.1.2` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) |
+| `prince-of-space-core` | `io.github.agustafson.princeofspace:prince-of-space-core:2.1.3-SNAPSHOT` | Default — small footprint; JavaParser + SLF4J as normal transitives |
+| `prince-of-space-bundled` | `io.github.agustafson.princeofspace:prince-of-space-bundled:2.1.3-SNAPSHOT` | Single fat JAR, dependencies relocated — no classpath clashes |
+| `prince-of-space-spotless` | `io.github.agustafson.princeofspace:prince-of-space-spotless:2.1.3-SNAPSHOT` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) |
 | CLI (shadow JAR) | Build from repo or attach to [GitHub Releases](https://github.com/agustafson/prince-of-space/releases) | Command-line formatting; not always published to Central |
 
 ## Non-goals

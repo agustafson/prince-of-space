@@ -13,14 +13,14 @@ Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **B
 
 | Formatter | Wall time | ms / file | Failures |
 |-----------|-----------|-----------|----------|
-| Prince of Space (strict, fixed-point) | 54 s | 5.96 | 0 |
-| Prince of Space (fast, single pass) | 23 s | 2.60 | 0 |
-| Google Java Format (AOSP) | 28 s | 3.05 | 0 |
-| Palantir Java Format (AOSP) | 25 s | 2.82 | 0 |
+| Prince of Space (strict, fixed-point) | 69 s | 7.50 | 0 |
+| Prince of Space (fast, single pass) | 29 s | 3.20 | 0 |
+| Google Java Format (AOSP) | 29 s | 3.23 | 0 |
+| Palantir Java Format (AOSP) | 29 s | 3.19 | 0 |
 
 ## Tool versions
 
-- Prince of Space: **0.1.1-SNAPSHOT** (Gradle `version` when launched via `./gradlew :formatter-benchmark:run`)
+- Prince of Space: **2.1.3-SNAPSHOT** (Gradle `version` when launched via `./gradlew :formatter-benchmark:run`)
 - Google Java Format: 1.27.0 (AOSP)
 - Palantir Java Format: 2.71.0 (AOSP)
 - Prettier: 3.4.2 + prettier-plugin-java 2.6.6 (via `npx`)
