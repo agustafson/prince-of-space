@@ -28,34 +28,6 @@ Prince of Space takes its philosophy from Prettier and ktlint: strong, readable 
 - **Java 8 through 25+** — parses any Java language level; runs on JDK 17+
 - **Multiple integrations** — library API, CLI, Spotless plugin, IntelliJ plugin, VS Code extension
 
-## Performance (Spring Framework)
-
-As you can see, Prince of Space takes twice as long when compared to alternatives, but is comparable when using fast (ie: non-strict) mode.
-Our priority is idempotency, resulting in slower run times. In real-world environments we would be using `spotless` and only formatting files which had changed since branching from `main`, minimising the number of files being formatted.
-
-<!-- sync:perf:start -->
-
-_Auto-generated from [`docs/perf-results/spring-framework.md`](docs/perf-results/spring-framework.md) — do not edit between markers; run `./gradlew refreshSpringBenchmarkReadme` or CI._
-
-Wall-clock run on the [Spring Framework](https://github.com/spring-projects/spring-framework) corpus (**d9ecf94**, **9204** files, same path filters as the external eval harness). Each JVM formatter runs in one process with warmup; JVM: **21.0.10+7-LTS**
-
-Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **BALANCED**, Java language level **17**). Other JVM formatters use **AOSP** style to align with `examples/external/outputs/` Spotless comparisons.
-
-## Results
-
-| Formatter | Wall time | ms / file | Failures |
-|-----------|-----------|-----------|----------|
-| Prince of Space (strict, fixed-point) | 60 s | 6.59 | 0 |
-| Prince of Space (fast, single pass) | 24 s | 2.68 | 0 |
-| Google Java Format (AOSP) | 28 s | 3.06 | 0 |
-| Palantir Java Format (AOSP) | 26 s | 2.84 | 0 |
-
-Full detail and regeneration: `./gradlew :formatter-benchmark:run` with `PRINCE_BENCH_ROOT` pointing at a checkout. _Prettier throughput leg skipped in this run (`PRINCE_BENCH_SKIP_PRETTIER=true`)._ Eclipse JDT is not in this JVM harness (Spotless bootstraps it via Equo); see [`examples/external/outputs/eclipse/`](examples/external/outputs/eclipse/) for showroom output.
-
-_Report date: **2026-05-03**._
-
-<!-- sync:perf:end -->
-
 ## Quick Start
 
 ### Library (Gradle)
@@ -192,6 +164,34 @@ The `examples/` directory is the best way to evaluate how options affect real ou
 - **`examples/external/outputs/`** — the same showcase passed through [Spotless](https://github.com/diffplug/spotless) with other popular Java formatters (Google Java Format AOSP, Eclipse JDT, Palantir Java Format AOSP, Prettier with prettier-plugin-java), one file per Java level per formatter — useful when comparing formatters.
 
 Open **[`examples/compare.html`](examples/compare.html)** in a browser (or the GitHub Pages copy for this repo) for an interactive side-by-side diff: choose a Java level, then pick any two outputs on the left and right — Prince of Space configurations **or** one of the Spotless-driven alternatives above — to see how they differ on identical input. For a narrated walkthrough focused on Prince of Space options, see **[docs/output-showcase.md](docs/output-showcase.md)**.
+
+## Performance (Spring Framework)
+
+As you can see, Prince of Space takes twice as long when compared to alternatives, but is comparable when using fast (ie: non-strict) mode.
+Our priority is idempotency, resulting in slower run times. In real-world environments we would be using `spotless` and only formatting files which had changed since branching from `main`, minimising the number of files being formatted.
+
+<!-- sync:perf:start -->
+
+_Auto-generated from [`docs/perf-results/spring-framework.md`](docs/perf-results/spring-framework.md) — do not edit between markers; run `./gradlew refreshSpringBenchmarkReadme` or CI._
+
+Wall-clock run on the [Spring Framework](https://github.com/spring-projects/spring-framework) corpus (**d9ecf94**, **9204** files, same path filters as the external eval harness). Each JVM formatter runs in one process with warmup; JVM: **21.0.10+7-LTS**
+
+Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **BALANCED**, Java language level **17**). Other JVM formatters use **AOSP** style to align with `examples/external/outputs/` Spotless comparisons.
+
+## Results
+
+| Formatter | Wall time | ms / file | Failures |
+|-----------|-----------|-----------|----------|
+| Prince of Space (strict, fixed-point) | 60 s | 6.59 | 0 |
+| Prince of Space (fast, single pass) | 24 s | 2.68 | 0 |
+| Google Java Format (AOSP) | 28 s | 3.06 | 0 |
+| Palantir Java Format (AOSP) | 26 s | 2.84 | 0 |
+
+Full detail and regeneration: `./gradlew :formatter-benchmark:run` with `PRINCE_BENCH_ROOT` pointing at a checkout. _Prettier throughput leg skipped in this run (`PRINCE_BENCH_SKIP_PRETTIER=true`)._ Eclipse JDT is not in this JVM harness (Spotless bootstraps it via Equo); see [`examples/external/outputs/eclipse/`](examples/external/outputs/eclipse/) for showroom output.
+
+_Report date: **2026-05-03**._
+
+<!-- sync:perf:end -->
 
 ## API
 
