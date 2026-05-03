@@ -6,7 +6,7 @@
 [![CI](https://github.com/agustafson/prince-of-space/actions/workflows/ci.yml/badge.svg)](https://github.com/agustafson/prince-of-space/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-A simple, configurable Java code formatter which produces well-arranged code — ([`io.github.agustafson.princeofspace`](https://central.sonatype.com/namespace/io.github.agustafson.princeofspace)).
+A simple, configurable Java code formatter which produces well-arranged code. ([`io.github.agustafson.princeofspace`](https://central.sonatype.com/namespace/io.github.agustafson.princeofspace)).
 
 > *Named after the hilariously bad 1959 Japanese sci-fi film featured in [Mystery Science Theater 3000](https://www.imdb.com/title/tt0094517/) — specifically [Season 8, Episode 16](https://mst3k.fandom.com/wiki/MST3K_816_-_Prince_of_Space).
 
