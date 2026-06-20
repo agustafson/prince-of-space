@@ -102,7 +102,7 @@ jobs:
             wrap_style: narrow
     steps:
       - name: Checkout Prince of Space
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Eval external corpus (full matrix, cached)
         uses: ./.github/actions/eval-external-corpus

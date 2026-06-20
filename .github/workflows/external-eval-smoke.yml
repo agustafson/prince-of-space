@@ -40,7 +40,7 @@ jobs:
             wrap_style: balanced
     steps:
       - name: Checkout Prince of Space
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Eval external corpus (smoke, cached)
         uses: ./.github/actions/eval-external-corpus
