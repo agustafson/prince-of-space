@@ -128,7 +128,7 @@ jobs:
             wrap_style: narrow
     steps:
       - name: Checkout Prince of Space
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Eval external corpus (full matrix, cached)
         uses: ./.github/actions/eval-external-corpus
@@ -152,7 +152,7 @@ jobs:
     environment: release
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           # Full history + tags for Nyx version inference.
           fetch-depth: 0
