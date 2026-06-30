@@ -1203,6 +1203,34 @@ public class FormatterShowcase
         return localRecord.describe() + "/" + localClass.compose(inputExtraLongSymbolicHandle);
     }
 
+    // Scenario 80: Enum with a plain constant alongside per-constant anonymous bodies, constructor arguments, and trailing members
+    enum Scenario80MixedConstantBodiesEnumStrategy {
+        SIMPLE_SCENARIO80,
+        OVERRIDE_SCENARIO80 {
+            void run() {
+                return;
+            }
+        },
+        WITH_ARGS_SCENARIO80(1) {
+            void run() {
+                return;
+            }
+        };
+        private final int code;
+
+        Scenario80MixedConstantBodiesEnumStrategy() {
+            this(0);
+        }
+
+        Scenario80MixedConstantBodiesEnumStrategy(int code) {
+            this.code = code;
+        }
+
+        void base() {
+            return;
+        }
+    }
+
     enum UpdateALItemsConversationExecutionStatusScenario54 {
         SUCCESS;
         String getI18nKeyScenario54() {
