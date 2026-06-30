@@ -13,11 +13,11 @@ Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **B
 
 | Formatter | Avg ms / file | Failures |
 |-----------|-----------------|----------|
-| Prince of Space (strict, fixed-point) | 5.97 | 0 |
-| Prince of Space (fast, single pass) | 2.50 | 0 |
-| Google Java Format (AOSP) | 2.83 | 0 |
-| Palantir Java Format (AOSP) | 2.80 | 0 |
-| Eclipse JDT (Spotless default) | 2.30 | 0 |
+| Prince of Space (strict, fixed-point) | 6.20 | 0 |
+| Prince of Space (fast, single pass) | 2.47 | 0 |
+| Google Java Format (AOSP) | 2.90 | 0 |
+| Palantir Java Format (AOSP) | 2.87 | 0 |
+| Eclipse JDT (Spotless default) | 2.40 | 0 |
 
 ## Tool versions
 
