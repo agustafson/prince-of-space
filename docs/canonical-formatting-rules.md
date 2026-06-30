@@ -76,7 +76,7 @@ These rules define output shape for Java formatting in `modules/core`.
 
 **Enum constant lists (explicit exception):** `enum` constant declarations are never collapsed onto a shared line (`{ A, B, C }` on one line never appears; `wrapStyle` does **not** apply greedy packing across constants). Each constant occupies its own line after the enum’s `{` (comma-separated, then `;` when declarations follow). Empty enums remain `enum E { }` compatible with Rule 9 (no blank lines inside empty blocks beyond what the formatter already coalesces). See **TDR-023**.
 
-**Per-constant anonymous bodies:** when one or more enum constants carry an anonymous class body (`CONST { … }`), the trailing comma between constants and the `;` introducing later member declarations land on **their own line** at the constant's indent column, regardless of `wrapStyle` or `closingParenOnNewLine`. The body braces of each constant therefore visually close before the separator that follows them.
+**Per-constant anonymous bodies:** when one or more enum constants carry an anonymous class body (`CONST { … }`), the trailing comma between constants and the `;` introducing later member declarations attach to the closing `}` of the constant body. Separators never occupy a standalone line; this keeps enum separator tokens in their syntactic separator role rather than making them read as separate declarations. This is a correction to the TDR-023 enum exception, not a new policy carve-out.
 
 ### Rule 6: Wrapped binary/operator chains
 

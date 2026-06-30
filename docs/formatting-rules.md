@@ -490,7 +490,22 @@ enum Planet {
 
     // ...
 }
+
+enum Behavior {
+    ACTIVE {
+        void run() {
+            return;
+        }
+    },
+    INACTIVE {
+        void run() {
+            return;
+        }
+    };
+}
 ```
+
+For enum constants with anonymous bodies, commas and semicolons attach to the constant body's closing `}`; they are never placed on standalone separator lines.
 
 ---
 
