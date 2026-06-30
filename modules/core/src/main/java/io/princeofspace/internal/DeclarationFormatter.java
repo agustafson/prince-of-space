@@ -395,7 +395,12 @@ final class DeclarationFormatter {
     /** Enum constants: always one per line; {@code wrapStyle} does not pack multiple constants onto a line. */
     private void printEnumConstants(EnumDeclaration n, Void arg) {
         for (Iterator<EnumConstantDeclaration> i = n.getEntries().iterator(); i.hasNext(); ) {
-            printEnumConstant(i.next(), arg);
+            EnumConstantDeclaration entry = i.next();
+            if (entry.getClassBody().isEmpty()) {
+                ctx.accept(entry, arg);
+            } else {
+                printEnumConstant(entry, arg);
+            }
             if (i.hasNext()) {
                 ctx.print(",");
                 ctx.println();
