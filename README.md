@@ -87,7 +87,67 @@ spotless {
 }
 ```
 
-Put the Spotless module on the classpath where your build imports `PrinceOfSpaceStep` — for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout. Use `io.github.agustafson.princeofspace:prince-of-space-spotless:2.1.2` (pin to the version on Maven Central). Maven: add the same coordinate as a dependency of `spotless-maven-plugin`, then use `PrinceOfSpaceStep.create(...)` in the plugin configuration.
+Put the Spotless module on the classpath where your build imports `PrinceOfSpaceStep` — for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout. Use `io.github.agustafson.princeofspace:prince-of-space-spotless:2.1.2` (pin to the version on Maven Central). Maven users cannot call `PrinceOfSpaceStep.create(...)` — `spotless-maven-plugin` is configured in XML and has no extension point for third-party steps. Use the JSR-223 recipe below instead.
+
+#### Spotless (Maven)
+
+`spotless-maven-plugin`'s only generic step is `<jsr223>`. Run prince-of-space from a Groovy script, with `prince-of-space-core` and a Groovy JSR-223 engine on the plugin classpath:
+
+```xml
+<plugin>
+  <groupId>com.diffplug.spotless</groupId>
+  <artifactId>spotless-maven-plugin</artifactId>
+  <version>${spotless.maven.version}</version>
+  <dependencies>
+    <!-- prince-of-space-core on the plugin classloader (the script's thread context classloader) -->
+    <dependency>
+      <groupId>io.github.agustafson.princeofspace</groupId>
+      <artifactId>prince-of-space-core</artifactId>
+      <version>2.1.2</version>
+    </dependency>
+  </dependencies>
+  <configuration>
+    <java>
+      <jsr223>
+        <name>prince-of-space</name>
+        <!-- Groovy 4 (Groovy 3's bundled ASM rejects JDK 21+ class files);
+             spotless provisions this engine into the classloader ScriptEngineManager searches -->
+        <dependency>org.apache.groovy:groovy-jsr223:4.0.27</dependency>
+        <engine>groovy</engine>
+        <!-- Reflection via the thread context classloader: spotless's script classloader
+             exposes only com.diffplug.spotless.* and org.slf4j.*, not io.princeofspace.* -->
+        <script>def cl = Thread.currentThread().contextClassLoader; def fc = cl.loadClass('io.princeofspace.model.FormatterConfig'); cl.loadClass('io.princeofspace.Formatter').getDeclaredConstructor(fc).newInstance(fc.getMethod('defaults').invoke(null)).format(source)</script>
+      </jsr223>
+    </java>
+  </configuration>
+</plugin>
+```
+
+**Why the script looks like this:** `io.princeofspace.*` must be loaded by reflection via the thread context classloader because spotless's `FeatureClassLoader` only delegates `com.diffplug.spotless.*` and `org.slf4j.*` to the script — direct class references would fail at runtime. Groovy 4 is required because Groovy 3's bundled ASM rejects JDK 21+ class files. This is a working but spotless-internals-coupled workaround; revisit on major spotless version upgrades.
+
+**Tuning the knobs.** The `source` variable holds the unformatted code; the script's return value is the formatted code. To override defaults, build a `FormatterConfig` via its builder. Because the script can only reach `io.princeofspace.*` reflectively, static calls (`builder()`, `JavaLanguageLevel.of`) and enum constants go through reflection, while the builder's instance setters dispatch dynamically in Groovy:
+
+```xml
+<script>
+def cl = Thread.currentThread().contextClassLoader
+def Cfg = cl.loadClass('io.princeofspace.model.FormatterConfig')
+def IndentStyle = cl.loadClass('io.princeofspace.model.IndentStyle')
+def WrapStyle = cl.loadClass('io.princeofspace.model.WrapStyle')
+def JLL = cl.loadClass('io.princeofspace.model.JavaLanguageLevel')
+def b = Cfg.getMethod('builder').invoke(null)
+b.indentStyle(Enum.valueOf(IndentStyle, 'SPACES'))
+b.indentSize(2)
+b.lineLength(100)
+b.wrapStyle(Enum.valueOf(WrapStyle, 'BALANCED'))
+b.closingParenOnNewLine(true)
+b.trailingCommas(false)
+b.javaLanguageLevel(JLL.getMethod('of', int.class).invoke(null, 21))
+def cfg = b.build()
+cl.loadClass('io.princeofspace.Formatter').getConstructor(Cfg).newInstance(cfg).format(source)
+</script>
+```
+
+The seven knobs are `indentStyle` (`SPACES`/`TABS`), `indentSize`, `lineLength`, `wrapStyle` (`WIDE`/`NARROW`/`BALANCED`), `closingParenOnNewLine`, `trailingCommas`, and `javaLanguageLevel` (`JavaLanguageLevel.of(n)`).
 
 ### IntelliJ Plugin
 

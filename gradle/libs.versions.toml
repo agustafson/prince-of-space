@@ -10,6 +10,7 @@ javaparser = "3.28.0"
 jqwik = "1.9.3"
 jspecify = "1.0.0"
 junit = "6.0.3"
+maven-invoker = "3.3.0"
 maven-resolver = "1.9.22"
 mkdocs-build = "4.0.1"
 nullaway = "0.13.4"
@@ -39,6 +40,7 @@ junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }
 junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+maven-invoker = { module = "org.apache.maven.shared:maven-invoker", version.ref = "maven-invoker" }
 maven-resolver-api = { module = "org.apache.maven.resolver:maven-resolver-api", version.ref = "maven-resolver" }
 nullaway = { module = "com.uber.nullaway:nullaway", version.ref = "nullaway" }
 palantir-java-format = { module = "com.palantir.javaformat:palantir-java-format", version.ref = "palantir-java-format" }

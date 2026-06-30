@@ -496,7 +496,7 @@ enum Planet {
 
 ### Import Organisation
 
-**Delegated to Spotless.** The Prince of Space formatter does not handle import sorting, grouping, or removal. This is Spotless's responsibility and can be configured independently.
+**Delegated to Spotless.** The Prince of Space formatter does not handle import sorting, grouping, or removal. This is Spotless's responsibility and can be configured independently. For Maven, use the `spotless-maven-plugin` `<jsr223>` recipe in the README.
 
 ---
 

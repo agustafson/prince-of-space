@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>it</groupId>
+  <artifactId>prince-maven-it-java25</artifactId>
+  <version>0.0.1</version>
+  <packaging>jar</packaging>
+
+  <properties>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <spotless.maven.version>2.44.5</spotless.maven.version>
+  </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>${spotless.maven.version}</version>
+        <dependencies>
+          <dependency>
+            <groupId>io.github.agustafson.princeofspace</groupId>
+            <artifactId>prince-of-space-core</artifactId>
+            <version>2.1.3-SNAPSHOT</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <java>
+            <jsr223>
+              <name>prince-of-space-java25</name>
+              <dependency>org.apache.groovy:groovy-jsr223:4.0.27</dependency>
+              <engine>groovy</engine>
+              <script>
+def cl = Thread.currentThread().contextClassLoader
+def Cfg = cl.loadClass('io.princeofspace.model.FormatterConfig')
+def JLL = cl.loadClass('io.princeofspace.model.JavaLanguageLevel')
+def b = Cfg.getMethod('builder').invoke(null)
+b.javaLanguageLevel(JLL.getMethod('of', int.class).invoke(null, 25))
+def cfg = b.build()
+cl.loadClass('io.princeofspace.Formatter').getConstructor(Cfg).newInstance(cfg).format(source)
+              </script>
+            </jsr223>
+          </java>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

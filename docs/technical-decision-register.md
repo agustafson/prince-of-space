@@ -249,3 +249,11 @@ Use it as the primary source of *why* design choices exist.
 - **Rationale:** Local development uses a SNAPSHOT `version=` line; showing that in Quick Start misleads copy-paste integrators. Separating “latest artifact on Central” from “next patch line under development” keeps README honest without coupling Nyx inference to docs.
 - **Consequences:** Release housekeeping updates both properties; `.github/workflows/sync-readme-versions.yml` continues to trigger on `gradle.properties` edits.
 - **Related docs:** `README.md`, `RELEASING.md`, `docs/benchmarks.md`, `build.gradle.kts` (`syncReadmeVersions`)
+
+### TDR-028: Maven Spotless support is delivered via a JSR-223 reflection recipe, not a native step
+- **Date:** 2026-06-30
+- **Status:** Accepted
+- **Decision:** Document and e2e-test the supported path: `spotless-maven-plugin`'s generic `<jsr223>` step. Two non-obvious constraints make it work: (a) the script must load `io.princeofspace.*` by reflection via the thread context classloader, because spotless's `FeatureClassLoader` only delegates `com.diffplug.spotless.*` and `org.slf4j.*` to scripts; (b) Groovy 4.x is required (Groovy 3's bundled ASM rejects JDK 21 class files). Do not build a first-party Maven mojo (a README non-goal); a native `<princeOfSpace>` element would require an upstream change to `diffplug/spotless` and is not pursued.
+- **Rationale:** Users asked to use prince-of-space from `spotless-maven-plugin`. The Gradle plugin accepts any `FormatterStep` via `addStep(PrinceOfSpaceStep.create(...))`, but the Maven plugin is XML-configured with a closed set of built-in step elements and exposes no SPI/ServiceLoader for third-party `FormatterStepFactory` implementations.
+- **Consequences:** README's prior instruction to “use `PrinceOfSpaceStep.create(...)` in the plugin configuration” was incorrect and is replaced by the JSR-223 recipe. An end-to-end test (`PrinceOfSpaceMavenJsr223IT`, gated on `PRINCE_MAVEN_IT`) runs `mvn spotless:apply` to guard the recipe. The recipe is coupled to spotless `FeatureClassLoader` internals and may need revisiting on major spotless upgrades.
+- **Related docs:** `README.md`, `docs/formatting-rules.md`
