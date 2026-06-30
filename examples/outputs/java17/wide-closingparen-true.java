@@ -1036,8 +1036,7 @@ public class FormatterShowcase
                 return "eager:" + inputExtraLongSymbolicHandle.toUpperCase(java.util.Locale.ROOT)
                         + ":showroom-scenario77-eager-tail";
             }
-        }
-        ,
+        },
         LAZY_SCENARIO77_EXTRA_LONG_SYMBOLIC_HANDLE {
             @Override
             public String describe(String inputExtraLongSymbolicHandle) {
@@ -1046,8 +1045,7 @@ public class FormatterShowcase
                         : "lazy:" + inputExtraLongSymbolicHandle.toLowerCase(java.util.Locale.ROOT)
                         + ":showroom-scenario77-lazy-tail";
             }
-        }
-        ;
+        };
         public abstract String describe(String inputExtraLongSymbolicHandle);
     }
 
