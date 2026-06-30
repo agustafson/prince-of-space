@@ -19,6 +19,16 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
+      - name: Approve eligible Dependabot PR
+        if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.package-ecosystem == 'github_actions'
+        run: gh pr review --approve "${{ github.event.pull_request.html_url }}"
+        env:
+          # GITHUB_TOKEN can never approve a PR (GitHub blocks Actions-authenticated
+          # tokens from doing so, to stop a workflow rubber-stamping its own merge).
+          # The ruleset on main requires 1 approving review, so a real-user PAT is
+          # required here, not just for direct pushes.
+          GH_TOKEN: ${{ secrets.GH_ACTIONS_PUSH_TOKEN }}
+
       - name: Enable auto-merge for eligible updates
         if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.package-ecosystem == 'github_actions'
         run: gh pr merge --auto --squash "${{ github.event.pull_request.html_url }}"

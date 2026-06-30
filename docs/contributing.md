@@ -51,9 +51,9 @@ CI runs tests, Spotless, Checkstyle, SpotBugs, Error Prone, and dependency healt
 
 Workflows that commit back to the repo use **`permissions: contents: write`** and checkout with `token: ${{ secrets.GH_ACTIONS_PUSH_TOKEN || github.token }}` (the PAT is used when the secret exists).
 
-**Why `GITHUB_TOKEN` is not enough on a protected `main`:** The default token authenticates as **`github-actions[bot]`**. That identity does **not** inherit *your* admin bypass, and rulesets do not list a generic “GitHub Actions” actor. Pushes can fail with `GH013: Repository rule violations` even with **Read and write** enabled.
+**Why `GITHUB_TOKEN` is not enough on a protected `main`:** The default token authenticates as **`github-actions[bot]`**. That identity does **not** inherit *your* admin bypass, and rulesets do not list a generic “GitHub Actions” actor. Pushes can fail with `GH013: Repository rule violations` even with **Read and write** enabled. The same identity restriction also means **`GITHUB_TOKEN` can never submit an approving review** — GitHub blocks Actions-authenticated tokens from approving any PR, including ones the workflow itself is acting on, specifically to stop a workflow from rubber-stamping its own merge. If a ruleset requires an approving review (ours does — see `dependabot-auto-merge.yml`), only a real-user PAT like `GH_ACTIONS_PUSH_TOKEN` can supply it.
 
-Use the two steps below when you need **direct pushes** to `main` from automation.
+Use the two steps below when you need **direct pushes** to `main` from automation, or an approving review for Dependabot auto-merge.
 
 #### Step 1 — Create a fine-grained PAT and add it as `GH_ACTIONS_PUSH_TOKEN`
 
@@ -64,6 +64,7 @@ These substeps use **your GitHub account** (or a dedicated **machine user** — 
 3. **Repository access:** **Only select repositories**, then pick **`agustafson/prince-of-space`** (adjust if the repo path differs).
 4. **Permissions → Repository permissions:**
    - **Contents:** **Read and write** (required for `git push`).
+   - **Pull requests:** **Read and write** (required to approve Dependabot PRs — see below).
    - Leave everything else **No access** unless you know you need it (least privilege).
 5. **Expiration:** choose something you can rotate (e.g. 90 days or 1 year). Put a calendar reminder to regenerate and update the secret before expiry.
 6. **Generate** and **copy the token once** (GitHub will not show it again).
@@ -78,6 +79,8 @@ After the next workflow run, checkout uses this token, so **git operations run a
 #### Step 2 — Let that identity bypass the rules that block direct pushes
 
 Rules apply to **who is pushing**, not which secret name you used. The account that owns the PAT must be allowed to push to `main` under your rules.
+
+**Note:** this step is only for direct pushes/merges. Submitting an approving review (as `dependabot-auto-merge.yml` does) is not a protected action under branch rules, so the PAT's account does **not** need to be on the bypass list for that to work — Step 1's **Pull requests: Read and write** permission is sufficient on its own.
 
 **If you use Repository rules** ( **Settings → Rules → Rulesets** , or org-level rulesets that include this repo):
 
