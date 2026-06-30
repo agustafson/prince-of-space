@@ -175,7 +175,7 @@ full release.
 The workflow will:
 1. Infer the next version from git tags + conventional commits (see below)
 2. Run the full test suite
-3. Build and GPG-sign all artifacts (`core`, `spotless`, `core-bundled`) into the local staging directory
+3. Build and GPG-sign all artifacts (`core`, `spotless`, `core-bundled`, `cli`) into the local staging directory
 4. Build downloadable assets: CLI shadow JAR, IntelliJ plugin ZIP, VS Code `.vsix` (VS Code `package.json` version is set in CI to match the release). **This runs before any Sonatype upload** so a failed IDE or VS Code build does not leave Maven Central already published without matching release assets.
 5. Bundle artifacts and upload to Sonatype Central Portal
 6. Poll until the bundle is **VALIDATED** (checksums, signatures, POM requirements)
@@ -231,20 +231,20 @@ a bugfix → `fix` or `feat`. Mis-labeling work blurs the changelog and understa
 
 ## What is published to Maven Central
 
-Three artifacts are published under `io.github.agustafson.princeofspace`:
+Four artifacts are published under `io.github.agustafson.princeofspace`:
 
 | Artifact ID | Description |
 |-------------|-------------|
 | `prince-of-space-core` | Core library (normal POM; JavaParser + SLF4J as transitive deps) |
 | `prince-of-space-spotless` | Spotless `FormatterStep` integration |
 | `prince-of-space-bundled` | Shaded fat JAR with no transitive deps |
+| `prince-of-space-cli` | Shaded fat JAR with a CLI entrypoint (`java -jar ... --stdin`); same jar is also attached to GitHub Releases |
 
 Each artifact ships with a `-sources.jar`, `-javadoc.jar`, `.pom`, and `.asc` signature,
 satisfying Maven Central requirements.
 
 The IntelliJ plugin is published separately to the JetBrains Marketplace
-(`./gradlew :intellij-plugin:publishPlugin`). The CLI shadow JAR is attached to GitHub
-Releases as a download artifact (not published to Maven Central).
+(`./gradlew :intellij-plugin:publishPlugin`).
 
 ---
 
