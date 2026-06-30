@@ -51,6 +51,15 @@ tasks.check {
     dependsOn(tasks.jacocoTestCoverageVerification)
 }
 
+tasks.jar {
+    // Plain jar isn't published; keep its output filename off both the shadowJar's path and the
+    // "prince-of-space-cli-*.jar" glob the VS Code extension scans for (see formatter.ts), so the
+    // two jar tasks never race to write the same file and the IDE never picks up the unshaded jar.
+    // (Gradle flags the path collision as an implicit-dependency validation problem since it can
+    // otherwise publish/sign the wrong jar depending on task order.)
+    archiveBaseName.set("cli")
+}
+
 tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
     archiveBaseName.set("prince-of-space-cli")
     archiveClassifier.set("")
