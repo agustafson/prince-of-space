@@ -34,7 +34,7 @@ Prince of Space takes its philosophy from Prettier and ktlint: strong, readable 
 
 ```kotlin
 dependencies {
-    implementation("io.github.agustafson.princeofspace:prince-of-space-core:2.1.2")
+    implementation("io.github.agustafson.princeofspace:prince-of-space-core:2.2.0")
 }
 ```
 
@@ -52,7 +52,7 @@ String formatted = formatter.format(sourceCode);
 <dependency>
     <groupId>io.github.agustafson.princeofspace</groupId>
     <artifactId>prince-of-space-core</artifactId>
-    <version>2.1.2</version>
+    <version>2.2.0</version>
 </dependency>
 ```
 
@@ -87,7 +87,7 @@ spotless {
 }
 ```
 
-Put the Spotless module on the classpath where your build imports `PrinceOfSpaceStep` — for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout. Use `io.github.agustafson.princeofspace:prince-of-space-spotless:2.1.2` (pin to the version on Maven Central).
+Put the Spotless module on the classpath where your build imports `PrinceOfSpaceStep` — for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout. Use `io.github.agustafson.princeofspace:prince-of-space-spotless:2.2.0` (pin to the version on Maven Central).
 
 ### Spotless (Maven)
 
@@ -109,7 +109,7 @@ Put the Spotless module on the classpath where your build imports `PrinceOfSpace
               <artifactItem>
                 <groupId>io.github.agustafson.princeofspace</groupId>
                 <artifactId>prince-of-space-cli</artifactId>
-                <version>2.1.2</version>
+                <version>2.2.0</version>
                 <destFileName>prince-of-space-cli.jar</destFileName>
               </artifactItem>
             </artifactItems>
@@ -284,10 +284,10 @@ Group ID: **`io.github.agustafson.princeofspace`**. Published versions appear on
 
 | Artifact | Coordinate | When to use |
 |----------|------------|-------------|
-| `prince-of-space-core` | `io.github.agustafson.princeofspace:prince-of-space-core:2.1.2` | Default — small footprint; JavaParser + SLF4J as normal transitives |
-| `prince-of-space-bundled` | `io.github.agustafson.princeofspace:prince-of-space-bundled:2.1.2` | Single fat JAR, dependencies relocated — no classpath clashes |
-| `prince-of-space-spotless` | `io.github.agustafson.princeofspace:prince-of-space-spotless:2.1.2` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) |
-| `prince-of-space-cli` | `io.github.agustafson.princeofspace:prince-of-space-cli:2.1.2` | Self-contained CLI jar (`java -jar ... --stdin`); same artifact is also attached to [GitHub Releases](https://github.com/agustafson/prince-of-space/releases) |
+| `prince-of-space-core` | `io.github.agustafson.princeofspace:prince-of-space-core:2.2.0` | Default — small footprint; JavaParser + SLF4J as normal transitives |
+| `prince-of-space-bundled` | `io.github.agustafson.princeofspace:prince-of-space-bundled:2.2.0` | Single fat JAR, dependencies relocated — no classpath clashes |
+| `prince-of-space-spotless` | `io.github.agustafson.princeofspace:prince-of-space-spotless:2.2.0` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) |
+| `prince-of-space-cli` | `io.github.agustafson.princeofspace:prince-of-space-cli:2.2.0` | Self-contained CLI jar (`java -jar ... --stdin`); same artifact is also attached to [GitHub Releases](https://github.com/agustafson/prince-of-space/releases) |
 
 ## Non-goals
 

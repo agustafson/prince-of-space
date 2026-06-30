@@ -471,9 +471,26 @@ jobs:
             exit 0
           fi
           git commit -m "chore: update changelog, README coordinates, and set version to ${NEXT_SNAPSHOT} after v${RELEASE_VERSION}"
-          # Branch protection may forbid direct pushes to main. Do not fail the release if this
-          # housekeeping commit cannot be pushed; the next run can still use Nyx + tags safely.
-          if ! git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${GITHUB_REF_NAME}"; then
-            echo "::warning::Could not push ${NEXT_SNAPSHOT} bump commit (likely branch protection)."
+          # Another push to this branch (e.g. the Spring benchmark refresh job) can land between
+          # our checkout and this push, which rejects as non-fast-forward, not branch protection.
+          # Retry a few times with a rebase onto the latest branch tip before giving up. Branch
+          # protection can still legitimately reject every attempt; do not fail the release for
+          # that — the next release run can still use Nyx + tags safely.
+          PUSH_REMOTE="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          PUSHED=false
+          for attempt in 1 2 3 4 5; do
+            if git push "${PUSH_REMOTE}" "HEAD:${GITHUB_REF_NAME}"; then
+              PUSHED=true
+              break
+            fi
+            echo "Push attempt ${attempt} was rejected; fetching latest ${GITHUB_REF_NAME} and rebasing before retrying."
+            if ! git fetch "${PUSH_REMOTE}" "${GITHUB_REF_NAME}" || ! git rebase FETCH_HEAD; then
+              git rebase --abort 2>/dev/null || true
+              echo "::warning::Rebase failed while retrying the ${NEXT_SNAPSHOT} bump commit push; leaving it unpushed."
+              break
+            fi
+          done
+          if [[ "${PUSHED}" != "true" ]]; then
+            echo "::warning::Could not push ${NEXT_SNAPSHOT} bump commit (race with a concurrent push, or branch protection)."
             echo "::warning::Create this commit via PR manually, or allow GitHub Actions to bypass protection."
           fi
