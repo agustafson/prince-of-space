@@ -395,13 +395,39 @@ final class DeclarationFormatter {
     /** Enum constants: always one per line; {@code wrapStyle} does not pack multiple constants onto a line. */
     private void printEnumConstants(EnumDeclaration n, Void arg) {
         for (Iterator<EnumConstantDeclaration> i = n.getEntries().iterator(); i.hasNext(); ) {
-            ctx.accept(i.next(), arg);
+            printEnumConstant(i.next(), arg);
             if (i.hasNext()) {
                 ctx.print(",");
                 ctx.println();
             } else if (fmt.trailingCommas()) {
                 ctx.print(",");
             }
+        }
+    }
+
+    /**
+     * JavaParser's stock enum-constant visitor prints class-body constants with a newline after the
+     * closing curly brace, which makes the following comma or enum-member semicolon land on its own line.
+     * Print the constant body directly so callers can attach separators to the closing brace.
+     */
+    private void printEnumConstant(EnumConstantDeclaration n, Void arg) {
+        ctx.printOrphanCommentsBeforeThisChildNode(n);
+        ctx.printComment(n.getComment(), arg);
+        ctx.printAnnotations(n.getAnnotations(), false, arg);
+        ctx.accept(n.getName(), arg);
+        if (!n.getArguments().isEmpty()) {
+            ctx.print("(");
+            argumentListFormatter.printCommaSeparatedExprs(n.getArguments(), arg);
+            ctx.print(")");
+        }
+        if (!n.getClassBody().isEmpty()) {
+            ctx.print(" {");
+            ctx.println();
+            ctx.indent();
+            ctx.printMembers(n.getClassBody(), arg);
+            ctx.printOrphanCommentsEnding(n);
+            ctx.unindent();
+            ctx.print("}");
         }
     }
 }
