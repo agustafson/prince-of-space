@@ -42,7 +42,7 @@ subprojects {
                 option("NullAway:AnnotatedPackages", "io.princeofspace")
             }
         }
-        if (project.name in setOf("core", "core-bundled", "spotless")) {
+        if (project.name in setOf("core", "core-bundled", "spotless", "cli")) {
             logger.lifecycle("${project.name}: enabling javadocs & sources")
             javaExtension.withJavadocJar()
             javaExtension.withSourcesJar()
@@ -192,12 +192,12 @@ tasks.register("syncReadmeVersions") {
         val coord =
             Regex("(io\\.github\\.agustafson\\.princeofspace:prince-of-space-[a-z-]+:)([^\\s`\"]+)")
         text = coord.replace(text) { mr -> "${mr.groupValues[1]}$v" }
-        val mavenCore =
+        val mavenXmlCoord =
             Regex(
-                "(<groupId>io\\.github\\.agustafson\\.princeofspace</groupId>\\s*<artifactId>prince-of-space-core</artifactId>\\s*<version>)([^<]+)(</version>)",
+                "(<groupId>io\\.github\\.agustafson\\.princeofspace</groupId>\\s*<artifactId>prince-of-space-[a-z-]+</artifactId>\\s*<version>)([^<]+)(</version>)",
                 setOf(RegexOption.MULTILINE),
             )
-        text = mavenCore.replace(text) { mr -> "${mr.groupValues[1]}$v${mr.groupValues[3]}" }
+        text = mavenXmlCoord.replace(text) { mr -> "${mr.groupValues[1]}$v${mr.groupValues[3]}" }
         // Link label is [`gradle.properties`] — there is no bare "gradle.properties](" substring.
         val quickStart =
             Regex("(\\]\\(gradle\\.properties\\):\\*\\* )`[^`]+`")

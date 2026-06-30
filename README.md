@@ -73,7 +73,7 @@ Common flags:
 | `-r` | Recurse into directories |
 | `-v` | Verbose progress on stderr |
 
-### Spotless
+### Spotless (Gradle)
 
 ```kotlin
 import io.princeofspace.model.FormatterConfig
@@ -87,7 +87,62 @@ spotless {
 }
 ```
 
-Put the Spotless module on the classpath where your build imports `PrinceOfSpaceStep` — for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout. Use `io.github.agustafson.princeofspace:prince-of-space-spotless:2.1.2` (pin to the version on Maven Central). Maven: add the same coordinate as a dependency of `spotless-maven-plugin`, then use `PrinceOfSpaceStep.create(...)` in the plugin configuration.
+Put the Spotless module on the classpath where your build imports `PrinceOfSpaceStep` — for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout. Use `io.github.agustafson.princeofspace:prince-of-space-spotless:2.1.2` (pin to the version on Maven Central).
+
+### Spotless (Maven)
+
+`PrinceOfSpaceStep` is a Gradle-only `FormatterStep` factory — Spotless's Maven plugin has no equivalent extension point for adding a custom `FormatterStep` from POM configuration alone. Instead, use Spotless's [`nativeCmd`](https://github.com/diffplug/spotless/tree/main/plugin-maven#nativecmd) generic step to shell out to the `prince-of-space-cli` shaded jar's `--stdin` mode (reads one file's content on stdin, writes the formatted result to stdout — exactly what `nativeCmd` expects). Use `maven-dependency-plugin:copy` to fetch the jar from Central first:
+
+```xml
+<build>
+  <plugins>
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-dependency-plugin</artifactId>
+      <executions>
+        <execution>
+          <id>copy-prince-of-space-cli</id>
+          <phase>generate-sources</phase>
+          <goals><goal>copy</goal></goals>
+          <configuration>
+            <artifactItems>
+              <artifactItem>
+                <groupId>io.github.agustafson.princeofspace</groupId>
+                <artifactId>prince-of-space-cli</artifactId>
+                <version>2.1.2</version>
+                <destFileName>prince-of-space-cli.jar</destFileName>
+              </artifactItem>
+            </artifactItems>
+            <outputDirectory>${project.build.directory}/prince-of-space</outputDirectory>
+          </configuration>
+        </execution>
+      </executions>
+    </plugin>
+    <plugin>
+      <groupId>com.diffplug.spotless</groupId>
+      <artifactId>spotless-maven-plugin</artifactId>
+      <version>2.43.0</version>
+      <configuration>
+        <java>
+          <nativeCmd>
+            <name>prince-of-space</name>
+            <!-- nativeCmd resolves pathToExe as a literal filesystem path, not via $PATH —
+                 ${java.home}/bin/java is the portable way to reference "the JVM running Maven". -->
+            <pathToExe>${java.home}/bin/java</pathToExe>
+            <arguments>
+              <argument>-jar</argument>
+              <argument>${project.build.directory}/prince-of-space/prince-of-space-cli.jar</argument>
+              <argument>--stdin</argument>
+            </arguments>
+          </nativeCmd>
+        </java>
+      </configuration>
+    </plugin>
+  </plugins>
+</build>
+```
+
+Run `mvn generate-sources spotless:apply` (or wire `spotless:check`/`spotless:apply` into your normal build phases). Pass any CLI flags (e.g. `--java-version 21`) as additional `<argument>` elements.
 
 ### IntelliJ Plugin
 
@@ -232,12 +287,12 @@ Group ID: **`io.github.agustafson.princeofspace`**. Published versions appear on
 | `prince-of-space-core` | `io.github.agustafson.princeofspace:prince-of-space-core:2.1.2` | Default — small footprint; JavaParser + SLF4J as normal transitives |
 | `prince-of-space-bundled` | `io.github.agustafson.princeofspace:prince-of-space-bundled:2.1.2` | Single fat JAR, dependencies relocated — no classpath clashes |
 | `prince-of-space-spotless` | `io.github.agustafson.princeofspace:prince-of-space-spotless:2.1.2` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) |
-| CLI (shadow JAR) | Build from repo or attach to [GitHub Releases](https://github.com/agustafson/prince-of-space/releases) | Command-line formatting; not always published to Central |
+| `prince-of-space-cli` | `io.github.agustafson.princeofspace:prince-of-space-cli:2.1.2` | Self-contained CLI jar (`java -jar ... --stdin`); same artifact is also attached to [GitHub Releases](https://github.com/agustafson/prince-of-space/releases) |
 
 ## Non-goals
 
 - Organisation of Java imports (delegated to Spotless)
-- First-party Maven/Gradle plugins (Spotless provides those)
+- First-party Maven/Gradle plugins (Spotless's `nativeCmd`/Gradle `FormatterStep` integration covers this)
 - Type resolution (not needed for formatting)
 
 ## Building from source

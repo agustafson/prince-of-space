@@ -264,18 +264,20 @@ jobs:
           fi
 
       - name: Run full test suite
-        run: ./gradlew :core:test :spotless:test :core-bundled:test
+        run: ./gradlew :core:test :spotless:test :core-bundled:test :cli:test
 
-      # Build + sign all three publishable modules and collect into build/staging-deploy/.
+      # Build + sign all four publishable modules and collect into build/staging-deploy/.
       - name: Build and sign publishable artifacts
         run: |
           ./gradlew \
-            :core:build :spotless:build :core-bundled:build -x test \
+            :core:build :spotless:build :core-bundled:build :cli:build -x test \
             publishAllPublicationsToStagingRepository
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
+      # cli:shadowJar already ran (and is cached) as part of the Central publish above; this step
+      # re-asserts the artifact for the GitHub Release upload below and builds the IntelliJ plugin.
       # Fail before any Sonatype/Maven step if IDE packaging breaks (avoids a published Maven
       # coordinate with no matching GitHub Release assets).
       - name: Build CLI shadow JAR and IntelliJ plugin distribution
