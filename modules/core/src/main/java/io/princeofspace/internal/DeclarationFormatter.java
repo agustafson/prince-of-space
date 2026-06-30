@@ -418,21 +418,17 @@ final class DeclarationFormatter {
     private void printEnumConstant(EnumConstantDeclaration n, Void arg) {
         ctx.printOrphanCommentsBeforeThisChildNode(n);
         ctx.printComment(n.getComment(), arg);
-        ctx.printAnnotations(n.getAnnotations(), false, arg);
+        ctx.printMemberAnnotations(n.getAnnotations(), arg);
         ctx.accept(n.getName(), arg);
         if (!n.getArguments().isEmpty()) {
-            ctx.print("(");
-            argumentListFormatter.printCommaSeparatedExprs(n.getArguments(), arg);
-            ctx.print(")");
+            ctx.printArguments(n.getArguments(), arg);
         }
-        if (!n.getClassBody().isEmpty()) {
-            ctx.print(" {");
-            ctx.println();
-            ctx.indent();
-            ctx.printMembers(n.getClassBody(), arg);
-            ctx.printOrphanCommentsEnding(n);
-            ctx.unindent();
-            ctx.print("}");
-        }
+        ctx.print(" {");
+        ctx.println();
+        ctx.indent();
+        ctx.printMembers(n.getClassBody(), arg);
+        ctx.printOrphanCommentsEnding(n);
+        ctx.unindent();
+        ctx.print("}");
     }
 }
