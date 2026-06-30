@@ -47,6 +47,31 @@ class PrinceOfSpaceMavenJsr223IT {
         assertThat(Files.readString(sample)).isEqualTo(formatted);
     }
 
+    @Test
+    void tunedKnobsFormatsWithTwoSpaceIndentAndIsIdempotent(@TempDir Path work) throws Exception {
+        assumeTrue("true".equals(System.getenv("PRINCE_MAVEN_IT")),
+                "set PRINCE_MAVEN_IT=true to run the Maven end-to-end test");
+
+        // Copy the tuned fixture project into a writable temp dir.
+        Path fixture = Path.of("src/test/resources/maven-it-tuned");
+        try (Stream<Path> paths = Files.walk(fixture)) {
+            paths.forEach(src -> copy(src, work.resolve(fixture.relativize(src))));
+        }
+        Path sample = work.resolve("src/main/java/it/Sample.java");
+
+        // First apply: must reformat with 2-space indent (not the default 4).
+        // At 2-space indent the first class-body member (void m) is indented 2 spaces.
+        // At the default 4-space indent it would be indented 4 spaces.
+        runApply(work);
+        String formatted = Files.readString(sample);
+        assertThat(formatted).contains("  void m()");
+        assertThat(formatted).doesNotContain("    void m()");
+
+        // Second apply: idempotent — file unchanged.
+        runApply(work);
+        assertThat(Files.readString(sample)).isEqualTo(formatted);
+    }
+
     private static void runApply(Path projectDir) throws Exception {
         InvocationRequest request = new DefaultInvocationRequest();
         request.setPomFile(projectDir.resolve("pom.xml").toFile());
