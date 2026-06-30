@@ -48,6 +48,29 @@ class PrinceOfSpaceMavenJsr223IT {
     }
 
     @Test
+    void java25MaxLanguageFeaturesFormatsAndIsIdempotent(@TempDir Path work) throws Exception {
+        assumeTrue("true".equals(System.getenv("PRINCE_MAVEN_IT")),
+                "set PRINCE_MAVEN_IT=true to run the Maven end-to-end test");
+
+        // Copy the java25 fixture project into a writable temp dir.
+        Path fixture = Path.of("src/test/resources/maven-it-java25");
+        try (Stream<Path> paths = Files.walk(fixture)) {
+            paths.forEach(src -> copy(src, work.resolve(fixture.relativize(src))));
+        }
+        Path sample = work.resolve("src/main/java/it/Java25Features.java");
+
+        // First apply: must reformat the file (mis-formatted `x=1` → `x = 1`).
+        runApply(work);
+        String formatted = Files.readString(sample);
+        assertThat(formatted).contains("int x = 1;");
+        assertThat(formatted).doesNotContain("int x=1;");
+
+        // Second apply: idempotent — file unchanged.
+        runApply(work);
+        assertThat(Files.readString(sample)).isEqualTo(formatted);
+    }
+
+    @Test
     void tunedKnobsFormatsWithTwoSpaceIndentAndIsIdempotent(@TempDir Path work) throws Exception {
         assumeTrue("true".equals(System.getenv("PRINCE_MAVEN_IT")),
                 "set PRINCE_MAVEN_IT=true to run the Maven end-to-end test");
