@@ -125,7 +125,29 @@ Put the Spotless module on the classpath where your build imports `PrinceOfSpace
 
 **Why the script looks like this:** `io.princeofspace.*` must be loaded by reflection via the thread context classloader because spotless's `FeatureClassLoader` only delegates `com.diffplug.spotless.*` and `org.slf4j.*` to the script — direct class references would fail at runtime. Groovy 4 is required because Groovy 3's bundled ASM rejects JDK 21+ class files. This is a working but spotless-internals-coupled workaround; revisit on major spotless version upgrades.
 
-To change formatting options, build a non-default `FormatterConfig` in the script (the `source` variable holds the unformatted code; the script's return value is the formatted code).
+**Tuning the knobs.** The `source` variable holds the unformatted code; the script's return value is the formatted code. To override defaults, build a `FormatterConfig` via its builder. Because the script can only reach `io.princeofspace.*` reflectively, static calls (`builder()`, `JavaLanguageLevel.of`) and enum constants go through reflection, while the builder's instance setters dispatch dynamically in Groovy:
+
+```xml
+<script>
+def cl = Thread.currentThread().contextClassLoader
+def Cfg = cl.loadClass('io.princeofspace.model.FormatterConfig')
+def IndentStyle = cl.loadClass('io.princeofspace.model.IndentStyle')
+def WrapStyle = cl.loadClass('io.princeofspace.model.WrapStyle')
+def JLL = cl.loadClass('io.princeofspace.model.JavaLanguageLevel')
+def b = Cfg.getMethod('builder').invoke(null)
+b.indentStyle(Enum.valueOf(IndentStyle, 'SPACES'))
+b.indentSize(2)
+b.lineLength(100)
+b.wrapStyle(Enum.valueOf(WrapStyle, 'BALANCED'))
+b.closingParenOnNewLine(true)
+b.trailingCommas(false)
+b.javaLanguageLevel(JLL.getMethod('of', int.class).invoke(null, 21))
+def cfg = b.build()
+cl.loadClass('io.princeofspace.Formatter').getConstructor(Cfg).newInstance(cfg).format(source)
+</script>
+```
+
+The seven knobs are `indentStyle` (`SPACES`/`TABS`), `indentSize`, `lineLength`, `wrapStyle` (`WIDE`/`NARROW`/`BALANCED`), `closingParenOnNewLine`, `trailingCommas`, and `javaLanguageLevel` (`JavaLanguageLevel.of(n)`).
 
 ### IntelliJ Plugin
 
