@@ -75,6 +75,27 @@ Common flags:
 
 ### Spotless (Gradle)
 
+As of [Spotless Gradle plugin 8.9.0](https://github.com/diffplug/spotless/releases/tag/gradle%2Fv8.9.0), `princeOfSpace()` is a built-in Spotless step — no extra classpath wiring required:
+
+```kotlin
+spotless {
+    java {
+        target("src/**/*.java")
+        princeOfSpace("2.2.0") {
+            indentSize(4)
+            lineLength(120)
+            // wrapStyle("balanced"), closingParenOnNewLine(true), trailingCommas(false), javaLanguageLevel(17) also available
+        }
+    }
+}
+```
+
+See the [Spotless Gradle plugin README](https://github.com/diffplug/spotless/tree/main/plugin-gradle#prince-of-space) for the full option list.
+
+#### Manual `PrinceOfSpaceStep` (pre-8.9.0 Spotless, or programmatic `FormatterConfig`)
+
+If you're pinned to a Spotless Gradle plugin version older than 8.9.0, or want to build a `FormatterConfig` object directly instead of going through the DSL, use this project's own Spotless module:
+
 ```kotlin
 import io.princeofspace.model.FormatterConfig
 import io.princeofspace.spotless.PrinceOfSpaceStep
@@ -91,7 +112,28 @@ Put the Spotless module on the classpath where your build imports `PrinceOfSpace
 
 ### Spotless (Maven)
 
-`PrinceOfSpaceStep` is a Gradle-only `FormatterStep` factory — Spotless's Maven plugin has no equivalent extension point for adding a custom `FormatterStep` from POM configuration alone. Instead, use Spotless's [`nativeCmd`](https://github.com/diffplug/spotless/tree/main/plugin-maven#nativecmd) generic step to shell out to the `prince-of-space-cli` shaded jar's `--stdin` mode (reads one file's content on stdin, writes the formatted result to stdout — exactly what `nativeCmd` expects). Use `maven-dependency-plugin:copy` to fetch the jar from Central first:
+As of [Spotless Maven plugin 3.9.0](https://github.com/diffplug/spotless/releases/tag/maven%2Fv3.9.0), `<princeOfSpace>` is a built-in `spotless-maven-plugin` step:
+
+```xml
+<plugin>
+  <groupId>com.diffplug.spotless</groupId>
+  <artifactId>spotless-maven-plugin</artifactId>
+  <version>3.9.0</version>
+  <configuration>
+    <java>
+      <princeOfSpace>
+        <version>2.2.0</version>
+      </princeOfSpace>
+    </java>
+  </configuration>
+</plugin>
+```
+
+See the [Spotless Maven plugin README](https://github.com/diffplug/spotless/tree/main/plugin-maven#prince-of-space) for the full option list.
+
+#### `nativeCmd` workaround (pre-3.9.0 Spotless)
+
+If you're pinned to a `spotless-maven-plugin` version older than 3.9.0, use Spotless's [`nativeCmd`](https://github.com/diffplug/spotless/tree/main/plugin-maven#nativecmd) generic step to shell out to the `prince-of-space-cli` shaded jar's `--stdin` mode (reads one file's content on stdin, writes the formatted result to stdout — exactly what `nativeCmd` expects). Use `maven-dependency-plugin:copy` to fetch the jar from Central first:
 
 ```xml
 <build>
@@ -286,13 +328,13 @@ Group ID: **`io.github.agustafson.princeofspace`**. Published versions appear on
 |----------|------------|-------------|
 | `prince-of-space-core` | `io.github.agustafson.princeofspace:prince-of-space-core:2.2.0` | Default — small footprint; JavaParser + SLF4J as normal transitives |
 | `prince-of-space-bundled` | `io.github.agustafson.princeofspace:prince-of-space-bundled:2.2.0` | Single fat JAR, dependencies relocated — no classpath clashes |
-| `prince-of-space-spotless` | `io.github.agustafson.princeofspace:prince-of-space-spotless:2.2.0` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) |
+| `prince-of-space-spotless` | `io.github.agustafson.princeofspace:prince-of-space-spotless:2.2.0` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) — for Spotless versions older than 8.9.0 (Gradle) / 3.9.0 (Maven), or programmatic `FormatterConfig` composition; see "Spotless (Gradle)" above |
 | `prince-of-space-cli` | `io.github.agustafson.princeofspace:prince-of-space-cli:2.2.0` | Self-contained CLI jar (`java -jar ... --stdin`); same artifact is also attached to [GitHub Releases](https://github.com/agustafson/prince-of-space/releases) |
 
 ## Non-goals
 
 - Organisation of Java imports (delegated to Spotless)
-- First-party Maven/Gradle plugins (Spotless's `nativeCmd`/Gradle `FormatterStep` integration covers this)
+- First-party Maven/Gradle plugins — Spotless itself ships `princeOfSpace()` as a built-in step (Gradle plugin 8.9.0+, Maven plugin 3.9.0+; see "Spotless (Gradle)" / "Spotless (Maven)" above), so this project doesn't maintain a separate one
 - Type resolution (not needed for formatting)
 
 ## Building from source
