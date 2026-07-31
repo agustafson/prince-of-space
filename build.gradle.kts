@@ -198,6 +198,15 @@ tasks.register("syncReadmeVersions") {
                 setOf(RegexOption.MULTILINE),
             )
         text = mavenXmlCoord.replace(text) { mr -> "${mr.groupValues[1]}$v${mr.groupValues[3]}" }
+        // Native Spotless DSL examples don't carry a groupId/artifactId, so they need their own patterns.
+        val princeOfSpaceGradleDsl = Regex("(princeOfSpace\\(\")([^\"]+)(\"\\))")
+        text = princeOfSpaceGradleDsl.replace(text) { mr -> "${mr.groupValues[1]}$v${mr.groupValues[3]}" }
+        val princeOfSpaceMavenDsl =
+            Regex(
+                "(<princeOfSpace>\\s*<version>)([^<]+)(</version>\\s*</princeOfSpace>)",
+                setOf(RegexOption.MULTILINE),
+            )
+        text = princeOfSpaceMavenDsl.replace(text) { mr -> "${mr.groupValues[1]}$v${mr.groupValues[3]}" }
         // Link label is [`gradle.properties`] — there is no bare "gradle.properties](" substring.
         val quickStart =
             Regex("(\\]\\(gradle\\.properties\\):\\*\\* )`[^`]+`")

@@ -328,8 +328,8 @@ Group ID: **`io.github.agustafson.princeofspace`**. Published versions appear on
 |----------|------------|-------------|
 | `prince-of-space-core` | `io.github.agustafson.princeofspace:prince-of-space-core:2.2.0` | Default — small footprint; JavaParser + SLF4J as normal transitives |
 | `prince-of-space-bundled` | `io.github.agustafson.princeofspace:prince-of-space-bundled:2.2.0` | Single fat JAR, dependencies relocated — no classpath clashes |
-| `prince-of-space-spotless` | `io.github.agustafson.princeofspace:prince-of-space-spotless:2.2.0` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) — for Spotless versions older than 8.9.0 (Gradle) / 3.9.0 (Maven), or programmatic `FormatterConfig` composition; see "Spotless (Gradle)" above |
-| `prince-of-space-cli` | `io.github.agustafson.princeofspace:prince-of-space-cli:2.2.0` | Self-contained CLI jar (`java -jar ... --stdin`); same artifact is also attached to [GitHub Releases](https://github.com/agustafson/prince-of-space/releases) |
+| `prince-of-space-spotless` | `io.github.agustafson.princeofspace:prince-of-space-spotless:2.2.0` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) for **Gradle only** — for Spotless Gradle plugin versions older than 8.9.0, or programmatic `FormatterConfig` composition; see "Spotless (Gradle)" above. Not usable from Maven POM configuration. |
+| `prince-of-space-cli` | `io.github.agustafson.princeofspace:prince-of-space-cli:2.2.0` | Self-contained CLI jar (`java -jar ... --stdin`); used by the `nativeCmd` fallback for Spotless Maven plugin versions older than 3.9.0 (see "Spotless (Maven)" above). Same artifact is also attached to [GitHub Releases](https://github.com/agustafson/prince-of-space/releases) |
 
 ## Non-goals
 
