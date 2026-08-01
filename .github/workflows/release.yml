@@ -159,7 +159,7 @@ jobs:
           fetch-tags: true
           token: ${{ secrets.GH_ACTIONS_PUSH_TOKEN || github.token }}
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v5.6.0
         with:
           java-version: "21"
           distribution: "temurin"
