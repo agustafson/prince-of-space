@@ -53,6 +53,15 @@ final class WidthMeasurer {
         return w;
     }
 
+    static int objectCreationScopeSuffixWidth(ObjectCreationExpr creation) {
+        int width = ".new ".length();
+        if (creation.getTypeArguments().isPresent()) {
+            width += 2 + commaSeparatedTypeWidth(creation.getTypeArguments().get()) + 1;
+        }
+        width += creation.getType().toString().length();
+        return width + (creation.getArguments().isEmpty() ? 2 : 1);
+    }
+
     /**
      * Header-only width for {@code (params) -> { }} lambdas in argument-list flat-width estimates (not the full
      * {@link #lambdaHeaderWidth} body measurement).
@@ -137,6 +146,9 @@ final class WidthMeasurer {
         if (expression instanceof MethodReferenceExpr methodReferenceExpr) {
             return expressionWidth(methodReferenceExpr.getScope(), fmt)
                     + 2
+                    + methodReferenceExpr.getTypeArguments()
+                            .map(typeArgs -> 2 + commaSeparatedTypeWidth(typeArgs))
+                            .orElse(0)
                     + methodReferenceExpr.getIdentifier().length();
         }
         return expression.toString().length();

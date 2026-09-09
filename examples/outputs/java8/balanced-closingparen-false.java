@@ -401,9 +401,9 @@ public class FormatterShowcase
 
     // Scenario 39b: Long string literal in method argument
     public void longExceptionMessage() {
-        throw new IllegalStateException(
-                "Component scan for configuration class [%s] could not be used with "
-                + "conditions in REGISTER_BEAN phase: %s".formatted(legacyField, items));
+        throw new IllegalStateException(("Component scan for configuration class [%s] could not be used with "
+                + "conditions in REGISTER_BEAN phase: %s")
+            .formatted(legacyField, items));
     }
 
     // Scenario 39c: Text block with formatted arguments

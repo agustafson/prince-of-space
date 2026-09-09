@@ -98,6 +98,7 @@ final class BinaryExprFormatter {
                     boolean hasEscapesSensitiveToBoundaryPlacement = merged.indexOf('\\') >= 0;
                     if (mergedWouldOverflowSingleLiteral
                             && !hasEscapesSensitiveToBoundaryPlacement
+                            && !(n.getParentNode().orElse(null) instanceof EnclosedExpr)
                             && concatLeaves.size() >= MIN_LEAVES_FOR_FORCED_STRING_RECHUNK) {
                         ctx.emitChunkedStringLiteral(merged);
                         return;
