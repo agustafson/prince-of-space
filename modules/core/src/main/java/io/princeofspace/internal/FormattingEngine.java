@@ -73,7 +73,8 @@ public final class FormattingEngine {
         this.maxConvergencePasses = Math.max(0, maxConvergencePasses);
         this.fastSinglePass = fastSinglePass;
         ParserConfiguration parserConfig = new ParserConfiguration()
-                .setLanguageLevel(JavaParserLanguageLevels.toLanguageLevel(config.javaLanguageLevel()));
+                .setLanguageLevel(JavaParserLanguageLevels.toLanguageLevel(config.javaLanguageLevel()))
+                .setPreprocessUnicodeEscapes(true);
         this.parser = new JavaParser(parserConfig);
         this.prettyPrinter = new PrettyPrinter(config);
     }

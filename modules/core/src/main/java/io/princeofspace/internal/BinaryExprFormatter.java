@@ -209,7 +209,7 @@ final class BinaryExprFormatter {
     private static String mergeStringLiteralValues(List<StringLiteralExpr> parts) {
         StringBuilder sb = new StringBuilder();
         for (StringLiteralExpr p : parts) {
-            sb.append(p.getValue());
+            sb.append(StringLiteralFormatter.semanticValue(p));
         }
         return sb.toString();
     }

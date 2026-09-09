@@ -572,6 +572,12 @@ public class FormatterShowcase
         );
     }
 
+    // Scenario 39d: Long JSON literal with escaped quotes
+    public String longEscapedJsonLiteral() {
+        return "{\"string\":\"bar\",\"int\":3,\"long\":3456789123,\"float\":3.142,\"double\":3."
+                + "141592653589793,\"true\":true,\"false\":false,\"null\":null}";
+    }
+
     // Scenario 40: Synchronized block
     public void synchronizedBlock() {
         synchronized (complexGenericField != null ? complexGenericField : java.util.Collections.emptyMap()) {

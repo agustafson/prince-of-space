@@ -15,6 +15,7 @@ import com.github.javaparser.utils.StringEscapeUtils;
 import io.princeofspace.model.FormatterConfig;
 
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 
@@ -31,6 +32,7 @@ final class StringLiteralFormatter {
     private static final int MIN_CONCAT_CHAIN_PARTS = 2;
     private static final int LARGE_STRING_FORCE_BREAK_THRESHOLD = 500;
     private static final int MAX_SHALLOW_LINEAR_STRING_CONCAT_PARTS = 128;
+    private static final HexFormat UPPERCASE_HEX = HexFormat.of().withUpperCase();
     /**
      * Upper bound on nested block depth assumed when budgeting chunk columns — deeper nesting than this
      * may slightly underestimate remaining width (conservative for wrapping decisions).
@@ -52,9 +54,10 @@ final class StringLiteralFormatter {
             ctx.printCont();
         }
         if (msg instanceof StringLiteralExpr sl) {
-            int quotedLen = StringEscapeUtils.escapeJava(sl.getValue()).length() + 2;
+            String value = semanticValue(sl);
+            int quotedLen = escapeJava(value).length() + 2;
             if (ctx.column() + quotedLen > fmt.lineLength()) {
-                emitChunkedStringLiteral(sl.getValue());
+                emitChunkedStringLiteral(value);
                 return;
             }
         }
@@ -108,15 +111,16 @@ final class StringLiteralFormatter {
         if (isLeadingCommentInsideArrayInitializer(n)) {
             ctx.padToColumn(anchorColumn);
         }
-        int quotedLen = StringEscapeUtils.escapeJava(n.getValue()).length() + 2;
+        String sourceValue = escapeUnpairedSurrogates(n.getValue());
+        int quotedLen = sourceValue.length() + 2;
         int lineLen = fmt.lineLength();
         boolean shouldChunk = !isInsideStringConcatChain(n) && ctx.column() + quotedLen > lineLen;
         if (shouldChunk) {
-            emitChunkedStringLiteral(n.getValue());
+            emitChunkedStringLiteral(semanticValue(n));
         } else {
             // Do not call the default visitor: it would print orphan + comment again.
             ctx.print("\"");
-            ctx.print(n.getValue());
+            ctx.print(sourceValue);
             ctx.print("\"");
         }
         ctx.printOrphanCommentsEnding(n);
@@ -145,7 +149,7 @@ final class StringLiteralFormatter {
     int tailWidthAfterEqualsForInitializerBreakHeuristic(Expression init) {
         Expression stripped = stripParens(init);
         if (stripped instanceof StringLiteralExpr sl) {
-            return 1 + StringEscapeUtils.escapeJava(sl.getValue()).length() + 2;
+            return 1 + escapeJava(semanticValue(sl)).length() + 2;
         }
         if (stripped instanceof TextBlockLiteralExpr) {
             return 1 + flatExprSourceWidth(stripped);
@@ -166,7 +170,7 @@ final class StringLiteralFormatter {
 
     boolean initializerNeedsForcedBreakBeforeChunking(Expression init) {
         if (init instanceof StringLiteralExpr sl) {
-            return sl.getValue().length() >= LARGE_STRING_FORCE_BREAK_THRESHOLD;
+            return semanticValue(sl).length() >= LARGE_STRING_FORCE_BREAK_THRESHOLD;
         }
         return isTopLevelStringConcatChain(init)
                 && mergedStringLiteralChainCharCount(init) >= LARGE_STRING_FORCE_BREAK_THRESHOLD;
@@ -238,16 +242,17 @@ final class StringLiteralFormatter {
 
     private static int growPieceEndIndexForChunking(String raw, int i, int maxRoom) {
         int grow = i;
+        int escapedLength = 0;
         int preferredBreak = -1;
         while (grow < raw.length()) {
             int cp = raw.codePointAt(grow);
             int growNext = grow + Character.charCount(cp);
-            String trial = raw.substring(i, growNext);
-            int trialLen = StringEscapeUtils.escapeJava(trial).length() + 2;
-            if (trialLen > maxRoom) {
+            int nextEscapedLength = escapedLength + escapedCodePointLength(cp);
+            if (nextEscapedLength + 2 > maxRoom) {
                 break;
             }
             grow = growNext;
+            escapedLength = nextEscapedLength;
             if (isPreferredStringChunkBoundary(cp)) {
                 preferredBreak = grow;
             }
@@ -283,7 +288,7 @@ final class StringLiteralFormatter {
         if (pieces.isEmpty()) {
             return;
         }
-        int firstLen = StringEscapeUtils.escapeJava(pieces.get(0)).length() + 2;
+        int firstLen = escapeJava(pieces.get(0)).length() + 2;
         int lineLen = fmt.lineLength();
         // R4 safety net: column-aware first-piece sizing in collectRawStringPiecesForChunking should
         // make this branch unreachable for chunk-driven callers; keep the guard for any caller that
@@ -300,7 +305,7 @@ final class StringLiteralFormatter {
             }
             String piece = pieces.get(idx);
             ctx.print("\"");
-            ctx.print(StringEscapeUtils.escapeJava(piece));
+            ctx.print(escapeJava(piece));
             ctx.print("\"");
         }
     }
@@ -331,7 +336,7 @@ final class StringLiteralFormatter {
             ctx.print("+ ");
         }
         ctx.print("\"");
-        ctx.print(StringEscapeUtils.escapeJava(piece));
+        ctx.print(escapeJava(piece));
         ctx.print("\"");
     }
 
@@ -413,12 +418,12 @@ final class StringLiteralFormatter {
         for (Expression part : parts) {
             Expression leaf = stripParens(part);
             if (leaf instanceof StringLiteralExpr sl) {
-                merged.append(sl.getValue());
+                merged.append(semanticValue(sl));
             } else {
                 return 1 + flatExprSourceWidth(stripped);
             }
         }
-        return 1 + StringEscapeUtils.escapeJava(merged.toString()).length() + 2;
+        return 1 + escapeJava(merged.toString()).length() + 2;
     }
 
     private static int mergedStringLiteralChainCharCount(Expression init) {
@@ -432,11 +437,55 @@ final class StringLiteralFormatter {
         for (Expression part : parts) {
             Expression leaf = stripParens(part);
             if (leaf instanceof StringLiteralExpr sl) {
-                n += sl.getValue().length();
+                n += semanticValue(sl).length();
             } else {
                 return 0;
             }
         }
         return n;
+    }
+
+    static String semanticValue(StringLiteralExpr literal) {
+        return literal.getValue().translateEscapes();
+    }
+
+    private static int escapedCodePointLength(int codePoint) {
+        if (codePoint > Character.MAX_VALUE) {
+            return Character.charCount(codePoint);
+        }
+        return switch (codePoint) {
+            case '"', '\\', '\b', '\n', '\t', '\f', '\r' -> 2;
+            default -> Character.isSurrogate((char) codePoint) ? "\\u0000".length() : 1;
+        };
+    }
+
+    private static String escapeJava(String value) {
+        return escapeUnpairedSurrogates(StringEscapeUtils.escapeJava(value));
+    }
+
+    private static String escapeUnpairedSurrogates(String value) {
+        StringBuilder escaped = null;
+        for (int i = 0; i < value.length(); i++) {
+            char ch = value.charAt(i);
+            if (Character.isHighSurrogate(ch)
+                    && i + 1 < value.length()
+                    && Character.isLowSurrogate(value.charAt(i + 1))) {
+                if (escaped != null) {
+                    escaped.append(ch).append(value.charAt(++i));
+                } else {
+                    i++;
+                }
+            } else if (Character.isSurrogate(ch)) {
+                if (escaped == null) {
+                    escaped =
+                            new StringBuilder(value.length() + "\\u0000".length())
+                                    .append(value, 0, i);
+                }
+                escaped.append("\\u").append(UPPERCASE_HEX.toHexDigits(ch));
+            } else if (escaped != null) {
+                escaped.append(ch);
+            }
+        }
+        return escaped == null ? value : escaped.toString();
     }
 }

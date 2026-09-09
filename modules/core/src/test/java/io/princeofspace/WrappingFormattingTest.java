@@ -1,12 +1,16 @@
 package io.princeofspace;
 
-
+import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ast.expr.StringLiteralExpr;
+import com.github.javaparser.utils.StringEscapeUtils;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.JavaLanguageLevel;
 import io.princeofspace.model.WrapStyle;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.stream.Collectors.joining;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -1874,6 +1878,95 @@ class WrappingFormattingTest {
         assertThat(out).contains("+ \"");
         assertThat(out).contains(".formatted(\"a\", \"b\")");
         assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void longStringLiteral_preservesEscapesWhenChunked() {
+        Formatter f = new Formatter(FormatterConfig.builder().lineLength(50).build());
+        String unicodeEscape = "\\" + "u";
+        String encodedEscapes =
+                "\\s\\141"
+                        + unicodeEscape
+                        + "005c"
+                        + unicodeEscape
+                        + "005c"
+                        + unicodeEscape
+                        + "005c"
+                        + unicodeEscape
+                        + "006e"
+                        + unicodeEscape
+                        + "uuu0041"
+                        + unicodeEscape
+                        + "41EF"
+                        + unicodeEscape
+                        + "D800x"
+                        + unicodeEscape
+                        + "DC00";
+        String expected =
+                "{\"string\":\"bar\",\"pattern\":\"\\S+\",\"tab\":\"\t\",\"unicode\":\"É\"}"
+                        + (" a\\\nA"
+                                        + Character.toString(0x41EF)
+                                        + Character.toString(0xD800)
+                                        + "x"
+                                        + Character.toString(0xDC00))
+                                .repeat(800);
+        String literal =
+                "\""
+                        + StringEscapeUtils.escapeJava(
+                                "{\"string\":\"bar\",\"pattern\":\"\\S+\",\"tab\":\"\t\",\"unicode\":\"É\"}")
+                        + encodedEscapes.repeat(800)
+                        + "\"";
+        String input = "class T { String value = %s; }".formatted(literal);
+
+        String output = f.format(input);
+        String persistedOutput = new String(output.getBytes(UTF_8), UTF_8);
+        String actual =
+                StaticJavaParser.parse(persistedOutput).findAll(StringLiteralExpr.class).stream()
+                        .map(StringLiteralExpr::asString)
+                        .collect(joining());
+
+        assertThat(output).contains("+ ");
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    void shortStringLiteral_preservesUnpairedSurrogatesWhenPersisted() {
+        Formatter f = new Formatter(FormatterConfig.builder().lineLength(120).build());
+        String unicodeEscape = "\\" + "u";
+        String input =
+                "class T { String value = \""
+                        + unicodeEscape
+                        + "D800x"
+                        + unicodeEscape
+                        + "DC00\"; }";
+
+        String output = f.format(input);
+        String persistedOutput = new String(output.getBytes(UTF_8), UTF_8);
+        String actual =
+                StaticJavaParser.parse(persistedOutput)
+                        .findFirst(StringLiteralExpr.class)
+                        .orElseThrow()
+                        .asString();
+
+        assertThat(output).contains(unicodeEscape + "D800x" + unicodeEscape + "DC00");
+        assertThat(actual)
+                .isEqualTo(Character.toString(0xD800) + "x" + Character.toString(0xDC00));
+    }
+
+    @Test
+    void longStringLiteral_measuresOriginalEscapeSpellingBeforeChunking() {
+        Formatter f = new Formatter(FormatterConfig.builder().lineLength(60).build());
+        String input = "class T { String value = \"" + "\\141".repeat(30) + "\"; }";
+
+        String output = f.format(input);
+        String actual =
+                StaticJavaParser.parse(output).findAll(StringLiteralExpr.class).stream()
+                        .map(StringLiteralExpr::asString)
+                        .collect(joining());
+
+        assertNoLineLongerThan(output, 60);
+        assertThat(actual).isEqualTo("a".repeat(30));
+        assertThat(f.format(output)).isEqualTo(output);
     }
 
     @Test
