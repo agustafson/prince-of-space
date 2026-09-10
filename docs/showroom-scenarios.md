@@ -10,6 +10,8 @@
 
 Scenarios **1–20** are valid on Java 8 and appear in every tree.
 
+**Scenario 9** covers binary-operator wrapping, including a wrapped multiplication with a trailing line comment that must be preserved exactly once and converge to a fixed point.
+
 Scenarios **21–25** (records, sealed types, pattern `instanceof`, switch expressions, text blocks) require **Java 17** semantics. They appear in `java17`, `java21`, and `java25`, and are **omitted** from `java8` (the `java8` file jumps from scenario 20 to **31** so later scenario numbers stay aligned).
 
 Scenarios **26–30** use **Java 21** features (for example record patterns in `switch`, `when` guards, virtual threads). They appear in `java21` and `java25`, and are omitted from `java8` and `java17`.
