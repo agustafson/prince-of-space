@@ -32,6 +32,9 @@ final class ArrayInitializerFormatter {
     void format(ArrayInitializerExpr n, Void arg) {
         ctx.printOrphanCommentsBeforeThisChildNode(n);
         ctx.printComment(n.getComment(), arg);
+        boolean hasOrphanComments = !n.getOrphanComments().isEmpty();
+        boolean nestedArrayInitializer =
+                n.getParentNode().map(parent -> parent instanceof ArrayInitializerExpr).orElse(false);
         int openBraceColumn = ctx.column();
         ctx.print("{");
         if (!isNullOrEmpty(n.getValues())) {
@@ -39,11 +42,11 @@ final class ArrayInitializerFormatter {
             // Interior leading comments cannot fit inline: the default block-comment visitor emits a
             // trailing newline that breaks {a, /* sep */ b} layout and prevents convergence. Force
             // multi-line whenever any value carries a leading line/block comment.
-            boolean hasInteriorComment = anyValueHasLeadingLineOrBlockComment(n.getValues());
+            boolean hasInteriorComment =
+                    hasOrphanComments || anyValueHasLeadingLineOrBlockComment(n.getValues());
             boolean multi = arrayFlat > fmt.lineLength() || hasInteriorComment;
             // Nested initializers align elements under the inner `{` column (openBraceColumn +
             // continuation indent); top-level arrays use normal continuation indent — clearer columns for 2D+ literals.
-            boolean nestedArrayInitializer = n.getParentNode().map(parent -> parent instanceof ArrayInitializerExpr).orElse(false);
             if (multi) {
                 if (fmt.wrapStyle() == WrapStyle.WIDE && !hasInteriorComment) {
                     // R5 wide: greedily pack until line full (same list policy as other wide lists).
@@ -60,10 +63,23 @@ final class ArrayInitializerFormatter {
                 printInlineInitializer(n, arg);
                 ctx.print("}");
             }
+        } else if (hasOrphanComments) {
+            ctx.println();
+            if (nestedArrayInitializer) {
+                ctx.padToColumn(openBraceColumn + fmt.continuationIndentSize());
+            } else {
+                ctx.printCont();
+            }
+            ctx.indentWithAlignToSafe(ctx.column());
+            ctx.printOrphanCommentsEnding(n);
+            ctx.unindent();
+            if (nestedArrayInitializer) {
+                ctx.padToColumn(openBraceColumn);
+            }
+            ctx.print("}");
         } else {
             ctx.print("}");
         }
-        ctx.printOrphanCommentsEnding(n);
     }
 
     private static boolean anyValueHasLeadingLineOrBlockComment(NodeList<Expression> values) {
@@ -106,6 +122,9 @@ final class ArrayInitializerFormatter {
             ctx.print(",");
         }
         ctx.println();
+        ctx.indentWithAlignToSafe(elementColumn);
+        ctx.printOrphanCommentsEnding(n);
+        ctx.unindent();
         if (alignToNestedArrayBrace) {
             ctx.padToColumn(openBraceColumn);
         }

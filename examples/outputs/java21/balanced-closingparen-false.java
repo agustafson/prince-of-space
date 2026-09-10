@@ -761,7 +761,9 @@ public class FormatterShowcase
                 "showroom-scenario-56-arg-bravo-long-symbolic-middle",
                 "showroom-scenario-56-arg-charlie-long-symbolic-near-tail",
                 // Trailing-arg comment anchors the delimiter region before closing paren formatting
-                "showroom-scenario-56-arg-delta-long-symbolic-suffix");
+                "showroom-scenario-56-arg-delta-long-symbolic-suffix"
+                // Closing-list comment remains inside the call
+        );
     }
 
     private String mergeSymbolicScenario56Arguments(String alpha, String bravo, String charlie, String delta) {
@@ -785,6 +787,7 @@ public class FormatterShowcase
              */
             "showroom-scenario57-descriptor-bravo-symbolic-handle",
             "showroom-scenario57-descriptor-charlie-symbolic-handle"
+            // Closing-array comment remains inside the annotation value
     })
     @SuppressWarnings({"deprecation", "unchecked", "rawtypes", "unused"})
     public void scenario57AnnotatedMethodWithBuckets() {}

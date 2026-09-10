@@ -26,6 +26,10 @@ Scenarios **31–44** are shared control-flow and wrapping cases; they appear in
 
 **Scenario 55** (nested `static` class with two consecutive `//` line comments immediately before the first field) appears in **all** four trees. It is a regression guard against inserting a blank line between those comments when formatting type members.
 
+**Scenario 56** (wrapped method call with comments interleaved between arguments and before the closing parenthesis) appears in **all** four trees. It covers comment ordering and closing-delimiter preservation in argument lists.
+
+**Scenario 57** (annotation array with mixed comments between elements and before the closing brace) appears in **all** four trees. It covers comment ordering and closing-delimiter preservation in annotation values.
+
 **Scenarios 68–77** (static initializer block, instance initializer block, constructor / array-constructor method references, long `throws` clause, constructor with `throws` clause, long cast chains, labeled `break`/`continue`, varargs parameter at declaration and call site, curried lambda, enum with abstract method per-constant body) appear in **all** four trees. They cover Java 8-compatible language constructs that were previously absent from the showcase but exercise meaningful wrapping decisions across `wrapStyle` and `closingParenOnNewLine` settings.
 
 **Scenario 78** (sealed class — not interface — with long `permits` clause) and **Scenario 79** (local record and local class declared inside a method body) appear only in **`java17`, `java21`, and `java25`**. Sealed classes were finalized in Java 17 (JEP 409); local records require Java 16+ (JEP 395 / JEP 397). Java 8 omits both numbers.
