@@ -476,6 +476,11 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
                 "showroom-scenario-56-arg-delta-long-symbolic-suffix");
     }
 
+    public String scenario56InlineCommentsBetweenTokens() {
+        String /* domain */ serviceName = null /* use default */;
+        return mergeSymbolicScenario56Arguments(null /* serviceName */, serviceName, "operation", "resource") /* combined */;
+    }
+
     private String mergeSymbolicScenario56Arguments(String alpha, String bravo, String charlie, String delta) {
         return alpha + bravo + charlie + delta;
     }

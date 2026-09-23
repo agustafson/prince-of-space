@@ -111,6 +111,7 @@ For wrapped argument/parameter-like lists:
 ### Rule 10: Comments and annotation safety
 
 - Preserve comment semantics and placement intent.
+- Keep single-line block comments beside values and identifiers between their original neighboring tokens. For example, `null /* serviceName */,` labels that value; moving the comment past the comma associates it with the next argument. The same intent applies before a semicolon or identifier.
 - Preserve type-use annotation semantics and declaration annotation correctness.
 - Formatting must not change program meaning.
 

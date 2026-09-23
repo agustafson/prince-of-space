@@ -1,5 +1,6 @@
 package io.princeofspace.internal;
 
+import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.BodyDeclaration;
@@ -22,6 +23,7 @@ import com.github.javaparser.ast.expr.LambdaExpr;
 import com.github.javaparser.ast.expr.MemberValuePair;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.NormalAnnotationExpr;
+import com.github.javaparser.ast.expr.SimpleName;
 import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.expr.SwitchExpr;
@@ -33,9 +35,11 @@ import com.github.javaparser.ast.stmt.CatchClause;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.ast.stmt.ForEachStmt;
 import com.github.javaparser.ast.stmt.ForStmt;
+import com.github.javaparser.ast.stmt.ReturnStmt;
 import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.stmt.SwitchEntry;
 import com.github.javaparser.ast.stmt.SwitchStmt;
+import com.github.javaparser.ast.stmt.ThrowStmt;
 import com.github.javaparser.ast.stmt.TryStmt;
 import com.github.javaparser.ast.type.ArrayType;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
@@ -106,6 +110,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     private final DeclarationFormatter declarationFormatter;
     private final StringLiteralFormatter stringLiteralFormatter;
     private final ArrayInitializerFormatter arrayInitializerFormatter;
+    final InlineBlockComments inlineBlockComments = new InlineBlockComments();
 
     /**
      * When {@code > 0}, {@link ArgumentListFormatter} continuation lines rely on printer indent from
@@ -151,6 +156,48 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 new DeclarationFormatter(ctx, fmt, argumentListFormatter, typeClauseFormatter);
         this.stringLiteralFormatter = new StringLiteralFormatter(ctx);
         this.arrayInitializerFormatter = new ArrayInitializerFormatter(ctx, argumentListFormatter);
+    }
+
+    @Override
+    public void visit(CompilationUnit n, Void arg) {
+        inlineBlockComments.collect(n);
+        super.visit(n, arg);
+    }
+
+    @Override
+    public void visit(SimpleName n, Void arg) {
+        inlineBlockComments.printBefore(n, printer);
+        super.visit(n, arg);
+        inlineBlockComments.printAfter(n, printer);
+    }
+
+    @Override
+    public void visit(ExpressionStmt n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        ctx.accept(n.getExpression(), arg);
+        printer.print(";");
+    }
+
+    @Override
+    public void visit(ReturnStmt n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        printer.print("return");
+        n.getExpression().ifPresent(expression -> {
+            printer.print(" ");
+            ctx.accept(expression, arg);
+        });
+        printer.print(";");
+    }
+
+    @Override
+    public void visit(ThrowStmt n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        printer.print("throw ");
+        ctx.accept(n.getExpression(), arg);
+        printer.print(";");
     }
 
     // ── bridge methods for LayoutContext ───────────────────────────────────────
@@ -1001,7 +1048,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             } else {
                 printer.print(" ");
             }
-            init.accept(this, arg);
+            ctx.accept(init, arg);
         }
     }
 
