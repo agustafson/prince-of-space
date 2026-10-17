@@ -30,9 +30,9 @@ final class WidthMeasurer {
 
     static int flatWidth(Node node, FormatterConfig fmt) {
         if (node instanceof Expression expression) {
-            return expressionWidth(expression, fmt);
+            return expressionWidth(expression, fmt) + InlineBlockComments.width(node);
         }
-        return node.toString().length();
+        return node.toString().length() + InlineBlockComments.width(node);
     }
 
     /** Flat width of a comma-separated argument list for method-call wrap decisions (block lambdas: header only). */

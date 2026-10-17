@@ -126,7 +126,7 @@ class CommentPreservationTest {
     }
 
     @Test
-    void blockCommentBetweenArrayInitializerElements_forcesMultilineAndPreservesComment() {
+    void blockCommentBetweenArrayInitializerElements_staysInlineBeforeItsValue() {
         String input =
                 """
                 class T {
@@ -134,12 +134,7 @@ class CommentPreservationTest {
                 }
                 """;
         String out = DEFAULT.format(input);
-        // Inline {a, /* c */ b} cannot survive: default block-comment visitor adds a trailing
-        // newline. Forcing multi-line keeps the comment as a normalized leading comment on "beta".
-        assertThat(out).contains("sep");
-        assertThat(out).contains("\"alpha\",\n");
-        assertThat(out).contains("\"beta\",\n");
-        assertThat(out).contains("\"gamma\"\n");
+        assertThat(out).contains("{\"alpha\", /* sep */ \"beta\", \"gamma\"}");
         assertThat(DEFAULT.format(out)).isEqualTo(out);
     }
 

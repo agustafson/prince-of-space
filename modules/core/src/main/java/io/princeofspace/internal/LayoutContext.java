@@ -7,6 +7,7 @@ import com.github.javaparser.ast.comments.BlockComment;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.SimpleName;
 import com.github.javaparser.ast.nodeTypes.NodeWithTypeArguments;
 import com.github.javaparser.printer.SourcePrinter;
 import io.princeofspace.model.FormatterConfig;
@@ -183,7 +184,16 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
 
     /** Delegates node formatting back through the visitor. */
     void accept(Node node, Void arg) {
+        visitor.inlineBlockComments.printBefore(node, printer);
         node.accept(visitor, arg);
+        visitor.inlineBlockComments.printAfter(node, printer);
+    }
+
+    /** Prints a method name while retaining an inline comment before the identifier. */
+    void printMethodName(SimpleName name) {
+        visitor.inlineBlockComments.printBefore(name, printer);
+        print(name.asString());
+        visitor.inlineBlockComments.printAfter(name, printer);
     }
 
     /**

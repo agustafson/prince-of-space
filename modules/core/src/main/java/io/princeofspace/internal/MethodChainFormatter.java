@@ -52,7 +52,7 @@ final class MethodChainFormatter {
             ctx.printOrphanCommentsBeforeThisChildNode(n);
             ctx.printComment(n.getComment(), arg);
             ctx.printTypeArgs(n, arg);
-            ctx.print(n.getNameAsString());
+            ctx.printMethodName(n.getName());
             ctx.printArguments(n.getArguments(), arg);
             return;
         }
@@ -149,7 +149,7 @@ final class MethodChainFormatter {
         for (MethodCallExpr mc : calls) {
             ctx.print(".");
             ctx.printTypeArgs(mc, arg);
-            ctx.print(mc.getNameAsString());
+            ctx.printMethodName(mc.getName());
             ctx.printArguments(mc.getArguments(), arg);
         }
     }
@@ -204,7 +204,7 @@ final class MethodChainFormatter {
             }
             ctx.print(".");
             ctx.printTypeArgs(mc, arg);
-            ctx.print(mc.getNameAsString());
+            ctx.printMethodName(mc.getName());
             if (CommentUtils.hasBlockLambdaArgument(mc.getArguments())) {
                 ctx.indentWithAlignToSafe(contCol);
                 try {
