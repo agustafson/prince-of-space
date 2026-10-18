@@ -1,9 +1,12 @@
 package io.princeofspace;
 
+import com.github.javaparser.StaticJavaParser;
 import io.princeofspace.model.FormatterConfig;
+import io.princeofspace.model.JavaLanguageLevel;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 /** Phase 5: comments survive formatting and formatting is idempotent when comments are present. */
 class CommentPreservationTest {
@@ -74,6 +77,43 @@ class CommentPreservationTest {
         String out = DEFAULT.format(input);
         assertThat(out).contains("// trailing");
         assertThat(DEFAULT.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void trailingCommentOnWrappedBinaryExpression_preservedOnceAndConverges() {
+        Formatter formatter =
+                new Formatter(
+                        FormatterConfig.builder()
+                                .indentSize(2)
+                                .lineLength(100)
+                                .javaLanguageLevel(JavaLanguageLevel.of(25))
+                                .build());
+        String comment = "// +1 to account for \"no value\" (omitted tag)";
+        String input =
+                """
+                class Reproducer {
+                  void update(int[] tagIdxMultipliers, int[][] tagValues, int i) {
+                    tagIdxMultipliers[i] =
+                        tagIdxMultipliers[i - 1]
+                            * (tagValues[i - 1].length + 1); // +1 to account for "no value" (omitted tag)
+                  }
+                }
+                """;
+        String expected =
+                """
+                class Reproducer {
+                  void update(int[] tagIdxMultipliers, int[][] tagValues, int i) {
+                    // +1 to account for "no value" (omitted tag)
+                    tagIdxMultipliers[i] = tagIdxMultipliers[i - 1] * (tagValues[i - 1].length + 1);
+                  }
+                }
+                """;
+
+        String out = formatter.format(input);
+
+        assertThat(out).isEqualTo(expected).containsOnlyOnce(comment);
+        assertThatCode(() -> StaticJavaParser.parse(out)).doesNotThrowAnyException();
+        assertThat(formatter.format(out)).isEqualTo(out);
     }
 
     @Test

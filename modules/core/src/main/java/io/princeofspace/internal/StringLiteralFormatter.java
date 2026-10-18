@@ -74,10 +74,10 @@ final class StringLiteralFormatter {
     // R4 + R1: very large literal-only '+' trees are re-printed without redundant grouping when safe;
     // R10: must keep parens when JavaParser/grammar requires (e.g. scope of call or array access).
     boolean tryFormatLargeStringConcatEnclosed(EnclosedExpr n, Void arg) {
-        ctx.printOrphanCommentsBeforeThisChildNode(n);
-        ctx.printComment(n.getComment(), arg);
         if (isTopLevelStringConcatChain(n.getInner())
                 && mergedStringLiteralChainCharCount(n.getInner()) >= LARGE_STRING_FORCE_BREAK_THRESHOLD) {
+            ctx.printOrphanCommentsBeforeThisChildNode(n);
+            ctx.printComment(n.getComment(), arg);
             Expression inner = n.getInner();
             while (inner instanceof EnclosedExpr enc) {
                 inner = enc.getInner();
