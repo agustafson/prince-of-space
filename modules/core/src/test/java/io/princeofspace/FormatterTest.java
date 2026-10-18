@@ -223,6 +223,57 @@ class FormatterTest {
         assertThat(f.format(output)).isEqualTo(output);
     }
 
+    /**
+     * Regression for JavaParser #4996 (fixed in 3.28.2): multi-label unnamed type patterns must
+     * parse so Spotless / downstream can format Java 22+ sources.
+     */
+    @Test
+    void switchExpression_multiLabelUnnamedPatterns_formatsAndIsIdempotent() {
+        Formatter f = new Formatter(
+                FormatterConfig.builder().javaLanguageLevel(JavaLanguageLevel.of(22)).build());
+        String input = """
+                class T {
+                    Object f(Object o) {
+                        return switch (o) {
+                            case String _, Integer _ -> "ok";
+                            default -> "no";
+                        };
+                    }
+                }
+                """;
+
+        String output = f.format(input);
+
+        assertThat(output).contains("case String _, Integer _ -> \"ok\";");
+        assertThat(f.format(output)).isEqualTo(output);
+    }
+
+    @Test
+    void switchExpression_multiLabelUnnamedCustomTypePatterns_formatsAndIsIdempotent() {
+        Formatter f = new Formatter(
+                FormatterConfig.builder().javaLanguageLevel(JavaLanguageLevel.of(22)).build());
+        String input = """
+                class T {
+                    sealed interface Flow permits DefaultChancePrizeAwardFlow, EveryTimePrizeAwardFlow {}
+                    record DefaultChancePrizeAwardFlow() implements Flow {}
+                    record EveryTimePrizeAwardFlow() implements Flow {}
+
+                    String describe(Flow flow) {
+                        return switch (flow) {
+                            case DefaultChancePrizeAwardFlow _, EveryTimePrizeAwardFlow _ -> "award";
+                            default -> "other";
+                        };
+                    }
+                }
+                """;
+
+        String output = f.format(input);
+
+        assertThat(output)
+                .contains("case DefaultChancePrizeAwardFlow _, EveryTimePrizeAwardFlow _ -> \"award\";");
+        assertThat(f.format(output)).isEqualTo(output);
+    }
+
     @Test
     void textBlock_preservesContentIndent_andFormattedStaysOnClosingDelimiterLine() {
         Formatter f =

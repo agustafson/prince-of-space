@@ -80,10 +80,10 @@ final class StringLiteralFormatter {
     // R4 + R1: remove an enclosing pair from large literal-only '+' chains unless the parent needs
     // it for expression binding or it anchors the balanced tree that keeps very large chains stable.
     boolean tryFormatLargeStringConcatEnclosed(EnclosedExpr n, Void arg) {
-        ctx.printOrphanCommentsBeforeThisChildNode(n);
-        ctx.printComment(n.getComment(), arg);
         if (isTopLevelStringConcatChain(n.getInner())
                 && mergedStringLiteralChainCharCount(n.getInner()) >= LARGE_STRING_FORCE_BREAK_THRESHOLD) {
+            ctx.printOrphanCommentsBeforeThisChildNode(n);
+            ctx.printComment(n.getComment(), arg);
             Expression inner = n.getInner();
             while (inner instanceof EnclosedExpr enc) {
                 inner = enc.getInner();

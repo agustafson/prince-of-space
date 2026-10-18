@@ -1,10 +1,10 @@
 # Formatter throughput — Spring Framework corpus
 
-Date: 2026-07-31
+Date: 2026-10-18
 Corpus root (local): `/home/runner/work/prince-of-space/prince-of-space/spring-framework-bench`
-Git revision: `7c2fdcc`
-Files formatted: **9212**
-JVM: **21.0.11+10-LTS**
+Git revision: `49adc91`
+Files formatted: **9263**
+JVM: **21.0.12.1+1-LTS**
 JVM formatter workers (Prince / Google / Palantir / Eclipse): **1**
 
 Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **BALANCED**, Java language level **17**). Google Java Format and Palantir Java Format use **AOSP** style to align with `examples/external/outputs/` Spotless comparisons. Eclipse JDT uses Spotless `eclipse()` defaults (`examples/external/outputs/eclipse/`).
@@ -13,11 +13,11 @@ Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **B
 
 | Formatter | Avg ms / file | Failures |
 |-----------|-----------------|----------|
-| Prince of Space (strict, fixed-point) | 5.93 | 0 |
-| Prince of Space (fast, single pass) | 2.44 | 0 |
-| Google Java Format (AOSP) | 2.77 | 0 |
-| Palantir Java Format (AOSP) | 2.66 | 0 |
-| Eclipse JDT (Spotless default) | 2.19 | 0 |
+| Prince of Space (strict, fixed-point) | 7.32 | 0 |
+| Prince of Space (fast, single pass) | 3.12 | 0 |
+| Google Java Format (AOSP) | 2.88 | 0 |
+| Palantir Java Format (AOSP) | 2.97 | 0 |
+| Eclipse JDT (Spotless default) | 2.22 | 0 |
 
 ## Tool versions
 

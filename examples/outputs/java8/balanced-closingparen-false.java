@@ -131,7 +131,7 @@ public class FormatterShowcase
         return longTernary;
     }
 
-    // Scenario 9: Binary operator wrapping
+    // Scenario 9: Binary operator wrapping and trailing comments
     public boolean isValid() {
         return legacyField != null
                 && !legacyField.isEmpty()
@@ -140,6 +140,11 @@ public class FormatterShowcase
                 && items.stream().allMatch(item -> item != null && !item.isEmpty())
                 && complexGenericField != null
                 && complexGenericField.size() > 0;
+    }
+
+    public void updateTagIndex(int[] tagIdxMultipliers, int[][] tagValues, int i) {
+        // +1 to account for "no value" (omitted tag)
+        tagIdxMultipliers[i] = tagIdxMultipliers[i - 1] * (tagValues[i - 1].length + 1);
     }
 
     // Scenario 9b: Boolean operator chain with nested wrapped method chain operand
