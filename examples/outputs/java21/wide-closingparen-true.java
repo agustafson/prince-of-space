@@ -1244,6 +1244,17 @@ public class FormatterShowcase
         return "name";
     }
 
+    // Scenario 81: Consecutive line comments between fluent method calls
+    public String scenario81ChainWithConsecutiveLineComments(String input) {
+        return input
+            .trim()
+            // Remove surrounding whitespace before normalising the text.
+            // Keep both explanation lines beside the next call.
+            .toLowerCase(java.util.Locale.ROOT)
+            // Preserve this separate single-line comment too.
+            .replace(" ", "-");
+    }
+
     // Placeholder methods
     private void validate(String locale) {}
 

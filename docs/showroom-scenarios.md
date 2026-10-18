@@ -33,3 +33,5 @@ Scenarios **31–44** are shared control-flow and wrapping cases; they appear in
 **Scenario 78** (sealed class — not interface — with long `permits` clause) and **Scenario 79** (local record and local class declared inside a method body) appear only in **`java17`, `java21`, and `java25`**. Sealed classes were finalized in Java 17 (JEP 409); local records require Java 16+ (JEP 395 / JEP 397). Java 8 omits both numbers.
 
 **Scenario 80** (enum mixing a plain constant with per-constant anonymous bodies, constructor arguments, and trailing field/constructor/method members) appears in **all** four trees; it is Java 8-compatible enum syntax. It extends the per-constant anonymous-body separator-placement regression coverage from Scenario 77 (issue #47 / the TDR-023 correction) to a constant list that also contains a plain (body-less) constant and constants with constructor arguments.
+
+**Scenario 81** (consecutive line comments between fluent method calls) appears in all four trees and uses Java 8-compatible syntax. It checks that every comment line survives in order beside the next call.
