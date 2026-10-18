@@ -98,6 +98,7 @@ final class BinaryExprFormatter {
                     boolean hasEscapesSensitiveToBoundaryPlacement = merged.indexOf('\\') >= 0;
                     if (mergedWouldOverflowSingleLiteral
                             && !hasEscapesSensitiveToBoundaryPlacement
+                            && !(n.getParentNode().orElse(null) instanceof EnclosedExpr)
                             && concatLeaves.size() >= MIN_LEAVES_FOR_FORCED_STRING_RECHUNK) {
                         ctx.emitChunkedStringLiteral(merged);
                         return;
@@ -209,7 +210,7 @@ final class BinaryExprFormatter {
     private static String mergeStringLiteralValues(List<StringLiteralExpr> parts) {
         StringBuilder sb = new StringBuilder();
         for (StringLiteralExpr p : parts) {
-            sb.append(p.getValue());
+            sb.append(StringLiteralFormatter.semanticValue(p));
         }
         return sb.toString();
     }

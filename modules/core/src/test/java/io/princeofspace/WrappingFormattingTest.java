@@ -1,12 +1,22 @@
 package io.princeofspace;
 
-
+import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ast.expr.CastExpr;
+import com.github.javaparser.ast.expr.EnclosedExpr;
+import com.github.javaparser.ast.expr.FieldAccessExpr;
+import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.MethodReferenceExpr;
+import com.github.javaparser.ast.expr.ObjectCreationExpr;
+import com.github.javaparser.ast.expr.StringLiteralExpr;
+import com.github.javaparser.utils.StringEscapeUtils;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.JavaLanguageLevel;
 import io.princeofspace.model.WrapStyle;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.stream.Collectors.joining;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -1869,11 +1879,251 @@ class WrappingFormattingTest {
                 """;
         String out = f.format(input);
         assertNoLineLongerThan(out, max);
-        assertThat(out).contains("throw new IllegalStateException(\n");
+        assertThat(out).contains("throw new IllegalStateException((\"");
         assertThat(out).contains("\"Component scan for configuration class");
         assertThat(out).contains("+ \"");
         assertThat(out).contains(".formatted(\"a\", \"b\")");
         assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void shortEscapedStringInsideWrappedChain_remainsWhole() {
+        Formatter formatter = new Formatter(FormatterConfig.builder().lineLength(120).build());
+        String input =
+                """
+                class Short {
+                    void test() throws Exception {
+                        mvc.perform(
+                                post("/__problem__/validate")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content("{\\"label\\":\\"\\"}"))
+                            .andExpect(status().isBadRequest())
+                            .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+                    }
+                }
+                """;
+
+        String output = formatter.format(input);
+
+        assertThat(output).contains(".content(\"{\\\"label\\\":\\\"\\\"}\")");
+        assertThat(formatter.format(output)).isEqualTo(output);
+    }
+
+    @Test
+    void longStringLiteral_preservesEscapesWhenChunked() {
+        Formatter f = new Formatter(FormatterConfig.builder().lineLength(50).build());
+        String unicodeEscape = "\\" + "u";
+        String encodedEscapes =
+                "\\s\\141"
+                        + unicodeEscape
+                        + "005c"
+                        + unicodeEscape
+                        + "005c"
+                        + unicodeEscape
+                        + "005c"
+                        + unicodeEscape
+                        + "006e"
+                        + unicodeEscape
+                        + "uuu0041"
+                        + unicodeEscape
+                        + "41EF"
+                        + unicodeEscape
+                        + "D800x"
+                        + unicodeEscape
+                        + "DC00";
+        String expected =
+                "{\"string\":\"bar\",\"pattern\":\"\\S+\",\"tab\":\"\t\",\"unicode\":\"É\"}"
+                        + (" a\\\nA"
+                                        + Character.toString(0x41EF)
+                                        + Character.toString(0xD800)
+                                        + "x"
+                                        + Character.toString(0xDC00))
+                                .repeat(800);
+        String literal =
+                "\""
+                        + StringEscapeUtils.escapeJava(
+                                "{\"string\":\"bar\",\"pattern\":\"\\S+\",\"tab\":\"\t\",\"unicode\":\"É\"}")
+                        + encodedEscapes.repeat(800)
+                        + "\"";
+        String input = "class T { String value = %s; }".formatted(literal);
+
+        String output = f.format(input);
+        String persistedOutput = new String(output.getBytes(UTF_8), UTF_8);
+        String actual =
+                StaticJavaParser.parse(persistedOutput).findAll(StringLiteralExpr.class).stream()
+                        .map(StringLiteralExpr::asString)
+                        .collect(joining());
+
+        assertThat(output).contains("+ ");
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    void shortStringLiteral_preservesUnpairedSurrogatesWhenPersisted() {
+        Formatter f = new Formatter(FormatterConfig.builder().lineLength(120).build());
+        String unicodeEscape = "\\" + "u";
+        String input =
+                "class T { String value = \""
+                        + unicodeEscape
+                        + "D800x"
+                        + unicodeEscape
+                        + "DC00\"; }";
+
+        String output = f.format(input);
+        String persistedOutput = new String(output.getBytes(UTF_8), UTF_8);
+        String actual =
+                StaticJavaParser.parse(persistedOutput)
+                        .findFirst(StringLiteralExpr.class)
+                        .orElseThrow()
+                        .asString();
+
+        assertThat(output).contains(unicodeEscape + "D800x" + unicodeEscape + "DC00");
+        assertThat(actual)
+                .isEqualTo(Character.toString(0xD800) + "x" + Character.toString(0xDC00));
+    }
+
+    @Test
+    void longStringLiteral_measuresOriginalEscapeSpellingBeforeChunking() {
+        Formatter f = new Formatter(FormatterConfig.builder().lineLength(60).build());
+        String input = "class T { String value = \"" + "\\141".repeat(30) + "\"; }";
+
+        String output = f.format(input);
+        String actual =
+                StaticJavaParser.parse(output).findAll(StringLiteralExpr.class).stream()
+                        .map(StringLiteralExpr::asString)
+                        .collect(joining());
+
+        assertNoLineLongerThan(output, 60);
+        assertThat(actual).isEqualTo("a".repeat(30));
+        assertThat(f.format(output)).isEqualTo(output);
+    }
+
+    @Test
+    void longStringLiteral_preservesReceiverAndCastBindingWhenChunked() {
+        Formatter f = new Formatter(FormatterConfig.builder().lineLength(60).build());
+        String literal = "\"" + "word ".repeat(60) + "\"";
+        String input =
+                """
+                class T {
+                    java.util.function.Supplier<String> methodReference = %s::toString;
+                    java.util.function.Function<java.util.function.Function<? super String, ? extends String>, String> typedMethodReference = %s::<java.lang.String>transform;
+                    java.util.Comparator<String> fieldAccess = %s.CASE_INSENSITIVE_ORDER;
+                    Object cast = (Object) %s;
+                    boolean methodCall = %s.equals("other");
+                    Object objectCreation = %s.new Inner();
+                    class Inner {}
+                }
+                        """
+                        .replace("%s", literal);
+
+        String output = f.format(input);
+        var parsed = StaticJavaParser.parse(output);
+        MethodCallExpr methodCall =
+                parsed.findFirst(
+                                MethodCallExpr.class,
+                                call -> call.getNameAsString().equals("equals"))
+                        .orElseThrow();
+        var methodReferences = parsed.findAll(MethodReferenceExpr.class);
+        MethodReferenceExpr methodReference = methodReferences.get(0);
+        MethodReferenceExpr typedMethodReference = methodReferences.get(1);
+        FieldAccessExpr fieldAccess =
+                parsed.findFirst(
+                                FieldAccessExpr.class,
+                                access ->
+                                        access.getNameAsString()
+                                                .equals("CASE_INSENSITIVE_ORDER"))
+                        .orElseThrow();
+        CastExpr cast = parsed.findFirst(CastExpr.class).orElseThrow();
+        ObjectCreationExpr objectCreation =
+                parsed.findFirst(
+                                ObjectCreationExpr.class,
+                                creation -> creation.getTypeAsString().equals("Inner"))
+                        .orElseThrow();
+
+        assertThat(methodCall.getScope().orElseThrow()).isInstanceOf(EnclosedExpr.class);
+        assertThat(methodReference.getScope()).isInstanceOf(EnclosedExpr.class);
+        assertThat(typedMethodReference.getScope()).isInstanceOf(EnclosedExpr.class);
+        assertThat(fieldAccess.getScope()).isInstanceOf(EnclosedExpr.class);
+        assertThat(cast.getExpression()).isInstanceOf(EnclosedExpr.class);
+        assertThat(objectCreation.getScope().orElseThrow()).isInstanceOf(EnclosedExpr.class);
+        assertNoLineLongerThan(output, 60);
+        assertThat(f.format(output)).isEqualTo(output);
+    }
+
+    @Test
+    void longStringLiteral_doesNotChargeMethodArgumentsToEveryReceiverChunk() {
+        Formatter f = new Formatter(FormatterConfig.builder().lineLength(60).build());
+        String input =
+                "class T { String value = \"%s\".formatted(\"%s\"); }"
+                        .formatted("x".repeat(300), "a".repeat(300));
+
+        String output = f.format(input);
+        long oneCharacterReceiverChunks =
+                StaticJavaParser.parse(output).findAll(StringLiteralExpr.class).stream()
+                        .map(StringLiteralExpr::asString)
+                        .filter("x"::equals)
+                        .count();
+
+        assertThat(oneCharacterReceiverChunks).isZero();
+        assertThat(output.length()).isLessThan(input.length() * 2);
+        assertThat(f.format(output)).isEqualTo(output);
+    }
+
+    @Test
+    void longStringLiteral_doesNotChargeConstructorArgumentsToReceiverChunks() {
+        Formatter f = new Formatter(FormatterConfig.builder().lineLength(60).build());
+        String input =
+                "class T { Object value = \"%s\".new Inner(\"%s\"); class Inner { Inner(String value) {} } }"
+                        .formatted("x".repeat(3_685), "a".repeat(300));
+
+        String output = f.format(input);
+
+        assertThat(output.length()).isLessThan(input.length() * 2);
+        assertNoLineLongerThan(output, 60);
+        assertThat(f.format(output)).isEqualTo(output);
+    }
+
+    @Test
+    void longStringLiteral_reservesWholeInlinePostfixChain() {
+        Formatter f = new Formatter(FormatterConfig.builder().lineLength(60).build());
+        String literal = "\"" + "x".repeat(300) + "\"";
+        String input =
+                "class T { Object fields = %s.abcdefghij.klmnopqrst.uvwxyzabcd; Object arrays = %s[abcdefghij][klmnopqrst][uvwxyzabcd]; }"
+                        .formatted(literal, literal);
+
+        String output = f.format(input);
+
+        assertNoLineLongerThan(output, 60);
+        assertThat(f.format(output)).isEqualTo(output);
+    }
+
+    @Test
+    void longStringLiteral_avoidsParenthesesWhenNotRequiredForBinding() {
+        Formatter f = new Formatter(FormatterConfig.builder().lineLength(50).build());
+        String literal = "\"" + "word ".repeat(60) + "\"";
+        String input =
+                """
+                class T {
+                    String field = %s;
+
+                    String value() {
+                        return %s;
+                    }
+
+                    void use() {
+                        consume(%s);
+                    }
+
+                    void consume(String value) {}
+                }
+                """
+                        .replace("%s", literal);
+
+        String output = f.format(input);
+
+        assertThat(output).contains("+ ");
+        assertThat(StaticJavaParser.parse(output).findAll(EnclosedExpr.class)).isEmpty();
+        assertThat(f.format(output)).isEqualTo(output);
     }
 
     @Test

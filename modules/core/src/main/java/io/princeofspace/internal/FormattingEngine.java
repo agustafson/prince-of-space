@@ -2,8 +2,11 @@ package io.princeofspace.internal;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseResult;
+import com.github.javaparser.ParseStart;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.Problem;
+import com.github.javaparser.Providers;
+import com.github.javaparser.UnicodeEscapeProcessingProvider;
 import com.github.javaparser.ast.CompilationUnit;
 import io.princeofspace.BenchDiagnostics;
 import io.princeofspace.model.FormatResult;
@@ -182,7 +185,11 @@ public final class FormattingEngine {
 
     private FormatResult singlePassFormat(String sourceCode) {
         long t0 = System.nanoTime();
-        ParseResult<CompilationUnit> result = parser.parse(sourceCode);
+        // Decode before parsing: JavaParser's Unicode processor remaps node positions without comments.
+        ParseResult<CompilationUnit> result = sourceCode.contains("\\u")
+                ? parser.parse(ParseStart.COMPILATION_UNIT,
+                        new UnicodeEscapeProcessingProvider(Providers.provider(sourceCode)))
+                : parser.parse(sourceCode);
         long tAfterParse = System.nanoTime();
         if (!result.isSuccessful()) {
             if (BenchDiagnostics.isEnabled()) {

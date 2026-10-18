@@ -278,11 +278,11 @@ Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **B
 
 | Formatter | Avg ms / file | Failures |
 |-----------|-----------------|----------|
-| Prince of Space (strict, fixed-point) | 7.32 | 0 |
-| Prince of Space (fast, single pass) | 3.12 | 0 |
-| Google Java Format (AOSP) | 2.88 | 0 |
-| Palantir Java Format (AOSP) | 2.97 | 0 |
-| Eclipse JDT (Spotless default) | 2.22 | 0 |
+| Prince of Space (strict, fixed-point) | 6.62 | 0 |
+| Prince of Space (fast, single pass) | 2.72 | 0 |
+| Google Java Format (AOSP) | 2.91 | 0 |
+| Palantir Java Format (AOSP) | 2.92 | 0 |
+| Eclipse JDT (Spotless default) | 2.50 | 0 |
 
 Full detail and regeneration: `./gradlew :formatter-benchmark:run` with `PRINCE_BENCH_ROOT` pointing at a checkout. _Prettier throughput leg skipped in this run (`PRINCE_BENCH_SKIP_PRETTIER=true`)._ Eclipse JDT uses the same Spotless `eclipse()` stack as [`examples/external/outputs/eclipse/`](examples/external/outputs/eclipse/) (Equo P2 + Maven Central on first run).
 
