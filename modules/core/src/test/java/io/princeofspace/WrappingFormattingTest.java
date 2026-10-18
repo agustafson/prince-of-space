@@ -1887,6 +1887,29 @@ class WrappingFormattingTest {
     }
 
     @Test
+    void shortEscapedStringInsideWrappedChain_remainsWhole() {
+        Formatter formatter = new Formatter(FormatterConfig.builder().lineLength(120).build());
+        String input =
+                """
+                class Short {
+                    void test() throws Exception {
+                        mvc.perform(
+                                post("/__problem__/validate")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content("{\\"label\\":\\"\\"}"))
+                            .andExpect(status().isBadRequest())
+                            .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+                    }
+                }
+                """;
+
+        String output = formatter.format(input);
+
+        assertThat(output).contains(".content(\"{\\\"label\\\":\\\"\\\"}\")");
+        assertThat(formatter.format(output)).isEqualTo(output);
+    }
+
+    @Test
     void longStringLiteral_preservesEscapesWhenChunked() {
         Formatter f = new Formatter(FormatterConfig.builder().lineLength(50).build());
         String unicodeEscape = "\\" + "u";
