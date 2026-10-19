@@ -194,6 +194,7 @@ final class MethodChainFormatter {
                 ctx.printComment(hoistedBaseComment, arg);
             }
             ctx.printOrphanCommentsBeforeThisChildNode(mc);
+            ctx.printOrphanCommentsBeforeThisChildNode(mc.getName());
             Optional<Comment> hoistedComment = CommentUtils.hoistableArgumentComment(mc);
             if (CommentUtils.hasLineOrBlockComment(mc)) {
                 ctx.printComment(mc.getComment(), arg);
