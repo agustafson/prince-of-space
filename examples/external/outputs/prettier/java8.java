@@ -360,6 +360,56 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
                 "showroom-scenario-56-arg-delta-long-symbolic-suffix");
     }
 
+    public String scenario56DistinctLineCommentsOnCallAndArgument(
+        String value,
+        String suffix
+    ) {
+        return value
+            // This comment describes the concat call.
+            .concat(
+                // This comment describes its argument.
+                suffix
+            )
+            .trim();
+    }
+
+    public String scenario56DistinctBlockCommentsOnCallAndArgument(
+        String value,
+        String suffix
+    ) {
+        return value
+            /* This comment describes the concat call. */
+            .concat(
+                /* This comment describes its argument. */
+                suffix
+            )
+            .trim();
+    }
+
+    public String scenario56TrailingLineCommentAfterSoleArgument(
+        String value,
+        String suffix
+    ) {
+        return value
+            .concat(
+                suffix // This comment follows the sole argument.
+            )
+            .trim();
+    }
+
+    public String scenario56TrailingBlockCommentAfterSoleArgument(
+        String value,
+        String suffix
+    ) {
+        return value
+            .concat(suffix/* This comment follows the sole argument. */)
+            .trim();
+    }
+
+    public long scenario56InlineCommentsInEmptyCalls() {
+        return items.stream(/* All items. */).count(/* Count items. */);
+    }
+
     private String mergeSymbolicScenario56Arguments(String alpha, String bravo, String charlie, String delta) {
         return alpha + bravo + charlie + delta;
     }
@@ -384,17 +434,24 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
     public void scenario57AnnotatedMethodWithBuckets() {}
 
     // Scenario 58: Nested array initializers with line and block comments between elements
-    public static final String[][] SCENARIO58_TABLE =
-            new String[][] {
-                {"showroom-scenario58-r0-c0-extra-long-handle", "showroom-scenario58-r0-c1-extra-long-handle", "showroom-scenario58-r0-c2-extra-long-handle"},
-                {
-                    // row comment before first cell keeps row grouping visible when initializer wraps
-                    "showroom-scenario58-r1-c0-extra-long-handle",
-                    /* intra-row block anchors between cells when commas wrap independently */
-                    "showroom-scenario58-r1-c1-extra-long-handle",
-                    "showroom-scenario58-r1-c2-extra-long-handle"
-                }
-            };
+    public static final String[][] SCENARIO58_TABLE = new String[][] {
+        {
+            "showroom-scenario58-r0-c0-extra-long-handle",
+            "showroom-scenario58-r0-c1-extra-long-handle",
+            "showroom-scenario58-r0-c2-extra-long-handle",
+        },
+        {
+            // row comment before first cell keeps row grouping visible when initializer wraps
+            "showroom-scenario58-r1-c0-extra-long-handle",
+            /* intra-row block anchors between cells when commas wrap independently */
+            "showroom-scenario58-r1-c1-extra-long-handle",
+            "showroom-scenario58-r1-c2-extra-long-handle",
+        },
+        {
+            // This row is intentionally empty.
+            /* Keep comments inside the empty initializer. */
+        },
+    };
 
     // Scenario 59: Enum with long implements list (additional Java 17+ record echoes implements clause in sibling trees)
     enum Scenario59PipelineStage implements Runnable,

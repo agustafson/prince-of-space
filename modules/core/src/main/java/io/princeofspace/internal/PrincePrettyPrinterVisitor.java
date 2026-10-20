@@ -907,8 +907,24 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printer.print("(");
         boolean wrapped = false;
         boolean trailingLambda = false;
+        boolean applyWrappedListIndent = false;
+        boolean endingCommentEndedLine = false;
+        Optional<Comment> trailingArgumentComment = Optional.empty();
+        @Nullable MethodCallExpr methodCall =
+                args.getParentNode()
+                        .filter(MethodCallExpr.class::isInstance)
+                        .map(MethodCallExpr.class::cast)
+                        .orElse(null);
         try {
+            if (methodCall != null) {
+                inlineBlockComments.printEmptyArguments(methodCall, printer);
+            }
             if (!isNullOrEmpty(args)) {
+                Expression lastArgument = args.get(args.size() - 1);
+                if (methodCall != null && CommentUtils.hasTrailingLineOrBlockComment(lastArgument)) {
+                    trailingArgumentComment = lastArgument.getComment();
+                    CommentUtils.removeMirroredCommentOwners(methodCall, trailingArgumentComment.orElseThrow());
+                }
                 wrapped = argumentListFormatter.argsNeedWrap(args);
                 trailingLambda = wrapped && argumentListFormatter.shouldUseTrailingLambdaLayout(args);
                 if (trailingLambda) {
@@ -926,23 +942,37 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                     // A single wrapped expression argument (e.g. new X("""...""".formatted(...))) must not
                     // activate the scope: inner chains/binary continuations still use printCont relative to the
                     // outer call indent.
-                    boolean applyWrappedListIndent =
-                            wrapped
+                    boolean commentedSingleArgument = args.size() == SINGLE_ITEM_COUNT
+                            && (CommentUtils.hasLeadingLineOrBlockComment(args.get(0))
+                                    || CommentUtils.hasAnyLineOrBlockCommentOnLambda(args.get(0)));
+                    // Leading comments force a continuation even when the argument fits within the line length.
+                    applyWrappedListIndent = commentedSingleArgument
+                            || (wrapped
                                     && (args.size() > SINGLE_ITEM_COUNT
-                                            || (args.size() == SINGLE_ITEM_COUNT
-                                                    && (CommentUtils.hasLeadingLineOrBlockComment(args.get(0))
-                                                            || CommentUtils.hasAnyLineOrBlockCommentOnLambda(
-                                                                    args.get(0))
-                                                            || argumentListFormatter.shouldBreakBeforeSingleWrappedArg(
-                                                                    args.get(0)))));
-                    try (LayoutContext.SilentCloseable ignored = ctx.wrappedDelimitedListScope(applyWrappedListIndent)) {
-                        argumentListFormatter.printCommaSeparatedExprs(args, arg);
+                                            || argumentListFormatter.shouldBreakBeforeSingleWrappedArg(args.get(0))));
+                }
+            }
+            try (LayoutContext.SilentCloseable ignored =
+                    ctx.wrappedDelimitedListScope(applyWrappedListIndent)) {
+                if (!isNullOrEmpty(args) && !trailingLambda) {
+                    argumentListFormatter.printCommaSeparatedExprs(args, arg);
+                }
+                if (trailingArgumentComment.isPresent()
+                        || (methodCall != null && !methodCall.getOrphanComments().isEmpty())) {
+                    if (printer.getCursor().column > 0) {
+                        printer.println();
                     }
+                    int lineBeforeComments = printer.getCursor().line;
+                    printComment(trailingArgumentComment, arg);
+                    if (methodCall != null) {
+                        printOrphanCommentsEnding(methodCall);
+                    }
+                    endingCommentEndedLine = printer.getCursor().line > lineBeforeComments;
                 }
             }
             // R8: when configured, closing ')' moves to its own line for wrapped argument lists.
             // TDR-016 exception: trailing-lambda layout always closes "})" to match palantir-java-format.
-            if (fmt.closingParenOnNewLine() && wrapped && !trailingLambda) {
+            if (fmt.closingParenOnNewLine() && wrapped && !trailingLambda && !endingCommentEndedLine) {
                 if (nestedOpenersAreColine) {
                     if (!compactArgumentCloserRunActive) {
                         printer.println();

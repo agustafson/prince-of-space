@@ -423,7 +423,41 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
                 "showroom-scenario-56-arg-bravo-long-symbolic-middle",
                 "showroom-scenario-56-arg-charlie-long-symbolic-near-tail",
                 // Trailing-arg comment anchors the delimiter region before closing paren formatting
-                "showroom-scenario-56-arg-delta-long-symbolic-suffix");
+                "showroom-scenario-56-arg-delta-long-symbolic-suffix"
+                // Closing-list comment remains inside the call
+                );
+    }
+
+    public String scenario56DistinctLineCommentsOnCallAndArgument(String value, String suffix) {
+        return value
+                // This comment describes the concat call.
+                .concat(
+                        // This comment describes its argument.
+                        suffix)
+                .trim();
+    }
+
+    public String scenario56DistinctBlockCommentsOnCallAndArgument(String value, String suffix) {
+        return value
+                /* This comment describes the concat call. */
+                .concat(
+                        /* This comment describes its argument. */
+                        suffix)
+                .trim();
+    }
+
+    public String scenario56TrailingLineCommentAfterSoleArgument(String value, String suffix) {
+        return value.concat(suffix // This comment follows the sole argument.
+                ).trim();
+    }
+
+    public String scenario56TrailingBlockCommentAfterSoleArgument(String value, String suffix) {
+        return value.concat(suffix /* This comment follows the sole argument. */
+                ).trim();
+    }
+
+    public long scenario56InlineCommentsInEmptyCalls() {
+        return items.stream(/* All items. */).count(/* Count items. */);
     }
 
     public String scenario56InlineCommentsBetweenTokens() {
@@ -450,7 +484,9 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
                      * Annotation array element block commentary must stay anchored when lists wrap across lines.
                      */
                     "showroom-scenario57-descriptor-bravo-symbolic-handle",
-                    "showroom-scenario57-descriptor-charlie-symbolic-handle"})
+                    "showroom-scenario57-descriptor-charlie-symbolic-handle"
+                    // Closing-array comment remains inside the annotation value
+                    })
     @SuppressWarnings({"deprecation", "unchecked", "rawtypes", "unused"})
     public void scenario57AnnotatedMethodWithBuckets() {}
 
@@ -464,6 +500,10 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
                     /* intra-row block anchors between cells when commas wrap independently */
                     "showroom-scenario58-r1-c1-extra-long-handle",
                     "showroom-scenario58-r1-c2-extra-long-handle"
+                },
+                {
+                    // This row is intentionally empty.
+                    /* Keep comments inside the empty initializer. */
                 }
             };
 

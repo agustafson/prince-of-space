@@ -31,6 +31,7 @@ final class InlineBlockComments {
     private static final DataKey<Integer> COMMENT_WIDTH = new DataKey<>() {};
     private final Map<Position, String> before = new HashMap<>();
     private final Map<Position, String> after = new HashMap<>();
+    private final Map<Position, String> emptyArguments = new HashMap<>();
 
     void collect(CompilationUnit cu) {
         var comments = cu.getAllContainedComments();
@@ -39,7 +40,11 @@ final class InlineBlockComments {
         }
         Map<Position, Node> starts = new HashMap<>();
         Map<Position, Node> ends = new HashMap<>();
+        Map<Position, MethodCallExpr> emptyCalls = new HashMap<>();
         cu.walk(node -> {
+            if (node instanceof MethodCallExpr call && call.getArguments().isEmpty()) {
+                call.getEnd().ifPresent(position -> emptyCalls.put(position, call));
+            }
             if (canPrintAround(node)) {
                 node.getBegin().ifPresent(position -> starts.put(position, node));
                 node.getEnd().ifPresent(position -> ends.put(position, node));
@@ -63,8 +68,15 @@ final class InlineBlockComments {
             if (detached.contains(range.begin) || range.begin.line != range.end.line) {
                 continue;
             }
-            // R10: `value /* label */,` describes this value even when JavaParser owns it on the next one.
-            if (leftEnd.line == range.begin.line && ends.containsKey(leftEnd)) {
+            // Empty calls have no argument node to anchor inline comments.
+            if (left.getText().equals("(") && right.getText().equals(")")
+                    && leftEnd.line == range.begin.line && rightBegin.line == range.end.line
+                    && emptyCalls.containsKey(rightBegin)) {
+                int separatorWidth = emptyArguments.containsKey(rightBegin) ? 1 : 0;
+                emptyArguments.merge(rightBegin, token.getText(), (a, b) -> a + " " + b);
+                addWidth(emptyCalls.get(rightBegin), token.getText().length() + separatorWidth);
+            } else if (leftEnd.line == range.begin.line && ends.containsKey(leftEnd)) {
+                // R10: `value /* label */,` describes this value even when JavaParser owns it on the next one.
                 after.merge(leftEnd, token.getText(), (a, b) -> a + " " + b);
                 addWidth(ends.get(leftEnd), token.getText().length() + 1);
             } else if (rightBegin.line == range.end.line && starts.containsKey(rightBegin)) {
@@ -155,5 +167,12 @@ final class InlineBlockComments {
             return;
         }
         node.getEnd().map(after::remove).ifPresent(text -> printer.print(" " + text));
+    }
+
+    void printEmptyArguments(MethodCallExpr call, SourcePrinter printer) {
+        if (emptyArguments.isEmpty()) {
+            return;
+        }
+        call.getEnd().map(emptyArguments::remove).ifPresent(printer::print);
     }
 }

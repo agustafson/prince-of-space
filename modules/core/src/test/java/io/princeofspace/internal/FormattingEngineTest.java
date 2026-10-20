@@ -1,5 +1,6 @@
 package io.princeofspace.internal;
 
+import com.github.javaparser.StaticJavaParser;
 import io.princeofspace.model.FormatResult;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.WrapStyle;
@@ -8,6 +9,15 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class FormattingEngineTest {
+
+    @Test
+    void fastSinglePass_printsMirroredChainBaseCommentOnce() {
+        FormattingEngine singlePass = new FormattingEngine(FormatterConfig.defaults(), true);
+        FormatResult result = singlePass.format("class T { void m() { receiver.call(//\n1, 2); } }");
+
+        assertThat(result).isInstanceOfSatisfying(FormatResult.Success.class, success ->
+                assertThat(StaticJavaParser.parse(success.formattedSource()).getAllContainedComments()).hasSize(1));
+    }
 
     private final FormattingEngine engine = new FormattingEngine(FormatterConfig.defaults());
 

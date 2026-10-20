@@ -7,6 +7,7 @@ import com.github.javaparser.ast.comments.LineComment;
 import com.github.javaparser.ast.expr.ArrayInitializerExpr;
 import com.github.javaparser.ast.expr.Expression;
 import io.princeofspace.model.FormatterConfig;
+import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.WrapStyle;
 
 import java.util.Iterator;
@@ -32,6 +33,9 @@ final class ArrayInitializerFormatter {
     void format(ArrayInitializerExpr n, Void arg) {
         ctx.printOrphanCommentsBeforeThisChildNode(n);
         ctx.printComment(n.getComment(), arg);
+        boolean hasOrphanComments = !n.getOrphanComments().isEmpty();
+        boolean nestedArrayInitializer =
+                n.getParentNode().map(parent -> parent instanceof ArrayInitializerExpr).orElse(false);
         int openBraceColumn = ctx.column();
         ctx.print("{");
         if (!isNullOrEmpty(n.getValues())) {
@@ -39,11 +43,11 @@ final class ArrayInitializerFormatter {
             // Interior leading comments cannot fit inline: the default block-comment visitor emits a
             // trailing newline that breaks {a, /* sep */ b} layout and prevents convergence. Force
             // multi-line whenever any value carries a leading line/block comment.
-            boolean hasInteriorComment = anyValueHasLeadingLineOrBlockComment(n.getValues());
+            boolean hasInteriorComment =
+                    hasOrphanComments || anyValueHasLeadingLineOrBlockComment(n.getValues());
             boolean multi = arrayFlat > fmt.lineLength() || hasInteriorComment;
             // Nested initializers align elements under the inner `{` column (openBraceColumn +
             // continuation indent); top-level arrays use normal continuation indent — clearer columns for 2D+ literals.
-            boolean nestedArrayInitializer = n.getParentNode().map(parent -> parent instanceof ArrayInitializerExpr).orElse(false);
             if (multi) {
                 if (fmt.wrapStyle() == WrapStyle.WIDE && !hasInteriorComment) {
                     // R5 wide: greedily pack until line full (same list policy as other wide lists).
@@ -60,10 +64,33 @@ final class ArrayInitializerFormatter {
                 printInlineInitializer(n, arg);
                 ctx.print("}");
             }
+        } else if (hasOrphanComments && nestedArrayInitializer && fmt.indentStyle() == IndentStyle.TABS) {
+            // Save the closing alignment before comment printing changes SourcePrinter's last indent.
+            int nestedOpenBraceColumn = ctx.column() - 1;
+            ctx.indentWithAlignToSafe(nestedOpenBraceColumn);
+            ctx.println();
+            ctx.indentWithAlignToSafe(nestedOpenBraceColumn + fmt.continuationIndentSize());
+            ctx.printOrphanCommentsEnding(n);
+            ctx.unindent();
+            ctx.print("}");
+            ctx.unindent();
+        } else if (hasOrphanComments) {
+            ctx.println();
+            if (nestedArrayInitializer) {
+                ctx.padToColumn(openBraceColumn + fmt.continuationIndentSize());
+            } else {
+                ctx.printCont();
+            }
+            ctx.indentWithAlignToSafe(ctx.column());
+            ctx.printOrphanCommentsEnding(n);
+            ctx.unindent();
+            if (nestedArrayInitializer) {
+                ctx.padToColumn(openBraceColumn);
+            }
+            ctx.print("}");
         } else {
             ctx.print("}");
         }
-        ctx.printOrphanCommentsEnding(n);
     }
 
     private static boolean anyValueHasLeadingLineOrBlockComment(NodeList<Expression> values) {
@@ -106,6 +133,9 @@ final class ArrayInitializerFormatter {
             ctx.print(",");
         }
         ctx.println();
+        ctx.indentWithAlignToSafe(elementColumn);
+        ctx.printOrphanCommentsEnding(n);
+        ctx.unindent();
         if (alignToNestedArrayBrace) {
             ctx.padToColumn(openBraceColumn);
         }

@@ -119,12 +119,12 @@ class CommentUtilsTest {
     }
 
     @Test
-    void hoistableArgumentComment_prefersEmptyLineOrBlockCommentInMultiArgCall() {
+    void hoistableArgumentComment_keepsCommentsInsideMultiArgCall() {
         MethodCallExpr call = (MethodCallExpr) StaticJavaParser.parseExpression("f(a, b)");
         BlockComment emptyBlock = new BlockComment("  ");
         call.getArgument(1).setComment(emptyBlock);
 
-        assertThat(CommentUtils.hoistableArgumentComment(call)).contains(emptyBlock);
+        assertThat(CommentUtils.hoistableArgumentComment(call)).isEmpty();
     }
 
     @Test
