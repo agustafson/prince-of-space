@@ -75,13 +75,18 @@ class AnnotationLayoutFormattingTest {
     }
 
     private static final int NARROW_LINE_LENGTH = 60;
+    private static final int LINE_LENGTH = 120;
+    private static final int BOUNDARY_FILL = 102;
+    private static final String CLOSE_DECL = ") class T {}";
+    private static final String WRAPPED_END = "\n)\nclass T";
+    private static final String SUPPRESS_OPEN = "@SuppressWarnings(";
     private static final String LONG_TOKEN =
             "\"this particular suppression token is intentionally long to overflow the line limit when inline now, ok\"";
 
     @Test
     void singleMemberAnnotation_wrapsBeforeSplittingString() {
         Formatter f = new Formatter(FormatterConfig.builder().build());
-        String out = f.format("@SuppressWarnings(" + LONG_TOKEN + ") class T {}");
+        String out = f.format(SUPPRESS_OPEN + LONG_TOKEN + CLOSE_DECL);
         assertThat(out).startsWith("@SuppressWarnings(\n        " + LONG_TOKEN + "\n)\nclass T");
         assertThat(f.format(out)).isEqualTo(out);
     }
@@ -89,9 +94,25 @@ class AnnotationLayoutFormattingTest {
     @Test
     void singlePairAnnotation_wrapsBeforeSplittingString() {
         Formatter f = new Formatter(FormatterConfig.builder().build());
-        String out = f.format("@SuppressWarnings(value = " + LONG_TOKEN + ") class T {}");
+        String out = f.format(SUPPRESS_OPEN + "value = " + LONG_TOKEN + CLOSE_DECL);
         assertThat(out).startsWith("@SuppressWarnings(\n        value = " + LONG_TOKEN + "\n)\nclass T");
         assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void inlineClosingParen_reservesColumnBeforeSplittingLastValue() {
+        Formatter f = new Formatter(FormatterConfig.builder().closingParenOnNewLine(false).build());
+        // 8 (continuation) + "value = " (8) + 104 quoted columns = 120: fits alone, but not with the trailing ')'.
+        String boundary = "\"" + "x".repeat(BOUNDARY_FILL) + "\"";
+        for (String in :
+                new String[] {
+                    SUPPRESS_OPEN + "value = " + boundary + CLOSE_DECL,
+                    SUPPRESS_OPEN + "first = \"a\", value = " + boundary + CLOSE_DECL
+                }) {
+            String out = f.format(in);
+            assertThat(out.lines().mapToInt(String::length).max().orElse(0)).isLessThanOrEqualTo(LINE_LENGTH);
+            assertThat(f.format(out)).isEqualTo(out);
+        }
     }
 
     @Test
