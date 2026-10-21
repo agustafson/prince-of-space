@@ -684,6 +684,10 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
         void base() { return; }
     }
 
+    // Scenario 81: Annotation with several long string pairs wraps its pairs before any string literal is split
+    @Generated(value = "com.amazing.super.awesome.CodeGenerator", date = "2026-10-21T02:26:43Z", comments = "I've always wanted to be cool")
+    static class Scenario81GeneratedAnnotationWrap {}
+
     enum UpdateALItemsConversationExecutionStatusScenario54 {
         SUCCESS;
         String getI18nKeyScenario54() {

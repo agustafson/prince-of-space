@@ -265,3 +265,11 @@ Use it as the primary source of *why* design choices exist.
 - **Rationale:** TDR-028 identified upstreaming into `diffplug/spotless` as the same path taken by google-java-format, palantir-java-format, and prettier-java, and noted it was not being pursued at the time. Doing so removes the Maven-specific gap entirely (no `nativeCmd`/`maven-dependency-plugin` boilerplate needed on current Spotless) and gives Gradle users a step that ships with Spotless itself rather than requiring an extra classpath dependency.
 - **Consequences:** This project's own `:spotless` module (`io.princeofspace.spotless.PrinceOfSpaceStep`, `prince-of-space-spotless` artifact) is no longer the primary Gradle path but remains useful for: (a) Spotless Gradle plugin versions older than 8.9.0, and (b) callers who want to build a `FormatterConfig` object programmatically rather than through the Gradle DSL. The `nativeCmd` + `maven-dependency-plugin` workaround from TDR-028 remains documented as the fallback for Spotless Maven plugin versions older than 3.9.0. Upstream's `PrinceOfSpaceStep` and this project's are two independent implementations against the same `prince-of-space-core` public API — behavioral parity depends on both tracking the same `FormatterConfig` option set; no shared code exists between them today.
 - **Related docs:** `README.md` ("Spotless (Gradle)", "Spotless (Maven)", "Non-goals"), TDR-008, TDR-028, `CHANGELOG.md`
+
+### TDR-030: Wrap structure before splitting string literals; wrap long annotation pairs
+- **Date:** 2026-10-21
+- **Status:** Accepted
+- **Decision:** Multi-pair annotations (`@Name(k = v, ...)`) that exceed `lineLength` wrap their pairs using the normal `wrapStyle` / `closingParenOnNewLine` policy. String-literal chunking (R4) is now only reached for a literal that still overflows after its enclosing construct has wrapped.
+- **Rationale:** Annotation pairs previously never wrapped (except with comments), so the string in the last pair was split mid-sentence into `"..." + "..."` while earlier pairs stayed on the long line. Wrapping the pairs first yields output that matches argument-list behavior and avoids needless string splitting.
+- **Consequences:** Output shape changes for long annotations; showroom goldens may need regeneration.
+- **Related docs:** `docs/canonical-formatting-rules.md` (Rule 4, Rule 5)

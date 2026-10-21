@@ -51,4 +51,26 @@ class AnnotationLayoutFormattingTest {
         assertThat(out).contains("@Deprecated");
         assertThat(f.format(out)).isEqualTo(out);
     }
+
+    @Test
+    void longAnnotation_wrapsPairsBeforeSplittingStrings() {
+        Formatter f = new Formatter(FormatterConfig.builder().build());
+        String in =
+                """
+                @Generated(value = "com.amazing.super.awesome.CodeGenerator", date = "2026-10-21T02:26:43Z", comments = "I've always wanted to be cool")
+                class T {}
+                """;
+        String out = f.format(in);
+        assertThat(out)
+                .startsWith(
+                        """
+                        @Generated(
+                                value = "com.amazing.super.awesome.CodeGenerator",
+                                date = "2026-10-21T02:26:43Z",
+                                comments = "I've always wanted to be cool"
+                        )
+                        """);
+        assertThat(out).doesNotContain("\" +");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
 }

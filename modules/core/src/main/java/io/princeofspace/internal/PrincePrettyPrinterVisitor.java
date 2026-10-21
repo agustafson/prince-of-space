@@ -825,6 +825,12 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             }
         }
         if (!hasCommentedPair) {
+            // R4: wrap the pair list before any literal is chunked; string splitting only applies to
+            // pairs that still overflow once they sit on their own continuation line.
+            if (annotationPairsNeedWrap(pairs)) {
+                printWrappedAnnotationPairs(pairs, arg);
+                return;
+            }
             for (Iterator<MemberValuePair> i = pairs.iterator(); i.hasNext(); ) {
                 i.next().accept(this, arg);
                 if (i.hasNext()) {
@@ -844,6 +850,48 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
         printer.println();
         ctx.printCont();
+        printer.print(")");
+    }
+
+    private boolean annotationPairsNeedWrap(NodeList<MemberValuePair> pairs) {
+        // A lone pair has nothing to separate; it keeps hugging its value (e.g. an array initializer).
+        if (pairs.size() <= SINGLE_ITEM_COUNT) {
+            return false;
+        }
+        int width = ctx.column() + 1;
+        for (MemberValuePair p : pairs) {
+            width += WidthMeasurer.flatWidth(p, fmt) + 2;
+        }
+        // Drop the trailing ", " and account for the closing ")".
+        return width - 2 + 1 > fmt.lineLength();
+    }
+
+    // R5: wide packs pairs greedily; balanced/narrow put one pair per continuation line. R8: ')' placement
+    // follows closingParenOnNewLine like other wrapped delimited lists.
+    private void printWrappedAnnotationPairs(NodeList<MemberValuePair> pairs, Void arg) {
+        printer.println();
+        ctx.printCont();
+        boolean wide = fmt.wrapStyle() == WrapStyle.WIDE;
+        boolean first = true;
+        for (MemberValuePair p : pairs) {
+            if (!first) {
+                boolean fits =
+                        wide
+                                && ctx.column() + 2 + WidthMeasurer.flatWidth(p, fmt) + 1 <= fmt.lineLength();
+                if (fits) {
+                    printer.print(", ");
+                } else {
+                    printer.print(",");
+                    printer.println();
+                    ctx.printCont();
+                }
+            }
+            p.accept(this, arg);
+            first = false;
+        }
+        if (fmt.closingParenOnNewLine()) {
+            printer.println();
+        }
         printer.print(")");
     }
 
