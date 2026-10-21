@@ -799,6 +799,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             n.getMemberValue().accept(this, arg);
             printer.println();
             ctx.printCont();
+        } else if (annotationValuesNeedWrap(NodeList.nodeList(n.getMemberValue()))) {
+            printWrappedAnnotationValues(NodeList.nodeList(n.getMemberValue()), arg);
+            return;
         } else {
             n.getMemberValue().accept(this, arg);
         }
@@ -825,6 +828,12 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             }
         }
         if (!hasCommentedPair) {
+            // R4: wrap the pair list before any literal is chunked; string splitting only applies to
+            // pairs that still overflow once they sit on their own continuation line.
+            if (annotationValuesNeedWrap(pairs)) {
+                printWrappedAnnotationValues(pairs, arg);
+                return;
+            }
             for (Iterator<MemberValuePair> i = pairs.iterator(); i.hasNext(); ) {
                 i.next().accept(this, arg);
                 if (i.hasNext()) {
@@ -844,6 +853,58 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
         printer.println();
         ctx.printCont();
+        printer.print(")");
+    }
+
+    // R4: an annotation's value list is wrapped at its own delimiters before any string literal inside it
+    // is split into '+'-joined chunks. A lone array-initializer or nested-annotation value keeps hugging
+    // the opening parenthesis, as it does for its own wrapped layout.
+    private boolean annotationValuesNeedWrap(NodeList<? extends Node> values) {
+        if (values.size() == SINGLE_ITEM_COUNT && hugsAnnotationParen(values.get(0))) {
+            return false;
+        }
+        int width = ctx.column() + 1;
+        for (Node value : values) {
+            width += WidthMeasurer.flatWidth(value, fmt);
+        }
+        width += (values.size() - 1) * 2;
+        return width > fmt.lineLength();
+    }
+
+    private static boolean hugsAnnotationParen(Node value) {
+        Node inner = value instanceof MemberValuePair pair ? pair.getValue() : value;
+        return inner instanceof ArrayInitializerExpr || inner instanceof AnnotationExpr;
+    }
+
+    // R5: wide packs values greedily; balanced/narrow put one value per continuation line. R8: ')' placement
+    // follows closingParenOnNewLine like other wrapped delimited lists.
+    private void printWrappedAnnotationValues(NodeList<? extends Node> values, Void arg) {
+        boolean wide = fmt.wrapStyle() == WrapStyle.WIDE;
+        try (LayoutContext.SilentCloseable ignored = ctx.wrappedDelimitedListScope(true)) {
+            printer.println();
+            ctx.printCont();
+            boolean first = true;
+            for (Node value : values) {
+                if (!first) {
+                    boolean fits =
+                            wide
+                                    && ctx.column() + 2 + WidthMeasurer.flatWidth(value, fmt) + 1
+                                            <= fmt.lineLength();
+                    if (fits) {
+                        printer.print(", ");
+                    } else {
+                        printer.print(",");
+                        printer.println();
+                        ctx.printCont();
+                    }
+                }
+                value.accept(this, arg);
+                first = false;
+            }
+        }
+        if (fmt.closingParenOnNewLine()) {
+            printer.println();
+        }
         printer.print(")");
     }
 

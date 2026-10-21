@@ -63,6 +63,8 @@ These rules define output shape for Java formatting in `modules/core`.
 - `lineLength` is the target width.
 - If inline rendering exceeds `lineLength`, wrapping rules apply.
 - If no safe break point exists, long lines may remain over limit.
+- **Structure before strings (TDR-030):** a construct is wrapped at its own delimiters (argument lists, annotation element-value pairs, binary chains, ...) before any string literal in it is split into `+`-joined chunks. A literal is chunked only if it still overflows on its own line after that wrap.
+- **Annotation values:** `@Name(a = 1, b = 2)` and `@Name(value)` that do not fit on one line wrap their element-value pairs (or the single member value) per Rule 5 (`wide` packs greedily, `balanced`/`narrow` use one per continuation line); the closing `)` follows Rule 8. A lone array-initializer or nested-annotation value keeps hugging the opening `(` and wraps through its own layout.
 
 ### Rule 5: WrapStyle must be construct-uniform
 
