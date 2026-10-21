@@ -799,6 +799,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             n.getMemberValue().accept(this, arg);
             printer.println();
             ctx.printCont();
+        } else if (annotationValuesNeedWrap(NodeList.nodeList(n.getMemberValue()))) {
+            printWrappedAnnotationValues(NodeList.nodeList(n.getMemberValue()), arg);
+            return;
         } else {
             n.getMemberValue().accept(this, arg);
         }
@@ -827,8 +830,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (!hasCommentedPair) {
             // R4: wrap the pair list before any literal is chunked; string splitting only applies to
             // pairs that still overflow once they sit on their own continuation line.
-            if (annotationPairsNeedWrap(pairs)) {
-                printWrappedAnnotationPairs(pairs, arg);
+            if (annotationValuesNeedWrap(pairs)) {
+                printWrappedAnnotationValues(pairs, arg);
                 return;
             }
             for (Iterator<MemberValuePair> i = pairs.iterator(); i.hasNext(); ) {
@@ -853,41 +856,51 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printer.print(")");
     }
 
-    private boolean annotationPairsNeedWrap(NodeList<MemberValuePair> pairs) {
-        // A lone pair has nothing to separate; it keeps hugging its value (e.g. an array initializer).
-        if (pairs.size() <= SINGLE_ITEM_COUNT) {
+    // R4: an annotation's value list is wrapped at its own delimiters before any string literal inside it
+    // is split into '+'-joined chunks. A lone array-initializer or nested-annotation value keeps hugging
+    // the opening parenthesis, as it does for its own wrapped layout.
+    private boolean annotationValuesNeedWrap(NodeList<? extends Node> values) {
+        if (values.size() == SINGLE_ITEM_COUNT && hugsAnnotationParen(values.get(0))) {
             return false;
         }
         int width = ctx.column() + 1;
-        for (MemberValuePair p : pairs) {
-            width += WidthMeasurer.flatWidth(p, fmt) + 2;
+        for (Node value : values) {
+            width += WidthMeasurer.flatWidth(value, fmt);
         }
-        // Drop the trailing ", " and account for the closing ")".
-        return width - 2 + 1 > fmt.lineLength();
+        width += (values.size() - 1) * 2;
+        return width > fmt.lineLength();
     }
 
-    // R5: wide packs pairs greedily; balanced/narrow put one pair per continuation line. R8: ')' placement
+    private static boolean hugsAnnotationParen(Node value) {
+        Node inner = value instanceof MemberValuePair pair ? pair.getValue() : value;
+        return inner instanceof ArrayInitializerExpr || inner instanceof AnnotationExpr;
+    }
+
+    // R5: wide packs values greedily; balanced/narrow put one value per continuation line. R8: ')' placement
     // follows closingParenOnNewLine like other wrapped delimited lists.
-    private void printWrappedAnnotationPairs(NodeList<MemberValuePair> pairs, Void arg) {
-        printer.println();
-        ctx.printCont();
+    private void printWrappedAnnotationValues(NodeList<? extends Node> values, Void arg) {
         boolean wide = fmt.wrapStyle() == WrapStyle.WIDE;
-        boolean first = true;
-        for (MemberValuePair p : pairs) {
-            if (!first) {
-                boolean fits =
-                        wide
-                                && ctx.column() + 2 + WidthMeasurer.flatWidth(p, fmt) + 1 <= fmt.lineLength();
-                if (fits) {
-                    printer.print(", ");
-                } else {
-                    printer.print(",");
-                    printer.println();
-                    ctx.printCont();
+        try (LayoutContext.SilentCloseable ignored = ctx.wrappedDelimitedListScope(true)) {
+            printer.println();
+            ctx.printCont();
+            boolean first = true;
+            for (Node value : values) {
+                if (!first) {
+                    boolean fits =
+                            wide
+                                    && ctx.column() + 2 + WidthMeasurer.flatWidth(value, fmt) + 1
+                                            <= fmt.lineLength();
+                    if (fits) {
+                        printer.print(", ");
+                    } else {
+                        printer.print(",");
+                        printer.println();
+                        ctx.printCont();
+                    }
                 }
+                value.accept(this, arg);
+                first = false;
             }
-            p.accept(this, arg);
-            first = false;
         }
         if (fmt.closingParenOnNewLine()) {
             printer.println();

@@ -73,4 +73,73 @@ class AnnotationLayoutFormattingTest {
         assertThat(out).doesNotContain("\" +");
         assertThat(f.format(out)).isEqualTo(out);
     }
+
+    private static final int NARROW_LINE_LENGTH = 60;
+    private static final String LONG_TOKEN =
+            "\"this particular suppression token is intentionally long to overflow the line limit when inline now, ok\"";
+
+    @Test
+    void singleMemberAnnotation_wrapsBeforeSplittingString() {
+        Formatter f = new Formatter(FormatterConfig.builder().build());
+        String out = f.format("@SuppressWarnings(" + LONG_TOKEN + ") class T {}");
+        assertThat(out).startsWith("@SuppressWarnings(\n        " + LONG_TOKEN + "\n)\nclass T");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void singlePairAnnotation_wrapsBeforeSplittingString() {
+        Formatter f = new Formatter(FormatterConfig.builder().build());
+        String out = f.format("@SuppressWarnings(value = " + LONG_TOKEN + ") class T {}");
+        assertThat(out).startsWith("@SuppressWarnings(\n        value = " + LONG_TOKEN + "\n)\nclass T");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void singlePairArrayAnnotation_keepsHuggingParen() {
+        Formatter f = new Formatter(FormatterConfig.builder().lineLength(NARROW_LINE_LENGTH).build());
+        String out =
+                f.format(
+                        "@Shelf(descriptors = {\"alpha-alpha-alpha\", \"bravo-bravo-bravo\", \"charlie-charlie\"}) class T {}");
+        assertThat(out).startsWith("@Shelf(descriptors = {\n");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void parameterAnnotation_wrapsRelativeToParameterList() {
+        Formatter f = new Formatter(FormatterConfig.builder().build());
+        String in =
+                "class T { void m(@Foo(first = \"aaaaaaaaaa bbbbbbbbbb cccccccccc dddddd\","
+                        + " second = \"eeeeeeeeee ffffffffff gggggggggg hhhhhh\","
+                        + " third = \"iiiiiiiiii jjjjjjjjjj kkkkkkkkkk llllll\") int p) {} }";
+        String out = f.format(in);
+        assertThat(out).contains("    void m(\n            @Foo(\n                    first = ");
+        assertThat(out).contains("\n            ) int p\n    )");
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    /**
+     * Lines with several distinct strings must break at structural points (arguments, operators, ternary
+     * branches, chain segments, array elements) before any string literal is split into chunks.
+     */
+    @Test
+    void multiStringLines_neverSplitStringsWhenStructureCanWrap() {
+        Formatter f = new Formatter(FormatterConfig.builder().build());
+        String a = "\"aaaaaaaaaa bbbbbbbbbb cccccccccc dddddd\"";
+        String b = "\"eeeeeeeeee ffffffffff gggggggggg hhhhhh\"";
+        String c = "\"iiiiiiiiii jjjjjjjjjj kkkkkkkkkk llllll\"";
+        String in =
+                "class T { void m(String s) {"
+                        + " log.info(" + a + ", " + b + ", " + c + ");"
+                        + " String x = s.equals(" + a + ") ? " + b + " : " + c + " + s;"
+                        + " String y = " + a + " + s + " + b + " + s + " + c + ";"
+                        + " String[] z = {" + a + ", " + b + ", " + c + ", \"q\"};"
+                        + " var w = list.stream().map(t -> t + " + a + ").filter(t -> t.contains(" + b + "))"
+                        + ".count(" + c + ");"
+                        + " } }";
+        String out = f.format(in);
+        for (String literal : new String[] {a, b, c}) {
+            assertThat(out).contains(literal);
+        }
+        assertThat(f.format(out)).isEqualTo(out);
+    }
 }

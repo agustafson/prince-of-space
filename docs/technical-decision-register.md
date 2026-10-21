@@ -269,7 +269,7 @@ Use it as the primary source of *why* design choices exist.
 ### TDR-030: Wrap structure before splitting string literals; wrap long annotation pairs
 - **Date:** 2026-10-21
 - **Status:** Accepted
-- **Decision:** Multi-pair annotations (`@Name(k = v, ...)`) that exceed `lineLength` wrap their pairs using the normal `wrapStyle` / `closingParenOnNewLine` policy. String-literal chunking (R4) is now only reached for a literal that still overflows after its enclosing construct has wrapped.
-- **Rationale:** Annotation pairs previously never wrapped (except with comments), so the string in the last pair was split mid-sentence into `"..." + "..."` while earlier pairs stayed on the long line. Wrapping the pairs first yields output that matches argument-list behavior and avoids needless string splitting.
+- **Decision:** Annotations whose values exceed `lineLength` (multi-pair `@Name(k = v, ...)`, single-pair, or single-member `@Name(v)`) wrap those values using the normal `wrapStyle` / `closingParenOnNewLine` policy, except that a lone array-initializer or nested-annotation value keeps hugging `(`. String-literal chunking (R4) is now only reached for a literal that still overflows after its enclosing construct has wrapped. Every other construct (call and constructor arguments, binary chains, ternaries, array initializers, method chains, enum constants, ...) already wrapped before chunking; a test guards that.
+- **Rationale:** Annotation values previously never wrapped (except with comments), so the string in the last pair was split mid-sentence into `"..." + "..."` while earlier pairs stayed on the long line. Wrapping the pairs first yields output that matches argument-list behavior and avoids needless string splitting.
 - **Consequences:** Output shape changes for long annotations; showroom goldens may need regeneration.
 - **Related docs:** `docs/canonical-formatting-rules.md` (Rule 4, Rule 5)

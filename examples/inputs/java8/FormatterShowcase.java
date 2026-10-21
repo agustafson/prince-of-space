@@ -688,6 +688,12 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
     @Generated(value = "com.amazing.super.awesome.CodeGenerator", date = "2026-10-21T02:26:43Z", comments = "I've always wanted to be cool")
     static class Scenario81GeneratedAnnotationWrap {}
 
+    @SuppressWarnings(value = "this particular suppression token is intentionally long to overflow the line limit when inline now")
+    static class Scenario81SinglePairAnnotationWrap {}
+
+    @SuppressWarnings("this particular suppression token is intentionally long to overflow the line limit when inline now")
+    static class Scenario81SingleMemberAnnotationWrap {}
+
     enum UpdateALItemsConversationExecutionStatusScenario54 {
         SUCCESS;
         String getI18nKeyScenario54() {
