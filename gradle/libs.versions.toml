@@ -21,7 +21,7 @@ shadow = "9.4.1"
 slf4j = "2.0.18"
 spotbugs-annotations = "4.10.2"
 spotbugs-gradle = "6.5.4"
-spotless = "8.4.0"
+spotless = "8.9.0"
 spotless-lib = "4.5.0"
 test-logger = "4.0.0"
 
