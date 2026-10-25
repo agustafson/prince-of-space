@@ -881,8 +881,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     private void printWrappedAnnotationValues(NodeList<? extends Node> values, Void arg) {
         boolean wide = fmt.wrapStyle() == WrapStyle.WIDE;
         try (LayoutContext.SilentCloseable ignored = ctx.wrappedDelimitedListScope(true)) {
-            printer.println();
-            ctx.printCont();
+            startWrappedAnnotationValueLine();
             boolean first = true;
             for (Node value : values) {
                 if (!first) {
@@ -894,8 +893,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                         printer.print(", ");
                     } else {
                         printer.print(",");
-                        printer.println();
-                        ctx.printCont();
+                        startWrappedAnnotationValueLine();
                     }
                 }
                 value.accept(this, arg);
@@ -906,6 +904,15 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.println();
         }
         printer.print(")");
+    }
+
+    // R4: printCont() is a no-op inside wrappedDelimitedListScope, and SourcePrinter reports column 0
+    // after println() until the next print materializes the list indent. A value that starts with a
+    // string literal would otherwise be measured against the full line length.
+    private void startWrappedAnnotationValueLine() {
+        printer.println();
+        ctx.printCont();
+        printer.print("");
     }
 
     @Override

@@ -124,15 +124,15 @@ final class StringLiteralFormatter {
         String sourceValue = escapeUnpairedSurrogates(n.getValue());
         int quotedLen = sourceValue.length() + 2;
         int lineLen = fmt.lineLength();
-        int annotationCloser = inlineAnnotationCloserWidth(n);
+        int annotationTrailing = inlineAnnotationTrailingWidth(n);
         boolean shouldChunk =
-                !isInsideStringConcatChain(n) && ctx.column() + quotedLen + annotationCloser > lineLen;
+                !isInsideStringConcatChain(n) && ctx.column() + quotedLen + annotationTrailing > lineLen;
         if (shouldChunk) {
             boolean needsParens = needsParensAroundGeneratedConcat(n);
             printWrappedStringLiteralChunks(
                     semanticValue(n),
                     needsParens,
-                    generatedConcatTrailingWidth(n, needsParens) + annotationCloser);
+                    generatedConcatTrailingWidth(n, needsParens) + annotationTrailing);
         } else {
             // Do not call the default visitor: it would print orphan + comment again.
             ctx.print("\"");
@@ -142,21 +142,31 @@ final class StringLiteralFormatter {
         ctx.printOrphanCommentsEnding(n);
     }
 
-    // R4/R8: with closingParenOnNewLine=false the ')' trails the last annotation value on its line, so the
-    // splitter must reserve that column (a literal that only fits without it is chunked as a last resort).
+    // R4/R8: reserve whatever is printed after this literal on the same line. A non-final annotation
+    // value always takes a trailing comma. The last value takes ')' when closingParenOnNewLine is false
+    // and no pair comment has already moved ')' onto its own line. A literal that only fits without
+    // that suffix is chunked as a last resort.
     @SuppressWarnings({"ReferenceEquality", "PMD.CompareObjectsWithEquals"})
-    private int inlineAnnotationCloserWidth(StringLiteralExpr n) {
-        if (fmt.closingParenOnNewLine() || n.getParentNode().isEmpty()) {
+    private int inlineAnnotationTrailingWidth(StringLiteralExpr n) {
+        if (n.getParentNode().isEmpty()) {
             return 0;
         }
         Node parent = n.getParentNode().get();
         if (parent instanceof SingleMemberAnnotationExpr single && single.getMemberValue() == n) {
-            return CommentUtils.hasLeadingLineOrBlockComment(n) ? 0 : 1;
+            if (fmt.closingParenOnNewLine() || CommentUtils.hasLeadingLineOrBlockComment(n)) {
+                return 0;
+            }
+            return 1;
         }
         if (parent instanceof MemberValuePair pair
                 && pair.getValue() == n
-                && pair.getParentNode().orElse(null) instanceof NormalAnnotationExpr annotation
-                && annotation.getPairs().getLast().orElse(null) == pair) {
+                && pair.getParentNode().orElse(null) instanceof NormalAnnotationExpr annotation) {
+            if (annotation.getPairs().getLast().orElse(null) != pair) {
+                return 1;
+            }
+            if (fmt.closingParenOnNewLine()) {
+                return 0;
+            }
             for (MemberValuePair p : annotation.getPairs()) {
                 if (CommentUtils.hasLineOrBlockComment(p)) {
                     return 0;

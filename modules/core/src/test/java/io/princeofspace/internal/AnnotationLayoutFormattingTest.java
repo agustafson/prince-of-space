@@ -2,6 +2,7 @@ package io.princeofspace.internal;
 
 import io.princeofspace.Formatter;
 import io.princeofspace.model.FormatterConfig;
+import io.princeofspace.model.WrapStyle;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -100,6 +101,27 @@ class AnnotationLayoutFormattingTest {
     }
 
     @Test
+    void singleMemberAnnotation_staysWithinLineLengthAtIndentedBoundary() {
+        // Column 0 after println() would let this literal fill the whole line; the continuation indent
+        // is applied only when it prints, so the value line would be lineLength + 2.
+        for (FormatterConfig cfg : annotationBoundaryConfigs()) {
+            int fill = cfg.lineLength() - cfg.continuationIndentSize() - (cfg.closingParenOnNewLine() ? 0 : 1);
+            assertLinesFit(cfg, SUPPRESS_OPEN + "\"" + "x".repeat(fill) + "\"" + CLOSE_DECL);
+        }
+    }
+
+    @Test
+    void nonFinalAnnotationPair_staysWithinLineLengthBeforeTrailingComma() {
+        // "first = " is 8 columns, matching the existing last-value boundary. The literal fills the
+        // continuation line exactly, then the separator comma would make it lineLength + 1.
+        for (FormatterConfig cfg : annotationBoundaryConfigs()) {
+            int fill = cfg.lineLength() - cfg.continuationIndentSize() - "first = ".length() - 2;
+            assertLinesFit(
+                    cfg, "@LongAnnotationName(first = \"" + "x".repeat(fill) + "\", last = \"tail\") class T {}");
+        }
+    }
+
+    @Test
     void inlineClosingParen_reservesColumnBeforeSplittingLastValue() {
         Formatter f = new Formatter(FormatterConfig.builder().closingParenOnNewLine(false).build());
         // 8 (continuation) + "value = " (8) + 104 quoted columns = 120: fits alone, but not with the trailing ')'.
@@ -161,6 +183,39 @@ class AnnotationLayoutFormattingTest {
         for (String literal : new String[] {a, b, c}) {
             assertThat(out).contains(literal);
         }
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    private static FormatterConfig[] annotationBoundaryConfigs() {
+        FormatterConfig[] configs = new FormatterConfig[WrapStyle.values().length * 4];
+        int i = 0;
+        for (WrapStyle style : WrapStyle.values()) {
+            for (boolean closingOnNewLine : new boolean[] {true, false}) {
+                for (int lineLength : new int[] {NARROW_LINE_LENGTH, LINE_LENGTH}) {
+                    configs[i++] =
+                            FormatterConfig.builder()
+                                    .wrapStyle(style)
+                                    .closingParenOnNewLine(closingOnNewLine)
+                                    .lineLength(lineLength)
+                                    .build();
+                }
+            }
+        }
+        return configs;
+    }
+
+    private static void assertLinesFit(FormatterConfig cfg, String source) {
+        Formatter f = new Formatter(cfg);
+        String out = f.format(source);
+        int longest = out.lines().mapToInt(String::length).max().orElse(0);
+        assertThat(longest)
+                .as(
+                        "style=%s closingParenOnNewLine=%s lineLength=%s%n%s",
+                        cfg.wrapStyle(),
+                        cfg.closingParenOnNewLine(),
+                        cfg.lineLength(),
+                        out)
+                .isLessThanOrEqualTo(cfg.lineLength());
         assertThat(f.format(out)).isEqualTo(out);
     }
 }
