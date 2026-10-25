@@ -111,6 +111,44 @@ class AnnotationLayoutFormattingTest {
     }
 
     @Test
+    void wideLastAnnotationValue_packsWhenClosingParenIsOnTheNextLine() {
+        // Continuation line is exactly lineLength with both pairs. Reserving a column for ')' would
+        // push the last pair down even though that ')' is on its own line.
+        int lineLength = NARROW_LINE_LENGTH;
+        int continuation = FormatterConfig.builder().build().continuationIndentSize();
+        int lastFill = lineLength - continuation - "a = 1".length() - ", ".length() - "b = \"\"".length();
+        String last = "b = \"" + "x".repeat(lastFill) + "\"";
+        FormatterConfig cfg =
+                FormatterConfig.builder()
+                        .wrapStyle(WrapStyle.WIDE)
+                        .closingParenOnNewLine(true)
+                        .lineLength(lineLength)
+                        .build();
+        String out = new Formatter(cfg).format("@Annot8(a = 1, " + last + ") class T {}");
+        assertThat(out).contains("        a = 1, " + last + "\n");
+        assertThat(out.lines().mapToInt(String::length).max().orElse(0)).isLessThanOrEqualTo(lineLength);
+        assertThat(new Formatter(cfg).format(out)).isEqualTo(out);
+    }
+
+    @Test
+    void wideLastAnnotationValue_leavesRoomForInlineClosingParen() {
+        int lineLength = NARROW_LINE_LENGTH;
+        int continuation = FormatterConfig.builder().build().continuationIndentSize();
+        int lastFill = lineLength - continuation - "a = 1".length() - ", ".length() - "b = \"\"".length();
+        String last = "b = \"" + "x".repeat(lastFill) + "\"";
+        FormatterConfig cfg =
+                FormatterConfig.builder()
+                        .wrapStyle(WrapStyle.WIDE)
+                        .closingParenOnNewLine(false)
+                        .lineLength(lineLength)
+                        .build();
+        String out = new Formatter(cfg).format("@Annot8(a = 1, " + last + ") class T {}");
+        assertThat(out).contains("        a = 1,\n        " + last + ")");
+        assertThat(out.lines().mapToInt(String::length).max().orElse(0)).isLessThanOrEqualTo(lineLength);
+        assertThat(new Formatter(cfg).format(out)).isEqualTo(out);
+    }
+
+    @Test
     void nonFinalAnnotationPair_staysWithinLineLengthBeforeTrailingComma() {
         // "first = " is 8 columns, matching the existing last-value boundary. The literal fills the
         // continuation line exactly, then the separator comma would make it lineLength + 1.

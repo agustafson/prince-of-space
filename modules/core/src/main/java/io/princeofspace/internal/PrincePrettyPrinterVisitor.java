@@ -882,12 +882,20 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         boolean wide = fmt.wrapStyle() == WrapStyle.WIDE;
         try (LayoutContext.SilentCloseable ignored = ctx.wrappedDelimitedListScope(true)) {
             startWrappedAnnotationValueLine();
-            boolean first = true;
-            for (Node value : values) {
-                if (!first) {
+            int count = values.size();
+            for (int index = 0; index < count; index++) {
+                Node value = values.get(index);
+                if (index > 0) {
+                    // R5/R8: a non-final value may be followed by ',', and the last value by ')' when
+                    // that ')' stays on this line. The last value reserves nothing when ')' is on its own line.
+                    boolean last = index == count - 1;
+                    int trailingWidth = last && fmt.closingParenOnNewLine() ? 0 : 1;
                     boolean fits =
                             wide
-                                    && ctx.column() + 2 + WidthMeasurer.flatWidth(value, fmt) + 1
+                                    && ctx.column()
+                                                    + 2
+                                                    + WidthMeasurer.flatWidth(value, fmt)
+                                                    + trailingWidth
                                             <= fmt.lineLength();
                     if (fits) {
                         printer.print(", ");
@@ -897,7 +905,6 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                     }
                 }
                 value.accept(this, arg);
-                first = false;
             }
         }
         if (fmt.closingParenOnNewLine()) {
