@@ -84,9 +84,9 @@ Rules apply to **who is pushing**, not which secret name you used. The account t
 
 **If you use Repository rules** ( **Settings → Rules → Rulesets** , or org-level rulesets that include this repo):
 
-The repository's `main` ruleset is tracked in `.github/rulesets/main.json`. Persist changes there
-and apply them with `scripts/apply-main-ruleset.sh agustafson/prince-of-space`; UI-only edits are
-overwritten by the next apply.
+The repository's `main` ruleset is tracked in `.github/rulesets/main.json`; edit it there and apply
+it with the script described in `.github/rulesets/README.md`. UI-only edits are overwritten by the
+next apply.
 
 1. Open the **ruleset** that targets **`main`** (or `refs/heads/main` / default branch).
 2. Find **Bypass list** (wording may be **Bypass actors** or **Add bypass** depending on UI version).
