@@ -25,7 +25,7 @@ jobs:
         env:
           # GITHUB_TOKEN can never approve a PR (GitHub blocks Actions-authenticated
           # tokens from doing so, to stop a workflow rubber-stamping its own merge).
-          # The ruleset on main requires 1 approving review, so a real-user PAT is
+          # Classic branch protection on main requires 1 approving review, so a real-user PAT is
           # required here, not just for direct pushes.
           GH_TOKEN: ${{ secrets.GH_ACTIONS_PUSH_TOKEN }}
 
