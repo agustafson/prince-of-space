@@ -25,6 +25,7 @@ jobs:
           - java-version: 25
             distribution: oracle
 
+    # Keep these emitted check names in sync with .github/rulesets/main.json.
     name: "Java ${{ matrix.java-version }}"
     steps:
       - uses: actions/checkout@v7
