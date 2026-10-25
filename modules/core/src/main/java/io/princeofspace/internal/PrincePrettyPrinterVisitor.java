@@ -909,6 +909,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         boolean trailingLambda = false;
         boolean applyWrappedListIndent = false;
         boolean endingCommentEndedLine = false;
+        // Sole non-lambda argument followed by a line comment inside the parentheses: the argument moves to its
+        // own wrapped line and the comment stays on that line (`suffix // note`). Lambdas keep trailing-lambda layout.
+        boolean trailingLineCommentOnSoleArgument = false;
         Optional<Comment> trailingArgumentComment = Optional.empty();
         @Nullable MethodCallExpr methodCall =
                 args.getParentNode()
@@ -924,6 +927,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 if (methodCall != null && CommentUtils.hasTrailingLineOrBlockComment(lastArgument)) {
                     trailingArgumentComment = lastArgument.getComment();
                     CommentUtils.removeMirroredCommentOwners(methodCall, trailingArgumentComment.orElseThrow());
+                    trailingLineCommentOnSoleArgument = args.size() == SINGLE_ITEM_COUNT
+                            && !(lastArgument instanceof LambdaExpr)
+                            && CommentUtils.isLineCommentInsideCall(methodCall, trailingArgumentComment.orElseThrow());
                 }
                 wrapped = argumentListFormatter.argsNeedWrap(args);
                 trailingLambda = wrapped && argumentListFormatter.shouldUseTrailingLambdaLayout(args);
@@ -947,6 +953,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                                     || CommentUtils.hasAnyLineOrBlockCommentOnLambda(args.get(0)));
                     // Leading comments force a continuation even when the argument fits within the line length.
                     applyWrappedListIndent = commentedSingleArgument
+                            || trailingLineCommentOnSoleArgument
                             || (wrapped
                                     && (args.size() > SINGLE_ITEM_COUNT
                                             || argumentListFormatter.shouldBreakBeforeSingleWrappedArg(args.get(0))));
@@ -955,11 +962,17 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             try (LayoutContext.SilentCloseable ignored =
                     ctx.wrappedDelimitedListScope(applyWrappedListIndent)) {
                 if (!isNullOrEmpty(args) && !trailingLambda) {
-                    argumentListFormatter.printCommaSeparatedExprs(args, arg);
+                    if (trailingLineCommentOnSoleArgument) {
+                        argumentListFormatter.printSoleArgumentOnOwnLine(args.get(0), arg);
+                    } else {
+                        argumentListFormatter.printCommaSeparatedExprs(args, arg);
+                    }
                 }
                 if (trailingArgumentComment.isPresent()
                         || (methodCall != null && !methodCall.getOrphanComments().isEmpty())) {
-                    if (printer.getCursor().column > 0) {
+                    if (trailingLineCommentOnSoleArgument) {
+                        printer.print(" ");
+                    } else if (printer.getCursor().column > 0) {
                         printer.println();
                     }
                     int lineBeforeComments = printer.getCursor().line;
@@ -972,7 +985,13 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             }
             // R8: when configured, closing ')' moves to its own line for wrapped argument lists.
             // TDR-016 exception: trailing-lambda layout always closes "})" to match palantir-java-format.
-            if (fmt.closingParenOnNewLine() && wrapped && !trailingLambda && !endingCommentEndedLine) {
+            // A list whose last content already ended a line (e.g. a line comment on an operand) must not
+            // gain a blank line before the closer.
+            if (fmt.closingParenOnNewLine()
+                    && wrapped
+                    && !trailingLambda
+                    && !endingCommentEndedLine
+                    && printer.getCursor().column > 0) {
                 if (nestedOpenersAreColine) {
                     if (!compactArgumentCloserRunActive) {
                         printer.println();

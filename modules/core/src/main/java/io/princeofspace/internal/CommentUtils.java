@@ -234,6 +234,17 @@ final class CommentUtils {
         return commentEndColumn < nodeBeginColumn;
     }
 
+    /**
+     * Returns true when {@code comment} is a line comment that begins inside the parentheses of {@code call},
+     * before its closing {@code )}. A comment that follows the call, such as {@code f(a); // note}, is not inside.
+     */
+    static boolean isLineCommentInsideCall(MethodCallExpr call, Comment comment) {
+        if (!(comment instanceof LineComment) || call.getRange().isEmpty() || comment.getRange().isEmpty()) {
+            return false;
+        }
+        return comment.getRange().get().begin.isBefore(call.getRange().get().end);
+    }
+
     /** Returns true when a node has a same-line trailing line/block comment. */
     static boolean hasTrailingLineOrBlockComment(Node node) {
         Optional<Comment> c = node.getComment();

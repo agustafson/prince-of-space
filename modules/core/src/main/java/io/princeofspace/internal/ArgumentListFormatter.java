@@ -168,6 +168,15 @@ final class ArgumentListFormatter {
         }
     }
 
+    /**
+     * Prints a sole argument that carries a trailing line comment: the argument starts its own
+     * wrapped line, and the caller appends the comment after it on that same line.
+     */
+    void printSoleArgumentOnOwnLine(Expression only, Void arg) {
+        ctx.println();
+        ctx.accept(only, arg);
+    }
+
     boolean shouldBreakBeforeSingleWrappedArg(Expression expression) {
         if (expression instanceof MethodCallExpr methodCall && methodCall.getScope().isPresent()) {
             return false;

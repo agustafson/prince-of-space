@@ -81,6 +81,58 @@ class CommentPreservationTest {
 
     @ParameterizedTest
     @EnumSource(WrapStyle.class)
+    void trailingLineCommentAfterSoleArgument_keepsArgumentAndCommentOnOwnLine(WrapStyle style) {
+        for (boolean closingParenOnNewLine : new boolean[] {false, true}) {
+            FormatterConfig config = FormatterConfig.builder()
+                    .lineLength(120)
+                    .wrapStyle(style)
+                    .closingParenOnNewLine(closingParenOnNewLine)
+                    .build();
+            String input = """
+                    class T {
+                        Object m(String value, String suffix) {
+                            return value.concat(suffix // This comment follows the sole argument.
+                                    ).trim();
+                        }
+                    }
+                    """;
+
+            Formatter formatter = new Formatter(config);
+            String output = formatter.format(input);
+            assertThat(output)
+                    .contains(".concat(\n                    suffix // This comment follows the sole argument.\n            )");
+            assertThat(output).doesNotContain(".concat(suffix");
+            assertThat(formatter.format(output)).isEqualTo(output);
+            assertThatCode(() -> StaticJavaParser.parse(output)).doesNotThrowAnyException();
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(WrapStyle.class)
+    void trailingLineCommentOnLastOperand_noBlankLineBeforeClosingParen(WrapStyle style) {
+        FormatterConfig config = FormatterConfig.builder()
+                .wrapStyle(style)
+                .closingParenOnNewLine(true)
+                .build();
+        String input = """
+                class T {
+                    void p() {
+                        bar.baz(reallyLongArgumentNameNumberOneForTesting + reallyLongArgumentNameNumberTwoForTesting + reallyLongArgumentNameNumberThree // long
+                        );
+                    }
+                }
+                """;
+
+        Formatter formatter = new Formatter(config);
+        String output = formatter.format(input);
+        assertThat(output).containsOnlyOnce("// long");
+        assertThat(output).doesNotContainPattern("\\n\\h*\\n\\h*\\)");
+        assertThat(formatter.format(output)).isEqualTo(output);
+        assertThatCode(() -> StaticJavaParser.parse(output)).doesNotThrowAnyException();
+    }
+
+    @ParameterizedTest
+    @EnumSource(WrapStyle.class)
     void nestedEmptyArrayCommentsWithTabs_preserveFollowingMemberIndent(WrapStyle style) {
         FormatterConfig config = FormatterConfig.builder()
                 .indentStyle(IndentStyle.TABS)
