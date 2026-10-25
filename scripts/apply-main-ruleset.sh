@@ -23,7 +23,7 @@ repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 ruleset_file="$repo_root/.github/rulesets/main.json"
 
 ruleset_id="$(
-  gh api "repos/${repository}/rulesets" \
+  gh api "repos/${repository}/rulesets?includes_parents=false" \
     --jq '[.[] | select(.name == "main")] | if length == 1 then .[0].id else error("expected exactly one repository ruleset named main") end'
 )"
 
