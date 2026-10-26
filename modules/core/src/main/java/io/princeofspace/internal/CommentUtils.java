@@ -28,6 +28,17 @@ final class CommentUtils {
 
     private CommentUtils() {}
 
+    /** Removes every owner of the exact comment instance within a call subtree. */
+    @SuppressWarnings({"ReferenceEquality", "PMD.CompareObjectsWithEquals"})
+    static void removeMirroredCommentOwners(MethodCallExpr methodCall, Comment comment) {
+        for (Node node : methodCall.findAll(Node.class)) {
+            // JavaParser can mirror this exact Comment instance onto the call scope, name, and arguments.
+            if (node.getComment().orElse(null) == comment) {
+                node.removeComment();
+            }
+        }
+    }
+
     /** Returns whether comments exist between two statements in the same block. */
     static boolean hasCommentBetweenStatements(BlockStmt block, Statement previous, Statement current) {
         return hasCommentBetweenStatements(block.getAllContainedComments(), previous, current);
@@ -378,20 +389,11 @@ final class CommentUtils {
 
     /** Returns a comment candidate that should be hoisted before wrapped call arguments. */
     static Optional<Comment> hoistableArgumentComment(MethodCallExpr mc) {
-        if (mc.getArguments().isEmpty()) {
-            return Optional.empty();
-        }
-        if (mc.getArguments().size() > SINGLE_ARGUMENT_COUNT) {
-            for (Expression argument : mc.getArguments()) {
-                Optional<Comment> comment = argument.getComment();
-                if (comment.isPresent() && isEmptyLineOrBlockComment(comment.get())) {
-                    return comment;
-                }
-            }
+        if (mc.getArguments().size() != SINGLE_ARGUMENT_COUNT) {
             return Optional.empty();
         }
         Expression only = mc.getArguments().get(0);
-        if (only instanceof LambdaExpr) {
+        if (only instanceof LambdaExpr || hasTrailingLineOrBlockComment(only)) {
             return Optional.empty();
         }
         if (hasLineOrBlockComment(only)) {

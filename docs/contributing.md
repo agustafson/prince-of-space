@@ -51,7 +51,7 @@ CI runs tests, Spotless, Checkstyle, SpotBugs, Error Prone, and dependency healt
 
 Workflows that commit back to the repo use **`permissions: contents: write`** and checkout with `token: ${{ secrets.GH_ACTIONS_PUSH_TOKEN || github.token }}` (the PAT is used when the secret exists).
 
-**Why `GITHUB_TOKEN` is not enough on a protected `main`:** The default token authenticates as **`github-actions[bot]`**. That identity does **not** inherit *your* admin bypass, and rulesets do not list a generic “GitHub Actions” actor. Pushes can fail with `GH013: Repository rule violations` even with **Read and write** enabled. The same identity restriction also means **`GITHUB_TOKEN` can never submit an approving review** — GitHub blocks Actions-authenticated tokens from approving any PR, including ones the workflow itself is acting on, specifically to stop a workflow from rubber-stamping its own merge. If a ruleset requires an approving review (ours does — see `dependabot-auto-merge.yml`), only a real-user PAT like `GH_ACTIONS_PUSH_TOKEN` can supply it.
+**Why `GITHUB_TOKEN` is not enough on a protected `main`:** The default token authenticates as **`github-actions[bot]`**. That identity does **not** inherit *your* admin bypass, and rulesets do not list a generic “GitHub Actions” actor. Pushes can fail with `GH013: Repository rule violations` even with **Read and write** enabled. The same identity restriction also means **`GITHUB_TOKEN` can never submit an approving review** — GitHub blocks Actions-authenticated tokens from approving any PR, including ones the workflow itself is acting on, specifically to stop a workflow from rubber-stamping its own merge. The current classic branch-protection rule on `main` requires an approving review (see `dependabot-auto-merge.yml`), so only a real-user PAT like `GH_ACTIONS_PUSH_TOKEN` can supply it.
 
 Use the two steps below when you need **direct pushes** to `main` from automation, or an approving review for Dependabot auto-merge.
 
@@ -84,6 +84,10 @@ Rules apply to **who is pushing**, not which secret name you used. The account t
 
 **If you use Repository rules** ( **Settings → Rules → Rulesets** , or org-level rulesets that include this repo):
 
+The repository's `main` ruleset is tracked in `.github/rulesets/main.json`; edit it there and apply
+it with the script described in `.github/rulesets/README.md`. UI-only edits are overwritten by the
+next apply.
+
 1. Open the **ruleset** that targets **`main`** (or `refs/heads/main` / default branch).
 2. Find **Bypass list** (wording may be **Bypass actors** or **Add bypass** depending on UI version).
 3. **Add bypass** and choose an actor type GitHub offers — commonly:
@@ -91,7 +95,8 @@ Rules apply to **who is pushing**, not which secret name you used. The account t
    - **Team** (if the PAT user is only in a team you add to bypass), or
    - Most directly for a **personal PAT:** add the **user account** that owns the PAT if the UI lets you pick **People** / **Repository collaborator** (exact labels vary).
 4. Set **Bypass mode** to **Always** (not only “on pull request”) if you need **direct commits** to `main`.
-5. Save the ruleset.
+5. Record the actor in `.github/rulesets/main.json`'s `bypass_actors` and apply the checked-in
+   configuration with the script above.
 
 **If you still cannot find the PAT’s user in the list:** Some UIs only offer **roles, teams, and GitHub Apps**. Then either (a) invite that user with a role that appears in **Repository role** bypass (e.g. make the machine user **Admin** on this repo only — weigh risk), (b) put that user in a **team** and add **Team** to bypass, or (c) avoid bypass entirely and change the workflow to **push to a branch** and **merge via PR** (with optional auto-merge).
 

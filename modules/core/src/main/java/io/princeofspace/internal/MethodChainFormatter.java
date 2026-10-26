@@ -161,18 +161,50 @@ final class MethodChainFormatter {
      * {@link #isSimpleBase simple} receiver stays {@code receiver.method(...)} on one line.
      */
     void printChainBalancedOrNarrow(Expression base, List<MethodCallExpr> calls, Void arg) {
+        boolean inlineSingleCall =
+                calls.size() == SINGLE_ITEM_COUNT
+                        && isSimpleBase(base)
+                        && !CommentUtils.hasLineOrBlockComment(calls.get(0))
+                        && !CommentUtils.hasLineOrBlockComment(calls.get(0).getName())
+                        && calls.get(0).getOrphanComments().isEmpty();
+        List<Optional<Comment>> hoistedArgumentComments = new ArrayList<>(calls.size());
+        if (!inlineSingleCall) {
+            MethodCallExpr chainRoot = calls.get(calls.size() - 1);
+            for (MethodCallExpr call : calls) {
+                for (Expression argument : call.getArguments()) {
+                    if (call.getArguments().size() > SINGLE_ITEM_COUNT
+                            || CommentUtils.hasTrailingLineOrBlockComment(argument)) {
+                        argument.getComment().ifPresent(comment -> {
+                            // Keep argument comments inside the list, without mirrored scope/name owners.
+                            CommentUtils.removeMirroredCommentOwners(chainRoot, comment);
+                            argument.setComment(comment);
+                        });
+                    }
+                }
+                Optional<Comment> hoistedComment = CommentUtils.hoistableArgumentComment(call);
+                if (hoistedComment.isPresent()) {
+                    Comment comment = hoistedComment.orElseThrow();
+                    CommentUtils.removeMirroredCommentOwners(chainRoot, comment);
+                    if (CommentUtils.hasLineOrBlockComment(call)
+                            || CommentUtils.hasLineOrBlockComment(call.getName())) {
+                        // Keep the argument comment inside the call when a distinct call comment remains.
+                        call.getArgument(0).setComment(comment);
+                        hoistedComment = Optional.empty();
+                    }
+                }
+                hoistedArgumentComments.add(hoistedComment);
+            }
+        }
         Optional<Comment> hoistedBaseComment = CommentUtils.hoistableWrappedChainBaseComment(base);
+        hoistedBaseComment.ifPresent(
+                comment -> CommentUtils.removeMirroredCommentOwners(calls.get(calls.size() - 1), comment));
         if (hoistedBaseComment.isPresent()) {
             printExpressionWithoutOwnComment(base, arg);
         } else {
             ctx.accept(base, arg);
         }
 
-        if (calls.size() == SINGLE_ITEM_COUNT
-                && isSimpleBase(base)
-                && !CommentUtils.hasLineOrBlockComment(calls.get(0))
-                && !CommentUtils.hasLineOrBlockComment(calls.get(0).getName())
-                && calls.get(0).getOrphanComments().isEmpty()) {
+        if (inlineSingleCall) {
             MethodCallExpr only = calls.get(0);
             ctx.print(".");
             ctx.printTypeArgs(only, arg);
@@ -193,8 +225,10 @@ final class MethodChainFormatter {
             if (i == calls.size() - 1 && hoistedBaseComment.isPresent()) {
                 ctx.printComment(hoistedBaseComment, arg);
             }
+            Optional<Comment> hoistedComment = hoistedArgumentComments.get(i);
             ctx.printOrphanCommentsBeforeThisChildNode(mc);
-            Optional<Comment> hoistedComment = CommentUtils.hoistableArgumentComment(mc);
+            ctx.printOrphanCommentsBeforeThisChildNode(mc);
+            ctx.printOrphanCommentsBeforeThisChildNode(mc.getName());
             if (CommentUtils.hasLineOrBlockComment(mc)) {
                 ctx.printComment(mc.getComment(), arg);
             } else if (CommentUtils.hasLineOrBlockComment(mc.getName())) {
@@ -212,9 +246,6 @@ final class MethodChainFormatter {
                 } finally {
                     ctx.unindent();
                 }
-            } else if (hoistedComment.isPresent()) {
-                // R10: comment was printed above; re-print args without duplicating per-arg comments.
-                printArgumentsWithoutComments(mc.getArguments(), arg);
             } else {
                 ctx.printArguments(mc.getArguments(), arg);
             }
@@ -274,23 +305,5 @@ final class MethodChainFormatter {
         Expression copy = expression.clone();
         copy.removeComment();
         ctx.accept(copy, arg);
-    }
-
-    /**
-     * Prints argument clones with comments removed to avoid duplicated hoisted comments.
-     *
-     * <p>Each argument uses a parent-less subtree clone; see {@link #printExpressionWithoutOwnComment(Expression, Void)}.
-     */
-    void printArgumentsWithoutComments(NodeList<? extends Expression> arguments, Void arg) {
-        NodeList<Expression> copies = new NodeList<>();
-        for (Expression expression : arguments) {
-            Expression copy = expression.clone();
-            copy.removeComment();
-            for (Comment comment : new ArrayList<>(copy.getAllContainedComments())) {
-                comment.remove();
-            }
-            copies.add(copy);
-        }
-        ctx.printArguments(copies, arg);
     }
 }

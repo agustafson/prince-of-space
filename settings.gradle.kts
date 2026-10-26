@@ -7,7 +7,7 @@ pluginManagement {
 
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-    id("com.autonomousapps.build-health") version "3.12.0"
+    id("com.autonomousapps.build-health") version "3.18.0"
 }
 
 dependencyResolutionManagement {
