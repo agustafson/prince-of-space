@@ -6,6 +6,7 @@ eclipse-jdt = "4.34"
 errorprone = "2.50.0"
 errorprone-plugin = "5.1.0"
 google-java-format = "1.35.0"
+intellij-platform = "2.19.0"
 javaparser = "3.28.2"
 jqwik = "1.9.3"
 jspecify = "1.0.0"
@@ -51,6 +52,7 @@ spotless-lib-extra = { module = "com.diffplug.spotless:spotless-lib-extra", vers
 
 [plugins]
 errorprone = { id = "net.ltgt.errorprone", version.ref = "errorprone-plugin" }
+intellij-platform = { id = "org.jetbrains.intellij.platform", version.ref = "intellij-platform" }
 mkdocs-build = { id = "ru.vyarus.mkdocs-build", version.ref = "mkdocs-build" }
 shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
 spotbugs = { id = "com.github.spotbugs", version.ref = "spotbugs-gradle" }

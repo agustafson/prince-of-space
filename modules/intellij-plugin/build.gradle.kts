@@ -1,6 +1,6 @@
 plugins {
     java
-    id("org.jetbrains.intellij.platform") version "2.19.0"
+    alias(libs.plugins.intellij.platform)
 }
 
 base {
