@@ -13,6 +13,7 @@ import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.comments.BlockComment;
 import com.github.javaparser.ast.comments.Comment;
+import com.github.javaparser.ast.comments.LineComment;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.ArrayInitializerExpr;
 import com.github.javaparser.ast.expr.BinaryExpr;
@@ -931,7 +932,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                     CommentUtils.removeMirroredCommentOwners(methodCall, trailingArgumentComment.orElseThrow());
                     trailingLineCommentOnSoleArgument = args.size() == SINGLE_ITEM_COUNT
                             && !(lastArgument instanceof LambdaExpr)
-                            && CommentUtils.isLineCommentInsideCall(methodCall, trailingArgumentComment.orElseThrow());
+                            && trailingArgumentComment.orElseThrow() instanceof LineComment;
                 } else if (methodCall != null
                         && args.size() == SINGLE_ITEM_COUNT
                         && !(lastArgument instanceof LambdaExpr)) {

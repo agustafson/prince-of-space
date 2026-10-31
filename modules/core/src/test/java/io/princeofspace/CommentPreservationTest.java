@@ -230,6 +230,35 @@ class CommentPreservationTest {
         assertThatCode(() -> StaticJavaParser.parse(output)).doesNotThrowAnyException();
     }
 
+    /**
+     * A comment after the statement can attach to the last argument of a wrapped chain. Its first pass must lay the
+     * argument out as the later passes do, so repeated formatting does not change the layout.
+     */
+    @ParameterizedTest
+    @EnumSource(WrapStyle.class)
+    void statementTrailingCommentOnChainSoleArgument_sameLayoutOnEveryPass(WrapStyle style) {
+        FormatterConfig config = FormatterConfig.builder().lineLength(80).wrapStyle(style).build();
+        String input = """
+                class T {
+                    Object m() {
+                        return Mono.deferContextual(
+                                        contextView -> {
+                                            return Mono.empty();
+                                        })
+                                .subscribeOn(Schedulers.boundedElastic()); // keep trailing comment on the call
+                    }
+                }
+                """;
+
+        String firstPass = new Formatter(config, true).format(input);
+        String secondPass = new Formatter(config, true).format(firstPass);
+        String converged = new Formatter(config).format(input);
+        assertThat(secondPass).isEqualTo(firstPass);
+        assertThat(converged).isEqualTo(firstPass);
+        assertThat(converged).containsOnlyOnce("// keep trailing comment on the call");
+        assertThatCode(() -> StaticJavaParser.parse(converged)).doesNotThrowAnyException();
+    }
+
     /** A sole argument's trailing comment gets one layout whether it is formatted in one pass or repeatedly. */
     @ParameterizedTest
     @EnumSource(WrapStyle.class)
