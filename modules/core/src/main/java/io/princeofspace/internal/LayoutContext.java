@@ -91,11 +91,20 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
             indentWithAlignToSafe(targetColumn);
             return;
         }
-        printer.print("");
+        materializeIndent();
         int c = column();
         if (targetColumn > c) {
             print(" ".repeat(targetColumn - c));
         }
+    }
+
+    /**
+     * Emits the pending block indent of the current line without printing visible text, so that
+     * {@link #column()} reports the indented column. Right after {@link #println()} the column is 0 until
+     * the next print.
+     */
+    void materializeIndent() {
+        printer.print("");
     }
 
     /**

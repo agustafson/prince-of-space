@@ -170,10 +170,13 @@ final class ArgumentListFormatter {
 
     /**
      * Prints a sole argument that carries a trailing line comment: the argument starts its own
-     * wrapped line, and the caller appends the comment after it on that same line.
+     * wrapped line. The caller then places the comment beside it or on the following line.
      */
     void printSoleArgumentOnOwnLine(Expression only, Void arg) {
         ctx.println();
+        // println() reports column 0 until the next print emits the block indent. Materialize it first so
+        // width checks inside the argument (e.g. method-chain wrapping) see the real column.
+        ctx.materializeIndent();
         ctx.accept(only, arg);
     }
 

@@ -17,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 /** Phase 5: comments survive formatting and formatting is idempotent when comments are present. */
 class CommentPreservationTest {
 
+    private static final String MARK_COMMENT = "// MARK";
+
     @ParameterizedTest
     @EnumSource(WrapStyle.class)
     void inlineBlockCommentsInEmptyCalls_stayInsideParentheses(WrapStyle style) {
@@ -129,6 +131,135 @@ class CommentPreservationTest {
         assertThat(output).doesNotContainPattern("\\n\\h*\\n\\h*\\)");
         assertThat(formatter.format(output)).isEqualTo(output);
         assertThatCode(() -> StaticJavaParser.parse(output)).doesNotThrowAnyException();
+    }
+
+    /**
+     * The chain must be measured at its indented column, so every line stays within the limit and the comment
+     * stays after the chain's last call.
+     */
+    @ParameterizedTest
+    @EnumSource(WrapStyle.class)
+    void trailingLineCommentAfterChainSoleArgument_fitsLineLengthAndStaysAfterChain(WrapStyle style) {
+        FormatterConfig config = FormatterConfig.builder().lineLength(120).wrapStyle(style).build();
+        String input = """
+                class T {
+                    Object m() {
+                        return consume(receiver.firstLongMethodName().secondLongMethodName().thirdLongMethodName().fourthLongMethodName().finish() // MARK
+                        );
+                    }
+                }
+                """;
+
+        Formatter formatter = new Formatter(config);
+        String output = formatter.format(input);
+        assertThat(output.lines().mapToInt(String::length).max().orElse(0)).isLessThanOrEqualTo(120);
+        assertThat(output).containsOnlyOnce(MARK_COMMENT);
+        assertThat(output.indexOf(MARK_COMMENT)).isGreaterThan(output.indexOf(".finish()"));
+        assertThat(output).containsPattern("\\R {16}" + MARK_COMMENT);
+        assertThat(formatter.format(output)).isEqualTo(output);
+        assertThatCode(() -> StaticJavaParser.parse(output)).doesNotThrowAnyException();
+    }
+
+    /** A forced-wrap chain must not pull its trailing comment into the last call on a later pass. */
+    @ParameterizedTest
+    @EnumSource(WrapStyle.class)
+    void trailingLineCommentAfterForcedWrapChain_staysAfterLastCallOnEveryPass(WrapStyle style) {
+        FormatterConfig config = FormatterConfig.builder().lineLength(120).wrapStyle(style).build();
+        String input = """
+                class T {
+                    Object m() {
+                        return consume(receiver.firstLongMethodName().secondLongMethodName().thirdLongMethodName().fourthLongMethodName().fifthLongMethodName().sixthLongMethodName().finish() // MARK
+                        );
+                    }
+                }
+                """;
+
+        Formatter formatter = new Formatter(config);
+        String output = formatter.format(input);
+        assertThat(output).containsOnlyOnce(MARK_COMMENT);
+        assertThat(output.indexOf(MARK_COMMENT)).isGreaterThan(output.indexOf(".finish()"));
+        assertThat(output).containsPattern("\\R {16}" + MARK_COMMENT);
+        assertThat(formatter.format(output)).isEqualTo(output);
+        assertThatCode(() -> StaticJavaParser.parse(output)).doesNotThrowAnyException();
+    }
+
+    /** A comment after a multi-line array argument must not move into the initializer on a later pass. */
+    @ParameterizedTest
+    @EnumSource(WrapStyle.class)
+    void trailingLineCommentAfterMultilineArrayArgument_staysAfterArrayOnEveryPass(WrapStyle style) {
+        FormatterConfig config = FormatterConfig.builder().lineLength(120).wrapStyle(style).build();
+        String input = """
+                class T {
+                    Object m() {
+                        return consume(new String[] {firstLongArrayElementValueForTesting, secondLongArrayElementValueForTesting, thirdLongArrayElementValueForTesting, fourthLongArrayElementValueForTesting} // OUTER
+                        );
+                    }
+                }
+                """;
+
+        Formatter formatter = new Formatter(config);
+        String output = formatter.format(input);
+        assertThat(output).containsOnlyOnce("// OUTER");
+        assertThat(output.indexOf("// OUTER")).isGreaterThan(output.indexOf("fourthLongArrayElementValueForTesting"));
+        assertThat(formatter.format(output)).isEqualTo(output);
+        assertThatCode(() -> StaticJavaParser.parse(output)).doesNotThrowAnyException();
+    }
+
+    /**
+     * A line comment that would overflow beside a one-line sole argument moves to its own line, so no line
+     * exceeds the limit because of the comment's position.
+     */
+    @ParameterizedTest
+    @EnumSource(WrapStyle.class)
+    void trailingLineCommentThatOverflowsBesideSoleArgument_movesToOwnLine(WrapStyle style) {
+        FormatterConfig config = FormatterConfig.builder().lineLength(120).wrapStyle(style).build();
+        String input = """
+                class T {
+                    Object m() {
+                        return consume(value // Keep the value for the next processing step. Keep the configured value for the next processing step.
+                        );
+                    }
+                }
+                """;
+
+        Formatter formatter = new Formatter(config);
+        String output = formatter.format(input);
+        assertThat(output).containsPattern("value\\R {16}// Keep the value for the next processing step\\.");
+        assertThat(output.lines().mapToInt(String::length).max().orElse(0)).isLessThanOrEqualTo(120);
+        assertThat(formatter.format(output)).isEqualTo(output);
+        assertThatCode(() -> StaticJavaParser.parse(output)).doesNotThrowAnyException();
+    }
+
+    /** A sole argument's trailing comment gets one layout whether it is formatted in one pass or repeatedly. */
+    @ParameterizedTest
+    @EnumSource(WrapStyle.class)
+    void trailingLineCommentAfterSoleArgument_sameLayoutOnEveryPass(WrapStyle style) {
+        FormatterConfig config = FormatterConfig.builder().lineLength(120).wrapStyle(style).build();
+        String[] inputs = {
+            """
+            class T {
+                Object m() {
+                    return consume(value // Keep the value for the next processing step. Keep the configured value for the next processing step.
+                    );
+                }
+            }
+            """,
+            """
+            class T {
+                Object m() {
+                    return consume(receiver.firstLongMethodName().secondLongMethodName().thirdLongMethodName().fourthLongMethodName().finish() // MARK
+                    );
+                }
+            }
+            """
+        };
+        for (String input : inputs) {
+            String firstPass = new Formatter(config, true).format(input);
+            String secondPass = new Formatter(config, true).format(firstPass);
+            String converged = new Formatter(config).format(input);
+            assertThat(secondPass).isEqualTo(firstPass);
+            assertThat(converged).isEqualTo(firstPass);
+        }
     }
 
     @ParameterizedTest

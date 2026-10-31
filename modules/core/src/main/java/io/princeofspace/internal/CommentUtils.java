@@ -1,5 +1,6 @@
 package io.princeofspace.internal;
 
+import com.github.javaparser.Position;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
@@ -243,6 +244,26 @@ final class CommentUtils {
             return false;
         }
         return comment.getRange().get().begin.isBefore(call.getRange().get().end);
+    }
+
+    /**
+     * Returns the line comment that stands on its own line after {@code sole} and before the closing {@code )} of
+     * {@code call}. After a reparse JavaParser attaches such a comment to the call rather than to the argument.
+     */
+    static Optional<Comment> lineCommentOrphanAfterSoleArgument(MethodCallExpr call, Expression sole) {
+        if (sole.getRange().isEmpty()) {
+            return Optional.empty();
+        }
+        Position soleEnd = sole.getRange().get().end;
+        for (Comment orphan : call.getOrphanComments()) {
+            if (orphan instanceof LineComment
+                    && orphan.getRange().isPresent()
+                    && orphan.getRange().get().begin.isAfter(soleEnd)
+                    && isLineCommentInsideCall(call, orphan)) {
+                return Optional.of(orphan);
+            }
+        }
+        return Optional.empty();
     }
 
     /** Returns true when a node has a same-line trailing line/block comment. */

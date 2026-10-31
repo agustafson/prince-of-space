@@ -89,6 +89,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     private static final int TERNARY_OPERATOR_WIDTH = 3; // " ? " / " : "
     private static final int SINGLE_ITEM_COUNT = 1;
     private static final int SWITCH_GUARD_KEYWORD_WIDTH = 6; // " when "
+    /** Width of the separator and marker before a trailing line comment: {@code " //"}. */
+    private static final int TRAILING_LINE_COMMENT_PREFIX_WIDTH = 3;
     /** Width of {@code for (} in header flat-width and wrap heuristics. */
     private static final int FOR_LOOP_OPEN_PREFIX_WIDTH = 5;
     /** Width of the closing {@code )} in {@code for (...)} one-line width estimates. */
@@ -930,6 +932,17 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                     trailingLineCommentOnSoleArgument = args.size() == SINGLE_ITEM_COUNT
                             && !(lastArgument instanceof LambdaExpr)
                             && CommentUtils.isLineCommentInsideCall(methodCall, trailingArgumentComment.orElseThrow());
+                } else if (methodCall != null
+                        && args.size() == SINGLE_ITEM_COUNT
+                        && !(lastArgument instanceof LambdaExpr)) {
+                    // A line comment on its own line before ')' reparses as an orphan of the call. Treat it as the
+                    // argument's trailing comment so every pass lays the argument out the same way.
+                    Optional<Comment> orphan = CommentUtils.lineCommentOrphanAfterSoleArgument(methodCall, lastArgument);
+                    if (orphan.isPresent()) {
+                        orphan.orElseThrow().remove();
+                        trailingArgumentComment = orphan;
+                        trailingLineCommentOnSoleArgument = true;
+                    }
                 }
                 wrapped = argumentListFormatter.argsNeedWrap(args);
                 trailingLambda = wrapped && argumentListFormatter.shouldUseTrailingLambdaLayout(args);
@@ -970,7 +983,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 }
                 if (trailingArgumentComment.isPresent()
                         || (methodCall != null && !methodCall.getOrphanComments().isEmpty())) {
-                    if (trailingLineCommentOnSoleArgument) {
+                    if (trailingLineCommentOnSoleArgument
+                            && fitsLineCommentBesideSoleArgument(openerLine, trailingArgumentComment.orElseThrow())) {
                         printer.print(" ");
                     } else if (printer.getCursor().column > 0) {
                         printer.println();
@@ -1008,6 +1022,21 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 compactArgumentCloserRunActive = false;
             }
         }
+    }
+
+    /**
+     * Whether a trailing line comment of a sole argument may stay beside that argument as {@code arg // note}.
+     * The argument must have printed on the single line after the opener, and the comment must fit within the
+     * line length. Otherwise the comment moves to its own line, after the complete argument.
+     */
+    private boolean fitsLineCommentBesideSoleArgument(int openerLine, Comment comment) {
+        if (printer.getCursor().line != openerLine + 1) {
+            return false;
+        }
+        int width = printer.getCursor().column
+                + TRAILING_LINE_COMMENT_PREFIX_WIDTH
+                + comment.getContent().stripTrailing().length();
+        return width <= fmt.lineLength();
     }
 
     // Bodies, parameters, and type headers for declarations live in DeclarationFormatter (same rules;
