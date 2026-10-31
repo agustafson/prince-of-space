@@ -24,6 +24,7 @@ import com.github.javaparser.ast.expr.LambdaExpr;
 import com.github.javaparser.ast.expr.MemberValuePair;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.NormalAnnotationExpr;
+import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.expr.SimpleName;
 import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
@@ -33,6 +34,7 @@ import com.github.javaparser.ast.nodeTypes.NodeWithVariables;
 import com.github.javaparser.ast.stmt.AssertStmt;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.CatchClause;
+import com.github.javaparser.ast.stmt.ExplicitConstructorInvocationStmt;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.ast.stmt.ForEachStmt;
 import com.github.javaparser.ast.stmt.ForStmt;
@@ -894,6 +896,23 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         n.getElseExpr().accept(this, arg);
     }
 
+    /**
+     * A trailing comment on the last constructor argument can be mirrored onto the type, which prints before the
+     * argument list. Remove those copies so the comment prints once, after the argument.
+     */
+    @Override
+    public void visit(ObjectCreationExpr n, Void arg) {
+        if (!isNullOrEmpty(n.getArguments())) {
+            Expression lastArgument = n.getArguments().get(n.getArguments().size() - 1);
+            if (CommentUtils.hasTrailingLineOrBlockComment(lastArgument)) {
+                Comment comment = lastArgument.getComment().orElseThrow();
+                CommentUtils.removeMirroredCommentOwners(n.getType(), comment);
+                n.getScope().ifPresent(scope -> CommentUtils.removeMirroredCommentOwners(scope, comment));
+            }
+        }
+        super.visit(n, arg);
+    }
+
     @Override
     protected <T extends Expression> void printArguments(NodeList<T> args, Void arg) {
         int openerLine = printer.getCursor().line;
@@ -921,24 +940,30 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                         .filter(MethodCallExpr.class::isInstance)
                         .map(MethodCallExpr.class::cast)
                         .orElse(null);
+        // Owner of the argument list for trailing-comment handling: a method call or a constructor call.
+        @Nullable Node commentOwner = args.getParentNode()
+                .filter(parent -> parent instanceof MethodCallExpr
+                        || parent instanceof ObjectCreationExpr
+                        || parent instanceof ExplicitConstructorInvocationStmt)
+                .orElse(null);
         try {
             if (methodCall != null) {
                 inlineBlockComments.printEmptyArguments(methodCall, printer);
             }
             if (!isNullOrEmpty(args)) {
                 Expression lastArgument = args.get(args.size() - 1);
-                if (methodCall != null && CommentUtils.hasTrailingLineOrBlockComment(lastArgument)) {
+                if (commentOwner != null && CommentUtils.hasTrailingLineOrBlockComment(lastArgument)) {
                     trailingArgumentComment = lastArgument.getComment();
-                    CommentUtils.removeMirroredCommentOwners(methodCall, trailingArgumentComment.orElseThrow());
+                    CommentUtils.removeMirroredCommentOwners(commentOwner, trailingArgumentComment.orElseThrow());
                     trailingLineCommentOnSoleArgument = args.size() == SINGLE_ITEM_COUNT
                             && !(lastArgument instanceof LambdaExpr)
                             && trailingArgumentComment.orElseThrow() instanceof LineComment;
-                } else if (methodCall != null
+                } else if (commentOwner != null
                         && args.size() == SINGLE_ITEM_COUNT
                         && !(lastArgument instanceof LambdaExpr)) {
                     // A line comment on its own line before ')' reparses as an orphan of the call. Treat it as the
                     // argument's trailing comment so every pass lays the argument out the same way.
-                    Optional<Comment> orphan = CommentUtils.lineCommentOrphanAfterSoleArgument(methodCall, lastArgument);
+                    Optional<Comment> orphan = CommentUtils.lineCommentOrphanAfterSoleArgument(commentOwner, lastArgument);
                     if (orphan.isPresent()) {
                         orphan.orElseThrow().remove();
                         trailingArgumentComment = orphan;
@@ -983,7 +1008,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                     }
                 }
                 if (trailingArgumentComment.isPresent()
-                        || (methodCall != null && !methodCall.getOrphanComments().isEmpty())) {
+                        || (commentOwner != null && !commentOwner.getOrphanComments().isEmpty())) {
                     if (trailingLineCommentOnSoleArgument
                             && fitsLineCommentBesideSoleArgument(openerLine, trailingArgumentComment.orElseThrow())) {
                         printer.print(" ");
@@ -992,8 +1017,8 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                     }
                     int lineBeforeComments = printer.getCursor().line;
                     printComment(trailingArgumentComment, arg);
-                    if (methodCall != null) {
-                        printOrphanCommentsEnding(methodCall);
+                    if (commentOwner != null) {
+                        printOrphanCommentsEnding(commentOwner);
                     }
                     endingCommentEndedLine = printer.getCursor().line > lineBeforeComments;
                 }

@@ -31,8 +31,8 @@ final class CommentUtils {
 
     /** Removes every owner of the exact comment instance within a call subtree. */
     @SuppressWarnings({"ReferenceEquality", "PMD.CompareObjectsWithEquals"})
-    static void removeMirroredCommentOwners(MethodCallExpr methodCall, Comment comment) {
-        for (Node node : methodCall.findAll(Node.class)) {
+    static void removeMirroredCommentOwners(Node owner, Comment comment) {
+        for (Node node : owner.findAll(Node.class)) {
             // JavaParser can mirror this exact Comment instance onto the call scope, name, and arguments.
             if (node.getComment().orElse(null) == comment) {
                 node.removeComment();
@@ -239,7 +239,7 @@ final class CommentUtils {
      * Returns true when {@code comment} is a line comment that begins inside the parentheses of {@code call},
      * before its closing {@code )}. A comment that follows the call, such as {@code f(a); // note}, is not inside.
      */
-    static boolean isLineCommentInsideCall(MethodCallExpr call, Comment comment) {
+    static boolean isLineCommentInsideCall(Node call, Comment comment) {
         if (!(comment instanceof LineComment) || call.getRange().isEmpty() || comment.getRange().isEmpty()) {
             return false;
         }
@@ -250,7 +250,7 @@ final class CommentUtils {
      * Returns the line comment that stands on its own line after {@code sole} and before the closing {@code )} of
      * {@code call}. After a reparse JavaParser attaches such a comment to the call rather than to the argument.
      */
-    static Optional<Comment> lineCommentOrphanAfterSoleArgument(MethodCallExpr call, Expression sole) {
+    static Optional<Comment> lineCommentOrphanAfterSoleArgument(Node call, Expression sole) {
         if (sole.getRange().isEmpty()) {
             return Optional.empty();
         }

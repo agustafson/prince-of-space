@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 class CommentPreservationTest {
 
     private static final String MARK_COMMENT = "// MARK";
+    private static final String OUTER_COMMENT = "// OUTER";
 
     @ParameterizedTest
     @EnumSource(WrapStyle.class)
@@ -199,8 +200,8 @@ class CommentPreservationTest {
 
         Formatter formatter = new Formatter(config);
         String output = formatter.format(input);
-        assertThat(output).containsOnlyOnce("// OUTER");
-        assertThat(output.indexOf("// OUTER")).isGreaterThan(output.indexOf("fourthLongArrayElementValueForTesting"));
+        assertThat(output).containsOnlyOnce(OUTER_COMMENT);
+        assertThat(output.indexOf(OUTER_COMMENT)).isGreaterThan(output.indexOf("fourthLongArrayElementValueForTesting"));
         assertThat(formatter.format(output)).isEqualTo(output);
         assertThatCode(() -> StaticJavaParser.parse(output)).doesNotThrowAnyException();
     }
@@ -257,6 +258,96 @@ class CommentPreservationTest {
         assertThat(converged).isEqualTo(firstPass);
         assertThat(converged).containsOnlyOnce("// keep trailing comment on the call");
         assertThatCode(() -> StaticJavaParser.parse(converged)).doesNotThrowAnyException();
+    }
+
+    /** A constructor argument's trailing comment prints once, after the argument, not after the type name. */
+    @ParameterizedTest
+    @EnumSource(WrapStyle.class)
+    void trailingLineCommentAfterConstructorArgument_printsOnceAfterArgument(WrapStyle style) {
+        FormatterConfig config = FormatterConfig.builder().lineLength(120).wrapStyle(style).build();
+        String input = """
+                class T {
+                    Object m(String a, String value) {
+                        return new Holder(a, value // OUTER
+                        );
+                    }
+                }
+                """;
+
+        Formatter formatter = new Formatter(config);
+        String output = formatter.format(input);
+        assertThat(output).containsOnlyOnce(OUTER_COMMENT);
+        assertThat(output).doesNotContain("new // OUTER");
+        assertThat(output.indexOf(OUTER_COMMENT)).isGreaterThan(output.indexOf("value"));
+        assertThat(formatter.format(output)).isEqualTo(output);
+        assertThatCode(() -> StaticJavaParser.parse(output)).doesNotThrowAnyException();
+    }
+
+    /** A constructor's own-line comment before ')' is kept even when it is not attached to a sole argument. */
+    @ParameterizedTest
+    @EnumSource(WrapStyle.class)
+    void ownLineCommentAfterConstructorArguments_isKept(WrapStyle style) {
+        FormatterConfig config = FormatterConfig.builder().lineLength(120).wrapStyle(style).build();
+        String input = """
+                class T {
+                    Object m(String a, String value) {
+                        return new Holder(a, value
+                        // OUTER
+                        );
+                    }
+                }
+                """;
+
+        Formatter formatter = new Formatter(config);
+        String output = formatter.format(input);
+        assertThat(output).containsOnlyOnce(OUTER_COMMENT);
+        assertThat(output.indexOf(OUTER_COMMENT)).isGreaterThan(output.indexOf("value"));
+        assertThat(formatter.format(output)).isEqualTo(output);
+        assertThatCode(() -> StaticJavaParser.parse(output)).doesNotThrowAnyException();
+    }
+
+    /** A constructor call with no arguments keeps its own-line comment instead of dropping it. */
+    @ParameterizedTest
+    @EnumSource(WrapStyle.class)
+    void ownLineCommentInEmptyConstructorCall_isKept(WrapStyle style) {
+        FormatterConfig config = FormatterConfig.builder().lineLength(120).wrapStyle(style).build();
+        String input = """
+                class T {
+                    Object m() {
+                        return new Foo(
+                        // OUTER
+                        );
+                    }
+                }
+                """;
+
+        Formatter formatter = new Formatter(config);
+        String output = formatter.format(input);
+        assertThat(output).containsOnlyOnce(OUTER_COMMENT);
+        assertThat(formatter.format(output)).isEqualTo(output);
+        assertThatCode(() -> StaticJavaParser.parse(output)).doesNotThrowAnyException();
+    }
+
+    /** A trailing comment on a wrapped chain passed to super(...) stays after the chain, not inside it. */
+    @ParameterizedTest
+    @EnumSource(WrapStyle.class)
+    void trailingLineCommentAfterSuperChainArgument_staysAfterChain(WrapStyle style) {
+        FormatterConfig config = FormatterConfig.builder().lineLength(120).wrapStyle(style).build();
+        String input = """
+                class T extends Base {
+                    T(Receiver receiver) {
+                        super(receiver.firstLongMethodName().secondLongMethodName().thirdLongMethodName().fourthLongMethodName().finish() // MARK
+                        );
+                    }
+                }
+                """;
+
+        Formatter formatter = new Formatter(config);
+        String output = formatter.format(input);
+        assertThat(output).containsOnlyOnce(MARK_COMMENT);
+        assertThat(output.indexOf(MARK_COMMENT)).isGreaterThan(output.indexOf(".finish()"));
+        assertThat(formatter.format(output)).isEqualTo(output);
+        assertThatCode(() -> StaticJavaParser.parse(output)).doesNotThrowAnyException();
     }
 
     /** A sole argument's trailing comment gets one layout whether it is formatted in one pass or repeatedly. */
