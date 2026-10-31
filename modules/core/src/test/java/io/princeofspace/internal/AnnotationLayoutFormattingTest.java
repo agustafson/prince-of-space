@@ -79,7 +79,6 @@ class AnnotationLayoutFormattingTest {
     private static final int LINE_LENGTH = 120;
     private static final int BOUNDARY_FILL = 102;
     private static final String CLOSE_DECL = ") class T {}";
-    private static final String WRAPPED_END = "\n)\nclass T";
     private static final String SUPPRESS_OPEN = "@SuppressWarnings(";
     private static final String VALUE_ASSIGNMENT = "value = ";
     private static final String LONG_TOKEN =
