@@ -945,10 +945,10 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
     @Generated(value = "com.amazing.super.awesome.CodeGenerator", date = "2026-10-21T02:26:43Z", comments = "I've always wanted to be cool")
     static class Scenario82GeneratedAnnotationWrap {}
 
-    @SuppressWarnings(value = "this particular suppression token is intentionally long to overflow the line limit when inline now")
+    @SuppressWarnings(value = "this particular suppression token is intentionally long to overflow the line limit when inline now or wrapped")
     static class Scenario82SinglePairAnnotationWrap {}
 
-    @SuppressWarnings("this particular suppression token is intentionally long to overflow the line limit when inline now")
+    @SuppressWarnings("this particular suppression token is intentionally long to overflow the line limit when inline now or wrapped")
     static class Scenario82SingleMemberAnnotationWrap {}
 
     enum UpdateALItemsConversationExecutionStatusScenario54 {

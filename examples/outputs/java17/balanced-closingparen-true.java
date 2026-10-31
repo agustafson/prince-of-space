@@ -1335,13 +1335,15 @@ public class FormatterShowcase
     }
 
     @SuppressWarnings(
-            value = "this particular suppression token is intentionally long to overflow the line limit when inline now"
+            value = "this particular suppression token is intentionally long to overflow the line limit when "
+            + "inline now or wrapped"
     )
     static class Scenario82SinglePairAnnotationWrap {
     }
 
     @SuppressWarnings(
-            "this particular suppression token is intentionally long to overflow the line limit when inline now"
+            "this particular suppression token is intentionally long to overflow the line limit when "
+            + "inline now or wrapped"
     )
     static class Scenario82SingleMemberAnnotationWrap {
     }

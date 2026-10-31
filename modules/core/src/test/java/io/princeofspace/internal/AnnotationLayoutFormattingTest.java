@@ -176,6 +176,25 @@ class AnnotationLayoutFormattingTest {
     }
 
     @Test
+    void ownLineClosingParen_keepsLastValueWholeAtExactLineLength() {
+        Formatter f = new Formatter(FormatterConfig.builder().closingParenOnNewLine(true).build());
+        // 8 (continuation) + "value = " (8) + 104 quoted columns = 120: a line of exactly lineLength
+        // fits, so the literal stays whole once ')' moves to its own line.
+        String boundary = "\"" + "x".repeat(BOUNDARY_FILL) + "\"";
+        for (String in :
+                new String[] {
+                    SUPPRESS_OPEN + "value = " + boundary + CLOSE_DECL,
+                    SUPPRESS_OPEN + "first = \"a\", value = " + boundary + CLOSE_DECL
+                }) {
+            String out = f.format(in);
+            assertThat(out).contains("value = " + boundary + "\n)");
+            assertThat(out).doesNotContain("\" +");
+            assertThat(out.lines().mapToInt(String::length).max().orElse(0)).isLessThanOrEqualTo(LINE_LENGTH);
+            assertThat(f.format(out)).isEqualTo(out);
+        }
+    }
+
+    @Test
     void singlePairArrayAnnotation_keepsHuggingParen() {
         Formatter f = new Formatter(FormatterConfig.builder().lineLength(NARROW_LINE_LENGTH).build());
         String out =

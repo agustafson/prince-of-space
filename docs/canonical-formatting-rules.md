@@ -61,6 +61,7 @@ These rules define output shape for Java formatting in `modules/core`.
 ### Rule 4: Line length and wrapping trigger
 
 - `lineLength` is the target width.
+- A line of exactly `lineLength` fits; wrapping (and string chunking) is triggered only when a line would **exceed** `lineLength`. Whatever trails a value on the same line — the separator comma, or an inline `)` when `closingParenOnNewLine` is false — counts toward that line.
 - If inline rendering exceeds `lineLength`, wrapping rules apply.
 - If no safe break point exists, long lines may remain over limit.
 - **Structure before strings (TDR-030):** a construct is wrapped at its own delimiters (argument lists, annotation element-value pairs, binary chains, ...) before any string literal in it is split into `+`-joined chunks. A literal is chunked only if it still overflows on its own line after that wrap.
