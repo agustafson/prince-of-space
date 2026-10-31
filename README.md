@@ -270,7 +270,7 @@ On this corpus, **strict** (fixed-point) Prince of Space is slower than Eclipse 
 
 _Auto-generated from [`docs/perf-results/spring-framework.md`](docs/perf-results/spring-framework.md) — do not edit between markers; run `./gradlew refreshSpringBenchmarkReadme` or CI._
 
-Throughput on the [Spring Framework](https://github.com/spring-projects/spring-framework) corpus (**2ed3a55**, **9265** files, same path filters as the external eval harness). **Avg ms / file** is total JVM wall time for the run divided by file count. Each JVM formatter runs in one process with warmup; JVM: **21.0.13+9-LTS**
+Throughput on the [Spring Framework](https://github.com/spring-projects/spring-framework) corpus (**ed4e0f8**, **9265** files, same path filters as the external eval harness). **Avg ms / file** is total JVM wall time for the run divided by file count. Each JVM formatter runs in one process with warmup; JVM: **21.0.13+9-LTS**
 
 Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **BALANCED**, Java language level **17**). Google Java Format and Palantir Java Format use **AOSP** style to align with `examples/external/outputs/` Spotless comparisons. Eclipse JDT uses Spotless `eclipse()` defaults (`examples/external/outputs/eclipse/`).
 
@@ -278,11 +278,11 @@ Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **B
 
 | Formatter | Avg ms / file | Failures |
 |-----------|-----------------|----------|
-| Prince of Space (strict, fixed-point) | 6.33 | 0 |
-| Prince of Space (fast, single pass) | 2.63 | 0 |
-| Google Java Format (AOSP) | 2.90 | 0 |
-| Palantir Java Format (AOSP) | 2.81 | 0 |
-| Eclipse JDT (Spotless default) | 2.43 | 0 |
+| Prince of Space (strict, fixed-point) | 4.19 | 0 |
+| Prince of Space (fast, single pass) | 1.81 | 0 |
+| Google Java Format (AOSP) | 1.71 | 0 |
+| Palantir Java Format (AOSP) | 1.70 | 0 |
+| Eclipse JDT (Spotless default) | 1.44 | 0 |
 
 Full detail and regeneration: `./gradlew :formatter-benchmark:run` with `PRINCE_BENCH_ROOT` pointing at a checkout. _Prettier throughput leg skipped in this run (`PRINCE_BENCH_SKIP_PRETTIER=true`)._ Eclipse JDT uses the same Spotless `eclipse()` stack as [`examples/external/outputs/eclipse/`](examples/external/outputs/eclipse/) (Equo P2 + Maven Central on first run).
 
