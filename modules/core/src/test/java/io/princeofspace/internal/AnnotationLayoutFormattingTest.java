@@ -81,6 +81,7 @@ class AnnotationLayoutFormattingTest {
     private static final String CLOSE_DECL = ") class T {}";
     private static final String WRAPPED_END = "\n)\nclass T";
     private static final String SUPPRESS_OPEN = "@SuppressWarnings(";
+    private static final String VALUE_ASSIGNMENT = "value = ";
     private static final String LONG_TOKEN =
             "\"this particular suppression token is intentionally long to overflow the line limit when inline now, ok\"";
 
@@ -95,7 +96,7 @@ class AnnotationLayoutFormattingTest {
     @Test
     void singlePairAnnotation_wrapsBeforeSplittingString() {
         Formatter f = new Formatter(FormatterConfig.builder().build());
-        String out = f.format(SUPPRESS_OPEN + "value = " + LONG_TOKEN + CLOSE_DECL);
+        String out = f.format(SUPPRESS_OPEN + VALUE_ASSIGNMENT + LONG_TOKEN + CLOSE_DECL);
         assertThat(out).startsWith("@SuppressWarnings(\n        value = " + LONG_TOKEN + "\n)\nclass T");
         assertThat(f.format(out)).isEqualTo(out);
     }
@@ -166,7 +167,7 @@ class AnnotationLayoutFormattingTest {
         String boundary = "\"" + "x".repeat(BOUNDARY_FILL) + "\"";
         for (String in :
                 new String[] {
-                    SUPPRESS_OPEN + "value = " + boundary + CLOSE_DECL,
+                    SUPPRESS_OPEN + VALUE_ASSIGNMENT + boundary + CLOSE_DECL,
                     SUPPRESS_OPEN + "first = \"a\", value = " + boundary + CLOSE_DECL
                 }) {
             String out = f.format(in);
@@ -183,11 +184,11 @@ class AnnotationLayoutFormattingTest {
         String boundary = "\"" + "x".repeat(BOUNDARY_FILL) + "\"";
         for (String in :
                 new String[] {
-                    SUPPRESS_OPEN + "value = " + boundary + CLOSE_DECL,
+                    SUPPRESS_OPEN + VALUE_ASSIGNMENT + boundary + CLOSE_DECL,
                     SUPPRESS_OPEN + "first = \"a\", value = " + boundary + CLOSE_DECL
                 }) {
             String out = f.format(in);
-            assertThat(out).contains("value = " + boundary + "\n)");
+            assertThat(out).contains(VALUE_ASSIGNMENT + boundary + "\n)");
             assertThat(out).doesNotContain("\" +");
             assertThat(out.lines().mapToInt(String::length).max().orElse(0)).isLessThanOrEqualTo(LINE_LENGTH);
             assertThat(f.format(out)).isEqualTo(out);
