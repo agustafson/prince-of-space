@@ -761,8 +761,8 @@ public class FormatterShowcase
 
     public String scenario56TrailingLineCommentAfterSoleArgument(String value, String suffix) {
         return value
-            .concat(suffix
-            // This comment follows the sole argument.
+            .concat(
+                    suffix // This comment follows the sole argument.
             )
             .trim();
     }

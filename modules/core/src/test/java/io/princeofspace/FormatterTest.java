@@ -1236,7 +1236,7 @@ class FormatterTest {
     }
 
     @Test
-    void idempotency_trailingCommentAfterWrappedChainCall_doesNotForceBreakInsideSingleArg() {
+    void idempotency_trailingCommentAfterWrappedChainCall_keepsCommentAfterOwnLineSingleArg() {
         Formatter f = new Formatter(
                 FormatterConfig.builder()
                         .lineLength(80)
@@ -1255,7 +1255,8 @@ class FormatterTest {
                 """;
         String once = f.format(input);
         assertThat(f.format(once)).isEqualTo(once);
-        assertThat(once).doesNotContain(".subscribeOn(\n");
+        // The comment does not fit beside the argument, so the argument takes its own line and the comment follows it.
+        assertThat(once).containsPattern("\\.subscribeOn\\(\\R\\h*Schedulers\\.boundedElastic\\(\\)\\R\\h*// keep trailing comment on the call");
     }
 
     @Test

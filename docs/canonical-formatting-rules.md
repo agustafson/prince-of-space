@@ -112,6 +112,7 @@ For wrapped argument/parameter-like lists:
 
 - Preserve comment semantics and placement intent.
 - Keep single-line block comments beside values and identifiers between their original neighboring tokens. For example, `null /* serviceName */,` labels that value; moving the comment past the comma associates it with the next argument. The same intent applies before a semicolon or identifier.
+- A trailing line comment on a sole argument stays beside a one-line argument only when `arg // note` fits within `lineLength`. Otherwise the argument starts its own line and the comment follows the complete argument on the next line, so the comment is not moved into a multi-line argument. A line comment that already sits on its own line before `)` gets the same layout, and so does a comment written after the statement's `;` when the parser attaches it to the sole argument, so every pass produces the same output.
 - Preserve type-use annotation semantics and declaration annotation correctness.
 - Formatting must not change program meaning.
 

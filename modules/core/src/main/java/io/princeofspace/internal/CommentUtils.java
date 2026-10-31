@@ -1,5 +1,6 @@
 package io.princeofspace.internal;
 
+import com.github.javaparser.Position;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
@@ -30,8 +31,8 @@ final class CommentUtils {
 
     /** Removes every owner of the exact comment instance within a call subtree. */
     @SuppressWarnings({"ReferenceEquality", "PMD.CompareObjectsWithEquals"})
-    static void removeMirroredCommentOwners(MethodCallExpr methodCall, Comment comment) {
-        for (Node node : methodCall.findAll(Node.class)) {
+    static void removeMirroredCommentOwners(Node owner, Comment comment) {
+        for (Node node : owner.findAll(Node.class)) {
             // JavaParser can mirror this exact Comment instance onto the call scope, name, and arguments.
             if (node.getComment().orElse(null) == comment) {
                 node.removeComment();
@@ -232,6 +233,37 @@ final class CommentUtils {
         int commentEndColumn = comment.getRange().get().end.column;
         int nodeBeginColumn = node.getRange().get().begin.column;
         return commentEndColumn < nodeBeginColumn;
+    }
+
+    /**
+     * Returns true when {@code comment} is a line comment that begins inside the parentheses of {@code call},
+     * before its closing {@code )}. A comment that follows the call, such as {@code f(a); // note}, is not inside.
+     */
+    static boolean isLineCommentInsideCall(Node call, Comment comment) {
+        if (!(comment instanceof LineComment) || call.getRange().isEmpty() || comment.getRange().isEmpty()) {
+            return false;
+        }
+        return comment.getRange().get().begin.isBefore(call.getRange().get().end);
+    }
+
+    /**
+     * Returns the line comment that stands on its own line after {@code sole} and before the closing {@code )} of
+     * {@code call}. After a reparse JavaParser attaches such a comment to the call rather than to the argument.
+     */
+    static Optional<Comment> lineCommentOrphanAfterSoleArgument(Node call, Expression sole) {
+        if (sole.getRange().isEmpty()) {
+            return Optional.empty();
+        }
+        Position soleEnd = sole.getRange().get().end;
+        for (Comment orphan : call.getOrphanComments()) {
+            if (orphan instanceof LineComment
+                    && orphan.getRange().isPresent()
+                    && orphan.getRange().get().begin.isAfter(soleEnd)
+                    && isLineCommentInsideCall(call, orphan)) {
+                return Optional.of(orphan);
+            }
+        }
+        return Optional.empty();
     }
 
     /** Returns true when a node has a same-line trailing line/block comment. */
