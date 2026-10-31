@@ -41,3 +41,5 @@ Scenarios **31–44** are shared control-flow and wrapping cases; they appear in
 **Scenario 80** (enum mixing a plain constant with per-constant anonymous bodies, constructor arguments, and trailing field/constructor/method members) appears in **all** four trees; it is Java 8-compatible enum syntax. It extends the per-constant anonymous-body separator-placement regression coverage from Scenario 77 (issue #47 / the TDR-023 correction) to a constant list that also contains a plain (body-less) constant and constants with constructor arguments.
 
 **Scenario 81** (consecutive line comments between fluent method calls) appears in all four trees and uses Java 8-compatible syntax. It checks that every comment line survives in order beside the next call.
+
+**Scenario 82** (classes annotated with a multi-pair, single-pair and single-member annotation whose string values overflow the line) appears in **all** four trees. It is a regression guard for TDR-030: the annotation's values wrap per `wrapStyle` before any string literal is split into `+`-joined chunks.
