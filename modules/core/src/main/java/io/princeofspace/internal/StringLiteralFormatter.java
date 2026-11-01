@@ -1,5 +1,6 @@
 package io.princeofspace.internal;
 
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.comments.BlockComment;
 import com.github.javaparser.ast.expr.ArrayAccessExpr;
 import com.github.javaparser.ast.expr.ArrayInitializerExpr;
@@ -10,9 +11,12 @@ import com.github.javaparser.ast.expr.EnclosedExpr;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.FieldAccessExpr;
 import com.github.javaparser.ast.expr.LambdaExpr;
+import com.github.javaparser.ast.expr.MemberValuePair;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.MethodReferenceExpr;
+import com.github.javaparser.ast.expr.NormalAnnotationExpr;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
+import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.expr.TextBlockLiteralExpr;
 import com.github.javaparser.utils.StringEscapeUtils;
@@ -120,11 +124,15 @@ final class StringLiteralFormatter {
         String sourceValue = escapeUnpairedSurrogates(n.getValue());
         int quotedLen = sourceValue.length() + 2;
         int lineLen = fmt.lineLength();
-        boolean shouldChunk = !isInsideStringConcatChain(n) && ctx.column() + quotedLen > lineLen;
+        int annotationTrailing = inlineAnnotationTrailingWidth(n);
+        boolean shouldChunk =
+                !isInsideStringConcatChain(n) && ctx.column() + quotedLen + annotationTrailing > lineLen;
         if (shouldChunk) {
             boolean needsParens = needsParensAroundGeneratedConcat(n);
             printWrappedStringLiteralChunks(
-                    semanticValue(n), needsParens, generatedConcatTrailingWidth(n, needsParens));
+                    semanticValue(n),
+                    needsParens,
+                    generatedConcatTrailingWidth(n, needsParens) + annotationTrailing);
         } else {
             // Do not call the default visitor: it would print orphan + comment again.
             ctx.print("\"");
@@ -132,6 +140,41 @@ final class StringLiteralFormatter {
             ctx.print("\"");
         }
         ctx.printOrphanCommentsEnding(n);
+    }
+
+    // R4/R8: reserve whatever is printed after this literal on the same line. A non-final annotation
+    // value always takes a trailing comma. The last value takes ')' when closingParenOnNewLine is false
+    // and no pair comment has already moved ')' onto its own line. A literal that only fits without
+    // that suffix is chunked as a last resort.
+    @SuppressWarnings({"ReferenceEquality", "PMD.CompareObjectsWithEquals"})
+    private int inlineAnnotationTrailingWidth(StringLiteralExpr n) {
+        if (n.getParentNode().isEmpty()) {
+            return 0;
+        }
+        Node parent = n.getParentNode().get();
+        if (parent instanceof SingleMemberAnnotationExpr single && single.getMemberValue() == n) {
+            if (fmt.closingParenOnNewLine() || CommentUtils.hasLeadingLineOrBlockComment(n)) {
+                return 0;
+            }
+            return 1;
+        }
+        if (parent instanceof MemberValuePair pair
+                && pair.getValue() == n
+                && pair.getParentNode().orElse(null) instanceof NormalAnnotationExpr annotation) {
+            if (annotation.getPairs().getLast().orElse(null) != pair) {
+                return 1;
+            }
+            if (fmt.closingParenOnNewLine()) {
+                return 0;
+            }
+            for (MemberValuePair p : annotation.getPairs()) {
+                if (CommentUtils.hasLineOrBlockComment(p)) {
+                    return 0;
+                }
+            }
+            return 1;
+        }
+        return 0;
     }
 
     private static boolean isLeadingCommentInsideArrayInitializer(StringLiteralExpr n) {

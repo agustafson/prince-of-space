@@ -6,22 +6,23 @@ eclipse-jdt = "4.34"
 errorprone = "2.50.0"
 errorprone-plugin = "5.1.0"
 google-java-format = "1.35.0"
+intellij-platform = "2.19.0"
 javaparser = "3.28.2"
 jqwik = "1.9.3"
 jspecify = "1.0.0"
-junit = "6.0.3"
+junit = "6.1.3"
 maven-resolver = "1.9.22"
 mkdocs-build = "4.0.1"
 nullaway = "0.13.8"
 npm-prettier = "3.4.2"
 npm-prettier-plugin-java = "2.6.6"
-palantir-java-format = "2.90.0"
+palantir-java-format = "2.103.0"
 picocli = "4.7.7"
 shadow = "9.4.1"
-slf4j = "2.0.18"
+slf4j = "2.0.20"
 spotbugs-annotations = "4.10.2"
 spotbugs-gradle = "6.5.4"
-spotless = "8.4.0"
+spotless = "8.10.4"
 spotless-lib = "4.5.0"
 test-logger = "4.0.0"
 
@@ -51,6 +52,7 @@ spotless-lib-extra = { module = "com.diffplug.spotless:spotless-lib-extra", vers
 
 [plugins]
 errorprone = { id = "net.ltgt.errorprone", version.ref = "errorprone-plugin" }
+intellij-platform = { id = "org.jetbrains.intellij.platform", version.ref = "intellij-platform" }
 mkdocs-build = { id = "ru.vyarus.mkdocs-build", version.ref = "mkdocs-build" }
 shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
 spotbugs = { id = "com.github.spotbugs", version.ref = "spotbugs-gradle" }
