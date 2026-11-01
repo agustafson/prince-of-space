@@ -272,6 +272,8 @@ class RealWorldEvalTest {
     // Per-config run
     // ---------------------------------------------------------------------------
 
+    // Any formatter exception is recorded as a per-file error so one crash does not end the eval.
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
     private ConfigRunResult runConfig(
             Path projectRoot, EvalConfig evalConfig, List<Path> files, FormatterConfig config) {
         Formatter formatter = new Formatter(config);
@@ -390,6 +392,8 @@ class RealWorldEvalTest {
                 elapsedMs);
     }
 
+    // Any formatter exception on the second pass is recorded as an idempotency failure.
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
     private static void checkSecondPassIdempotency(
             Formatter formatter, String once, String relative, List<String> idempotencyFailures) {
         FormatResult secondResult;

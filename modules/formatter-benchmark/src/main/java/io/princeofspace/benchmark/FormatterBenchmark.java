@@ -266,7 +266,12 @@ public final class FormatterBenchmark {
         return Math.max(1, n);
     }
 
-    @SuppressWarnings({"PMD.EmptyCatchBlock", "PMD.CloseResource"})
+    // Per-file failures are counted and reported; one bad file must not abort the run.
+    @SuppressWarnings({
+        "PMD.EmptyCatchBlock",
+        "PMD.CloseResource",
+        "PMD.AvoidCatchingGenericException"
+    })
     private static BenchRow runJvm(
             String label,
             Formatter princeStrict,

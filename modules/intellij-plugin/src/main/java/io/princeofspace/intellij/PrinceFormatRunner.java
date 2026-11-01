@@ -60,6 +60,8 @@ public final class PrinceFormatRunner {
         }
     }
 
+    // Any VFS failure means "no local NIO path"; callers fall back to the presentable name.
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
     static @Nullable Path javaNioPath(VirtualFile vf) {
         try {
             if (vf.getFileSystem().getProtocol().equals("file")) {
