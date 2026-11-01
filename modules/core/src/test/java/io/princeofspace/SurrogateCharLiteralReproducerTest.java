@@ -341,4 +341,31 @@ class SurrogateCharLiteralReproducerTest {
             }
         }
     }
+
+    @Test
+    void annotatedForEachAndTypeArgumentsMeasureEscapedStrings() throws CharacterCodingException {
+        List<String> shapes = List.of(
+                "class T { void m() { for (@A(\"%s[31m%s[0m%s[1m\") String s : valuesWithLongEnoughIdentifier) { work(s); } } }",
+                "class T { java.util.Map<@A(\"%s[31m%s[0m\") String, @A(\"%s[32m%s[0m\") String> v; }");
+        for (int width = 60; width <= 100; width++) {
+            for (WrapStyle style : WrapStyle.values()) {
+                for (boolean singlePass : new boolean[] {false, true}) {
+                    Formatter formatter = new Formatter(FormatterConfig.builder().lineLength(width).wrapStyle(style).build(), singlePass);
+                    for (String shape : shapes) {
+                        String input = shape.replace("%s", ESCAPE_SPELLING);
+                        String output = formatter.format(input);
+                        String ascii = formatter.format(shape.replace("%s", ASCII_ESCAPE_WIDTH));
+                        assertThat(output.replace(ESCAPE_SPELLING, ASCII_ESCAPE_WIDTH)).isEqualTo(ascii);
+                        assertThat(parseSaved(encodeAsUtf8(output)).findAll(StringLiteralExpr.class))
+                                .extracting(StringLiteralExpr::asString)
+                                .containsExactlyElementsOf(parseSaved(input).findAll(StringLiteralExpr.class).stream()
+                                        .map(StringLiteralExpr::asString).toList());
+                        if (!singlePass) {
+                            assertThat(formatter.format(output)).isEqualTo(output);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
