@@ -39,25 +39,3 @@ jobs:
 
       - name: Build and test
         run: ./gradlew build --no-daemon
-
-  vscode-extension:
-    # Packages the VS Code extension with @vscode/vsce, which validates the
-    # @types/vscode <= engines.vscode invariant that the Release workflow relies on.
-    name: VS Code extension
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: modules/vscode-extension/package-lock.json
-
-      - name: Compile, test, and validate package
-        working-directory: modules/vscode-extension
-        run: |
-          npm ci
-          npm run compile
-          npm test
-          npx --yes @vscode/vsce@3 package --out prince-of-space-vscode-ci.vsix

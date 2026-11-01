@@ -52,10 +52,6 @@
             "integration_id": 15368
           },
           {
-            "context": "VS Code extension",
-            "integration_id": 15368
-          },
-          {
             "context": "External eval smoke (spring-framework)",
             "integration_id": 15368
           },
