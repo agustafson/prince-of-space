@@ -240,7 +240,9 @@ public final class FormattingEngine {
                 .forEach(literal -> literal.setValue(
                         StringLiteralFormatter.escapeUnpairedSurrogates(literal.getValue())));
         cu.getAllComments().forEach(comment ->
-                comment.setContent(comment.getContent().replace("\0", "\\u0000")));
+                comment.setContent(StringLiteralFormatter.escapeUnpairedSurrogates(comment.getContent())
+                        .replace("\0", "\\u0000")));
+
         @SuppressWarnings("ConstantConditions") // Void visitor arg is java.lang.Void; null is the only value
         Void visitorArg = null;
         new BraceEnforcer().visit(cu, visitorArg);
