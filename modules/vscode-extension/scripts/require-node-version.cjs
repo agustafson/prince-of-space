@@ -7,7 +7,7 @@ if (major < MIN_NODE_MAJOR || Number.isNaN(major)) {
   console.error(
     "Prince of Space VS Code extension: Node.js " +
       MIN_NODE_MAJOR +
-      "+ is required to run TypeScript 6 / npm scripts (see package.json engines and .nvmrc). " +
+      "+ is required to run TypeScript 7 / npm scripts (see package.json engines and .nvmrc). " +
       "Current: " +
       process.version +
       ".",
