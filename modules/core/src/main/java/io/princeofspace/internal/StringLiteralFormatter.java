@@ -121,7 +121,7 @@ final class StringLiteralFormatter {
         if (isLeadingCommentInsideArrayInitializer(n)) {
             ctx.padToColumn(anchorColumn);
         }
-        String sourceValue = escapeUnpairedSurrogates(n.getValue());
+        String sourceValue = escapeUnsafeLiteralCharacters(n.getValue());
         int quotedLen = sourceValue.length() + 2;
         int lineLen = fmt.lineLength();
         int annotationTrailing = inlineAnnotationTrailingWidth(n);
@@ -604,15 +604,25 @@ final class StringLiteralFormatter {
         }
         return switch (codePoint) {
             case '"', '\\', '\b', '\n', '\t', '\f', '\r' -> 2;
-            default -> Character.isSurrogate((char) codePoint) ? "\\u0000".length() : 1;
+            default -> Character.isSurrogate((char) codePoint) || codePoint < ' ' || codePoint == '\u007F'
+                    ? "\\u0000".length() : 1;
         };
     }
 
     private static String escapeJava(String value) {
-        return escapeUnpairedSurrogates(StringEscapeUtils.escapeJava(value));
+        return escapeUnsafeLiteralCharacters(StringEscapeUtils.escapeJava(value));
     }
 
-    static String escapeUnpairedSurrogates(String value) {
+    static String escapeUnsafeLiteralCharacters(String value) {
+        return escapeUnsafeLiteralCharacters(value, false);
+    }
+
+    static String escapeTextBlockContent(String value) {
+        // Raw whitespace participates in text-block incidental indentation before escape translation.
+        return escapeUnsafeLiteralCharacters(value, true);
+    }
+
+    private static String escapeUnsafeLiteralCharacters(String value, boolean textBlock) {
         StringBuilder escaped = null;
         for (int i = 0; i < value.length(); i++) {
             char ch = value.charAt(i);
@@ -623,13 +633,21 @@ final class StringLiteralFormatter {
                 if (escaped != null) {
                     escaped.append(ch).append(value.charAt(i));
                 }
-            } else if (Character.isSurrogate(ch)) {
+            } else if (Character.isSurrogate(ch)
+                    || ((ch < ' ' || ch == '\u007F') && (!textBlock || !Character.isWhitespace(ch)))) {
                 if (escaped == null) {
                     escaped =
                             new StringBuilder(value.length() + "\\u0000".length())
                                     .append(value, 0, i);
                 }
-                escaped.append("\\u").append(UPPERCASE_HEX.toHexDigits(ch));
+                switch (ch) {
+                    case '\b' -> escaped.append("\\b");
+                    case '\t' -> escaped.append("\\t");
+                    case '\n' -> escaped.append("\\n");
+                    case '\f' -> escaped.append("\\f");
+                    case '\r' -> escaped.append("\\r");
+                    default -> escaped.append("\\u").append(UPPERCASE_HEX.toHexDigits(ch));
+                }
             } else if (escaped != null) {
                 escaped.append(ch);
             }

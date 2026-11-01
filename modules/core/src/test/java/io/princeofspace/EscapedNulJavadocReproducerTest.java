@@ -1,5 +1,7 @@
 package io.princeofspace;
 
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParserConfiguration;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.JavaLanguageLevel;
 import org.junit.jupiter.api.Test;
@@ -19,6 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class EscapedNulJavadocReproducerTest {
 
+    private static final String ESCAPED_NUL = "\\u0000";
+
     private static final FormatterConfig CONFIG = FormatterConfig.builder()
             .indentSize(2)
             .lineLength(100)
@@ -34,6 +38,17 @@ class EscapedNulJavadocReproducerTest {
             "class T { /* Escaped NUL: %s */ int value; }",
             "class T { // Escaped NUL: %s\nint value; }",
             "class T { /* Escaped NUL: %s */ }",
+            "class T { void m() { consume(1, /* Escaped NUL: %s */ 2); } }",
+            "class T { void m() { consume(1 /* Escaped NUL: %s */, 2); } }",
+            "class T { void m() { consume(/* Escaped NUL: %s */); } }",
+            "class T { Object value = /* Escaped NUL: %s */ null; }",
+            "class T { Object value = null /* Escaped NUL: %s */; }",
+            "class T { Object m() { return /* Escaped NUL: %s */ null; } }",
+            "class T { Object m() { return null /* Escaped NUL: %s */; } }",
+            "class T { void m() { throw /* Escaped NUL: %s */ new Exception(); } }",
+            "class T { void m() { throw new Exception() /* Escaped NUL: %s */; } }",
+            "class T { Object[] values = {null /* Escaped NUL: %s */, null}; }",
+            "class T { Object value /* Escaped NUL: %s */ = null; }",
             "/** Escaped NUL: %s */",
             "/* Escaped NUL: %s */",
             "// Escaped NUL: %s"
@@ -68,22 +83,22 @@ class EscapedNulJavadocReproducerTest {
                 Arguments.of(highEscape + low, high + low),
                 Arguments.of(high, highEscape),
                 Arguments.of(highEscape, highEscape),
-                Arguments.of("\\u005c\\uD801", "\\\\uD801"),
+                Arguments.of("\\u005c\\uD801", "\\u005C\\uD801"),
                 Arguments.of(low, lowEscape),
                 Arguments.of(lowEscape, lowEscape),
                 Arguments.of(low + high, "\\uDC01\\uD801"),
                 Arguments.of("\\uDC01\\uD801", "\\uDC01\\uD801"),
                 Arguments.of(high + "x" + low, "\\uD801x\\uDC01"),
                 Arguments.of("\\uD801x\\uDC01", "\\uD801x\\uDC01"),
-                Arguments.of("\0", "\\u0000"),
-                Arguments.of("\\u0000", "\\u0000"));
+                Arguments.of("\0", ESCAPED_NUL),
+                Arguments.of(ESCAPED_NUL, ESCAPED_NUL));
     }
 
     @ParameterizedTest
     @CsvSource(delimiter = '|', value = {
             "\\uuuu0000 | \\u0000",
             "\\u0000\\u0000 | \\u0000\\u0000",
-            "\\u005c\\u0000 | \\\\u0000",
+            "\\u005c\\u0000 | \\u005C\\u0000",
             "\\u005c\\u005c\\u0000 | \\\\\\u0000",
             "\\\\u0000 | \\\\u0000"
     })
@@ -94,13 +109,13 @@ class EscapedNulJavadocReproducerTest {
     private static void assertEscapedComment(String input, String expected) throws CharacterCodingException {
         Formatter singlePass = new Formatter(CONFIG, true);
         String firstPass = singlePass.format(input);
-        assertThat(firstPass).doesNotContain("\0").contains(expected);
+        assertThat(firstPass).doesNotContain("\0").containsOnlyOnce(expected);
         assertUtf8RoundTrip(firstPass);
         assertThat(singlePass.format(firstPass)).isEqualTo(firstPass);
 
         Formatter formatter = new Formatter(CONFIG);
         String output = formatter.format(input);
-        assertThat(output).doesNotContain("\0").contains(expected);
+        assertThat(output).doesNotContain("\0").containsOnlyOnce(expected);
         assertUtf8RoundTrip(output);
         assertThat(formatter.format(output)).isEqualTo(output);
     }
@@ -111,6 +126,39 @@ class EscapedNulJavadocReproducerTest {
                 .onUnmappableCharacter(CodingErrorAction.REPORT);
         assertThat(StandardCharsets.UTF_8.decode(encoder.encode(CharBuffer.wrap(output))).toString())
                 .isEqualTo(output);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"\\uD801", ESCAPED_NUL, "\\u005CuXXXX"})
+    void normalizesMirroredCommentOnlyOnce(String source) throws CharacterCodingException {
+        String input = "class T { int[] values = {1, 2, 3, // " + source
+                + "\n4, 5, 6, // " + source + "\n7}; }";
+        JavaParser parser = new JavaParser(new ParserConfiguration().setPreprocessUnicodeEscapes(true));
+        String expected = parser.parse(input).getResult().orElseThrow().getAllComments().get(0).getContent();
+        for (boolean singlePass : new boolean[] {false, true}) {
+            Formatter formatter = new Formatter(CONFIG, singlePass);
+            String output = formatter.format(input);
+            assertUtf8RoundTrip(output);
+            assertThat(parser.parse(output).getResult().orElseThrow().getAllComments())
+                    .isNotEmpty()
+                    .allSatisfy(comment -> assertThat(comment.getContent()).isEqualTo(expected));
+            assertThat(formatter.format(output)).isEqualTo(output);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void measuresEscapedInlineCommentWidth(boolean singlePass) throws CharacterCodingException {
+        Formatter formatter = new Formatter(FormatterConfig.builder().indentSize(2).lineLength(50).build(), singlePass);
+        String escapes = "\\uD801".repeat(4);
+        String input = "class T { void m() { consume(123 /* " + escapes + " */, 456, 789); } }";
+
+        String output = formatter.format(input);
+
+        assertThat(output).containsOnlyOnce("/* " + escapes + " */");
+        assertUtf8RoundTrip(output);
+        assertThat(output.lines()).allSatisfy(line -> assertThat(line.length()).isLessThanOrEqualTo(50));
+        assertThat(formatter.format(output)).isEqualTo(output);
     }
 
     @Test

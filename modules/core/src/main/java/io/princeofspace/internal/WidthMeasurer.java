@@ -100,7 +100,9 @@ final class WidthMeasurer {
                     + expressionWidth(conditionalExpr.getElseExpr(), fmt);
         }
         if (expression instanceof StringLiteralExpr stringLiteralExpr) {
-            return stringLiteralExpr.toString().length();
+            String value = stringLiteralExpr.getValue();
+            int escapeExpansion = StringLiteralFormatter.escapeUnsafeLiteralCharacters(value).length() - value.length();
+            return stringLiteralExpr.toString().length() + escapeExpansion;
         }
         if (expression instanceof TextBlockLiteralExpr textBlockLiteralExpr) {
             return textBlockLiteralExpr.toString().length();

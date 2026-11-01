@@ -1,11 +1,15 @@
 package io.princeofspace;
 
-import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParserConfiguration;
+import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.expr.CharLiteralExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
+import com.github.javaparser.ast.expr.TextBlockLiteralExpr;
 import io.princeofspace.model.FormatResult;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.JavaLanguageLevel;
+import io.princeofspace.model.WrapStyle;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -16,8 +20,10 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
@@ -25,13 +31,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class SurrogateCharLiteralReproducerTest {
 
+    private static final String PARAMETER_CASE_NAME = "[{index}]";
+    private static final String WORD_PREFIX = "word ";
+
     private static final FormatterConfig CONFIG = FormatterConfig.builder()
             .indentSize(2)
             .lineLength(60)
             .javaLanguageLevel(JavaLanguageLevel.of(25))
             .build();
 
-    @ParameterizedTest(name = "[{index}]")
+    @ParameterizedTest(name = PARAMETER_CASE_NAME)
     @MethodSource("charSpellings")
     void charValuesSurviveUtf8Encoding(String spelling, int expected)
             throws CharacterCodingException {
@@ -42,7 +51,7 @@ class SurrogateCharLiteralReproducerTest {
                 String output = formatter.format(input);
                 String persisted = encodeAsUtf8(output);
 
-                assertThat(StaticJavaParser.parse(persisted).findAll(CharLiteralExpr.class))
+                assertThat(parseSaved(persisted).findAll(CharLiteralExpr.class))
                         .extracting(literal -> (int) literal.asChar())
                         .containsExactly(expected);
                 if (expected == 'é' || expected == '中') {
@@ -71,21 +80,21 @@ class SurrogateCharLiteralReproducerTest {
         return cases.stream();
     }
 
-    @ParameterizedTest(name = "[{index}]")
+    @ParameterizedTest(name = PARAMETER_CASE_NAME)
     @MethodSource("stringSpellings")
     void shortAndWrappedStringValuesSurviveUtf8Encoding(String spelling, String value)
             throws CharacterCodingException {
         for (int repeats : new int[] {1, 30}) {
             boolean wrapped = repeats > 1;
             for (String keyword : List.of("class", "cl\\u0061ss")) {
-                String input = keyword + " T { String value = \"" + ("word " + spelling).repeat(repeats) + "\"; }";
-                String expected = ("word " + value).repeat(repeats);
+                String input = keyword + " T { String value = \"" + (WORD_PREFIX + spelling).repeat(repeats) + "\"; }";
+                String expected = (WORD_PREFIX + value).repeat(repeats);
                 for (boolean singlePass : new boolean[] {false, true}) {
                     Formatter formatter = new Formatter(CONFIG, singlePass);
                     String output = formatter.format(input);
                     String persisted = encodeAsUtf8(output);
 
-                    assertThat(StaticJavaParser.parse(persisted).findAll(StringLiteralExpr.class).stream()
+                    assertThat(parseSaved(persisted).findAll(StringLiteralExpr.class).stream()
                             .map(StringLiteralExpr::asString).collect(joining())).isEqualTo(expected);
                     if (wrapped) {
                         assertThat(output).contains("+ ");
@@ -124,7 +133,7 @@ class SurrogateCharLiteralReproducerTest {
         return cases.stream();
     }
 
-    @ParameterizedTest(name = "[{index}]")
+    @ParameterizedTest(name = PARAMETER_CASE_NAME)
     @MethodSource("invalidCharSpellings")
     void rejectsInvalidCharLiterals(String spelling) {
         String input = "class T { char value = '" + spelling + "'; }";
@@ -166,7 +175,7 @@ class SurrogateCharLiteralReproducerTest {
         String persisted = encodeAsUtf8(output);
 
         assertThat(formatter.format(output)).isEqualTo(output);
-        assertThat(StaticJavaParser.parse(persisted).findAll(CharLiteralExpr.class))
+        assertThat(parseSaved(persisted).findAll(CharLiteralExpr.class))
                 .as("UTF-16 code units after a UTF-8 round trip")
                 .extracting(literal -> (int) literal.asChar())
                 .containsExactly(0xD801, 0xDC01);
@@ -184,8 +193,107 @@ class SurrogateCharLiteralReproducerTest {
         assertThat(output.lines()).allSatisfy(line -> assertThat(line.length()).isLessThanOrEqualTo(50));
         assertThat(formatter.format(output)).isEqualTo(output);
         String persisted = encodeAsUtf8(output);
-        assertThat(StaticJavaParser.parse(persisted).findAll(CharLiteralExpr.class))
+        assertThat(parseSaved(persisted).findAll(CharLiteralExpr.class))
                 .extracting(literal -> (int) literal.asChar())
                 .containsExactly(0xD800, 0xDC00, 0xDBFF, 0xDFFF);
+    }
+
+    @Test
+    void savedSourceOracleRejectsUnicodeEscapedDelimitersAndLineTerminators() {
+        for (String source : List.of("class T { char c = '\\u000A'; }",
+                "class T { char c = '\\u000D'; }", "class T { char c = '\\u0027'; }",
+                "class T { String s = \"\\u0022\"; }")) {
+            assertThat(savedSourceParser().parse(source).isSuccessful()).isFalse();
+        }
+    }
+
+    @ParameterizedTest(name = PARAMETER_CASE_NAME)
+    @MethodSource("controlCharacters")
+    void controlValuesAreEscapedInCharsAndStrings(int codeUnit) throws CharacterCodingException {
+        String value = Character.toString(codeUnit);
+        for (String spelling : List.of(value, unicodeEscapes(value), "\\" + Integer.toOctalString(codeUnit))) {
+            for (boolean singlePass : new boolean[] {false, true}) {
+                Formatter formatter = new Formatter(CONFIG, singlePass);
+                String input = "class T { char c = '" + spelling + "'; String s = \""
+                        + (WORD_PREFIX + spelling).repeat(30) + "\"; }";
+                String output = formatter.format(input);
+                String saved = encodeAsUtf8(output);
+                assertThat(output).doesNotContain(value);
+                CompilationUnit parsed = parseSaved(saved);
+                assertThat(parsed.findFirst(CharLiteralExpr.class).orElseThrow().asChar()).isEqualTo((char) codeUnit);
+                assertThat(parsed.findAll(StringLiteralExpr.class).stream().map(StringLiteralExpr::asString)
+                        .collect(joining())).isEqualTo((WORD_PREFIX + value).repeat(30));
+                assertThat(output.lines()).allSatisfy(line -> assertThat(line.length()).isLessThanOrEqualTo(60));
+                if (!singlePass) {
+                    assertThat(formatter.format(output)).isEqualTo(output);
+                }
+            }
+        }
+    }
+
+    static Stream<Integer> controlCharacters() {
+        return Stream.concat(IntStream.rangeClosed(0, 31)
+                .filter(value -> value != 10 && value != 13).boxed(), Stream.of(127));
+    }
+
+    @ParameterizedTest(name = PARAMETER_CASE_NAME)
+    @MethodSource("textBlockContents")
+    void textBlockValuesAndIndentationSurviveEncoding(String spelling, String expected)
+            throws CharacterCodingException {
+        String input = "class T { String s = \"\"\"\n  " + spelling + "\n  \"\"\"; }";
+        for (boolean singlePass : new boolean[] {false, true}) {
+            Formatter formatter = new Formatter(CONFIG, singlePass);
+            String output = formatter.format(input);
+            String saved = encodeAsUtf8(output);
+            assertThat(parseSaved(saved).findFirst(TextBlockLiteralExpr.class).orElseThrow().asString())
+                    .isEqualTo(expected + "\n");
+            assertThat(output).doesNotContain("\0", "\u001B", "\u007F");
+            if (!singlePass) {
+                assertThat(formatter.format(output)).isEqualTo(output);
+            }
+        }
+    }
+
+    static Stream<Arguments> textBlockContents() {
+        String isolated = Character.toString(0xD801);
+        return Stream.of(
+                Arguments.of(isolated, isolated), Arguments.of("\\uD801", isolated),
+                Arguments.of("é😀", "é😀"), Arguments.of("\\0\\033\\177", "\0\u001B\u007F"),
+                Arguments.of("\0\u001B\u007F", "\0\u001B\u007F"),
+                Arguments.of("\ttext\t\n    indented\n\t", "\ttext\n  indented\n"),
+                Arguments.of("\\\\" + isolated, "\\" + isolated));
+    }
+
+    private static JavaParser savedSourceParser() {
+        return new JavaParser(new ParserConfiguration()
+                .setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_25)
+                .setPreprocessUnicodeEscapes(true));
+    }
+
+    private static CompilationUnit parseSaved(String source) {
+        var result = savedSourceParser().parse(source);
+        assertThat(result.isSuccessful()).as("Saved source parses: %s", result.getProblems()).isTrue();
+        return result.getResult().orElseThrow();
+    }
+
+    @Test
+    void arraysMeasureExpandedShortStringSpellings() throws CharacterCodingException {
+        for (String value : List.of("\0", "\u001B", Character.toString(0xD801))) {
+            String values = String.join(", ", Collections.nCopies(10, "\"" + value + "\""));
+            String input = "class T { String[] v = {" + values + "}; }";
+            for (WrapStyle style : WrapStyle.values()) {
+                FormatterConfig config = FormatterConfig.builder().lineLength(50).wrapStyle(style).build();
+                for (boolean singlePass : new boolean[] {false, true}) {
+                    Formatter formatter = new Formatter(config, singlePass);
+                    String output = formatter.format(input);
+                    assertThat(output.lines()).allSatisfy(line -> assertThat(line.length()).isLessThanOrEqualTo(50));
+                    assertThat(parseSaved(encodeAsUtf8(output)).findAll(StringLiteralExpr.class))
+                            .extracting(StringLiteralExpr::asString).containsExactlyElementsOf(Collections.nCopies(10, value));
+                    if (!singlePass) {
+                        assertThat(formatter.format(output)).isEqualTo(output);
+                    }
+                }
+            }
+        }
     }
 }
