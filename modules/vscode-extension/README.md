@@ -2,7 +2,7 @@
 
 Formats Java by running the **`prince-of-space-cli`** shadow JAR (`--stdin` / `--java-version`).
 
-**Prerequisites:** Node.js **22 or newer** (see `package.json` `engines` and `.nvmrc`). Older Node versions cannot run the TypeScript 6 compiler used for `npm run compile`.
+**Prerequisites:** Node.js **22 or newer** (see `package.json` `engines` and `.nvmrc`). Older Node versions cannot run the TypeScript 7 compiler used for `npm run compile`.
 
 ## Setup
 
