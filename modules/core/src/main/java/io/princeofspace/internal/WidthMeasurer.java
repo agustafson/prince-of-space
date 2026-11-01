@@ -32,7 +32,11 @@ final class WidthMeasurer {
         if (node instanceof Expression expression) {
             return expressionWidth(expression, fmt) + InlineBlockComments.width(node);
         }
-        return node.toString().length() + InlineBlockComments.width(node);
+        return sourceWidth(node) + InlineBlockComments.width(node);
+    }
+
+    static int sourceWidth(Node node) {
+        return node.toString().length() + StringLiteralFormatter.sourceEscapeExpansion(node);
     }
 
     /** Flat width of a comma-separated argument list for method-call wrap decisions (block lambdas: header only). */
@@ -58,7 +62,7 @@ final class WidthMeasurer {
         if (creation.getTypeArguments().isPresent()) {
             width += 2 + commaSeparatedTypeWidth(creation.getTypeArguments().get()) + 1;
         }
-        width += creation.getType().toString().length();
+        width += sourceWidth(creation.getType());
         return width + (creation.getArguments().isEmpty() ? 2 : 1);
     }
 
@@ -71,7 +75,7 @@ final class WidthMeasurer {
         if (lambda.isEnclosingParameters()) {
             paramsWidth = 2 + commaSeparatedParameterWidth(lambda.getParameters());
         } else if (lambda.getParameters().size() == SINGLE_PARAMETER_COUNT) {
-            paramsWidth = lambda.getParameter(0).toString().length();
+            paramsWidth = sourceWidth(lambda.getParameter(0));
         } else {
             paramsWidth = 2 + commaSeparatedParameterWidth(lambda.getParameters());
         }
@@ -100,7 +104,7 @@ final class WidthMeasurer {
                     + expressionWidth(conditionalExpr.getElseExpr(), fmt);
         }
         if (expression instanceof StringLiteralExpr stringLiteralExpr) {
-            return stringLiteralExpr.toString().length();
+            return sourceWidth(stringLiteralExpr);
         }
         if (expression instanceof TextBlockLiteralExpr textBlockLiteralExpr) {
             return textBlockLiteralExpr.toString().length();
@@ -120,12 +124,12 @@ final class WidthMeasurer {
                     + 1;
         }
         if (expression instanceof CastExpr castExpr) {
-            return 2 + castExpr.getType().toString().length() + 2 + expressionWidth(castExpr.getExpression(), fmt);
+            return 2 + sourceWidth(castExpr.getType()) + 2 + expressionWidth(castExpr.getExpression(), fmt);
         }
         if (expression instanceof InstanceOfExpr instanceOfExpr) {
             return expressionWidth(instanceOfExpr.getExpression(), fmt)
                     + " instanceof ".length()
-                    + instanceOfExpr.getType().toString().length();
+                    + sourceWidth(instanceOfExpr.getType());
         }
         if (expression instanceof ObjectCreationExpr objectCreationExpr) {
             int width = 0;
@@ -136,7 +140,7 @@ final class WidthMeasurer {
             if (objectCreationExpr.getTypeArguments().isPresent()) {
                 width += 2 + commaSeparatedTypeWidth(objectCreationExpr.getTypeArguments().get()) + 1;
             }
-            width += objectCreationExpr.getType().toString().length();
+            width += sourceWidth(objectCreationExpr.getType());
             width += 2 + commaSeparatedWidth(objectCreationExpr.getArguments(), fmt);
             if (objectCreationExpr.getAnonymousClassBody().isPresent()) {
                 width += " { }".length();
@@ -151,7 +155,7 @@ final class WidthMeasurer {
                             .orElse(0)
                     + methodReferenceExpr.getIdentifier().length();
         }
-        return expression.toString().length();
+        return sourceWidth(expression);
     }
 
     private static int methodCallWidth(MethodCallExpr methodCallExpr, FormatterConfig fmt) {
@@ -185,7 +189,7 @@ final class WidthMeasurer {
                 width += 2;
             }
             first = false;
-            width += type.toString().length();
+            width += sourceWidth(type);
         }
         return width;
     }
@@ -195,7 +199,7 @@ final class WidthMeasurer {
         if (!lambdaExpr.isEnclosingParameters()
                 && lambdaExpr.getParameters().size() == SINGLE_PARAMETER_COUNT) {
             // Parentheses optional for exactly one inferred-type parameter (JLS).
-            parametersWidth = lambdaExpr.getParameter(0).toString().length();
+            parametersWidth = sourceWidth(lambdaExpr.getParameter(0));
         } else {
             // Including implicit parens for zero params `()`, multi-parameter lambdas, or malformed AST.
             parametersWidth = 2 + commaSeparatedParameterWidth(lambdaExpr.getParameters());
@@ -209,7 +213,7 @@ final class WidthMeasurer {
                     + " -> ".length()
                     + expressionWidth(lambdaExpr.getBody().asExpressionStmt().getExpression(), fmt);
         }
-        return parametersWidth + " -> ".length() + lambdaExpr.getBody().toString().length();
+        return parametersWidth + " -> ".length() + sourceWidth(lambdaExpr.getBody());
     }
 
     static int commaSeparatedParameterWidth(NodeList<com.github.javaparser.ast.body.Parameter> parameters) {
@@ -220,7 +224,7 @@ final class WidthMeasurer {
                 width += 2;
             }
             first = false;
-            width += parameter.toString().length();
+            width += sourceWidth(parameter);
         }
         return width;
     }
