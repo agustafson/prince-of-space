@@ -23,7 +23,7 @@ slf4j = "2.0.20"
 spotbugs-annotations = "4.10.2"
 spotbugs-gradle = "6.5.4"
 spotless = "8.10.4"
-spotless-lib = "4.5.0"
+spotless-lib = "4.10.4"
 test-logger = "4.0.0"
 
 [libraries]
