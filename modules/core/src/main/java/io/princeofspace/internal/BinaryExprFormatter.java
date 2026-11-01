@@ -7,7 +7,6 @@ import com.github.javaparser.ast.expr.EnclosedExpr;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
-import com.github.javaparser.utils.StringEscapeUtils;
 import io.princeofspace.model.WrapStyle;
 
 import java.util.ArrayDeque;
@@ -93,7 +92,7 @@ final class BinaryExprFormatter {
                         && !anyInterOperandComments(concatLeavesAsExpr)) {
                     String merged = mergeStringLiteralValues(concatLeaves);
                     int max = ctx.config().lineLength();
-                    int mergedQuotedLen = StringEscapeUtils.escapeJava(merged).length() + 2;
+                    int mergedQuotedLen = StringLiteralFormatter.escapeJava(merged).length() + 2;
                     boolean mergedWouldOverflowSingleLiteral = ctx.column() + mergedQuotedLen > max;
                     boolean hasEscapesSensitiveToBoundaryPlacement = merged.indexOf('\\') >= 0;
                     if (mergedWouldOverflowSingleLiteral

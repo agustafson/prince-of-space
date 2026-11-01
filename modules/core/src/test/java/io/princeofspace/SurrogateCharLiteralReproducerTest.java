@@ -33,6 +33,8 @@ class SurrogateCharLiteralReproducerTest {
 
     private static final String PARAMETER_CASE_NAME = "[{index}]";
     private static final String WORD_PREFIX = "word ";
+    private static final String ESCAPE_SPELLING = "\\u001B";
+    private static final String ASCII_ESCAPE_WIDTH = "ZZZZZZ";
 
     private static final FormatterConfig CONFIG = FormatterConfig.builder()
             .indentSize(2)
@@ -292,6 +294,49 @@ class SurrogateCharLiteralReproducerTest {
                     if (!singlePass) {
                         assertThat(formatter.format(output)).isEqualTo(output);
                     }
+                }
+            }
+        }
+    }
+
+    @Test
+    void compositeValuesMeasureDescendantStringEscapes() throws CharacterCodingException {
+        List<String> shapes = List.of(
+                "class T { void m() { consume(new String[] {\"%s[31m\", \"%s[0m\"}, value); } }",
+                "class T { void m() { consume(value, new String[] {\"%s[31m\", \"%s[0m\"}); } }",
+                "class T { String[][] v = {{\"%s[31m\", \"%s[0m\"}, {\"%s[32m\", \"%s[0m\"}}; }",
+                "class T { @A(a = \"%s\", b = \"%s\", c = \"%s\") int v; }",
+                "class T { void m() { consume((s = \"%s[31m\"), value); } }");
+        for (int width = 40; width <= 80; width++) {
+            for (boolean singlePass : new boolean[] {false, true}) {
+                Formatter formatter = new Formatter(FormatterConfig.builder().lineLength(width).build(), singlePass);
+                for (String shape : shapes) {
+                    String output = formatter.format(shape.replace("%s", ESCAPE_SPELLING));
+                    String ascii = formatter.format(shape.replace("%s", ASCII_ESCAPE_WIDTH));
+                    assertThat(output.replace(ESCAPE_SPELLING, ASCII_ESCAPE_WIDTH)).isEqualTo(ascii);
+                    assertThat(parseSaved(encodeAsUtf8(output)).findAll(StringLiteralExpr.class))
+                            .extracting(StringLiteralExpr::asString).allSatisfy(value -> assertThat(value).contains("\u001B"));
+                    if (!singlePass) {
+                        assertThat(formatter.format(output)).isEqualTo(output);
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    void annotatedLambdaMeasuresEscapedStringValues() throws CharacterCodingException {
+        String input = "class T { void m() { consume((@A(value = \"\\u001B[31m\", other = \"\\u001B[0m\") String p) -> { work(); }, value); } }";
+        for (int width = 60; width <= 80; width++) {
+            for (boolean singlePass : new boolean[] {false, true}) {
+                Formatter formatter = new Formatter(FormatterConfig.builder().lineLength(width).build(), singlePass);
+                String output = formatter.format(input);
+                String ascii = formatter.format(input.replace(ESCAPE_SPELLING, ASCII_ESCAPE_WIDTH));
+                assertThat(parseSaved(encodeAsUtf8(output)).findAll(StringLiteralExpr.class))
+                        .extracting(StringLiteralExpr::asString).containsExactly("\u001B[31m", "\u001B[0m");
+                assertThat(output.replace(ESCAPE_SPELLING, ASCII_ESCAPE_WIDTH)).isEqualTo(ascii);
+                if (!singlePass) {
+                    assertThat(formatter.format(output)).isEqualTo(output);
                 }
             }
         }

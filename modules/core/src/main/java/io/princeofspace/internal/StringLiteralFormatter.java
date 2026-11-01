@@ -551,7 +551,16 @@ final class StringLiteralFormatter {
 
     /** Single-line width estimate (line breaks treated as spaces) for line-budget heuristics. */
     private static int flatExprSourceWidth(Expression e) {
-        return e.toString().replaceAll("\\R", " ").length();
+        return e.toString().replaceAll("\\R", " ").length() + sourceEscapeExpansion(e);
+    }
+
+    static int sourceEscapeExpansion(Node node) {
+        int expansion = 0;
+        for (StringLiteralExpr literal : node.findAll(StringLiteralExpr.class)) {
+            String value = literal.getValue();
+            expansion += escapeUnsafeLiteralCharacters(value).length() - value.length();
+        }
+        return expansion;
     }
 
     /**
@@ -609,7 +618,7 @@ final class StringLiteralFormatter {
         };
     }
 
-    private static String escapeJava(String value) {
+    static String escapeJava(String value) {
         return escapeUnsafeLiteralCharacters(StringEscapeUtils.escapeJava(value));
     }
 
