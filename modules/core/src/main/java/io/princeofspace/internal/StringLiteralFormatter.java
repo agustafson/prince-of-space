@@ -612,7 +612,7 @@ final class StringLiteralFormatter {
         return escapeUnpairedSurrogates(StringEscapeUtils.escapeJava(value));
     }
 
-    private static String escapeUnpairedSurrogates(String value) {
+    static String escapeUnpairedSurrogates(String value) {
         StringBuilder escaped = null;
         for (int i = 0; i < value.length(); i++) {
             char ch = value.charAt(i);
