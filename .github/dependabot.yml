@@ -25,3 +25,7 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
+    ignore:
+      # Must stay aligned with engines.vscode in package.json; @vscode/vsce
+      # rejects packages whose @types/vscode range exceeds the engine range.
+      - dependency-name: "@types/vscode"
