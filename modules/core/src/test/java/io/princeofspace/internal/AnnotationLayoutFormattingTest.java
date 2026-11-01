@@ -249,12 +249,13 @@ class AnnotationLayoutFormattingTest {
         for (WrapStyle style : WrapStyle.values()) {
             for (boolean closingOnNewLine : new boolean[] {true, false}) {
                 for (int lineLength : new int[] {NARROW_LINE_LENGTH, LINE_LENGTH}) {
-                    configs[i++] =
+                    configs[i] =
                             FormatterConfig.builder()
                                     .wrapStyle(style)
                                     .closingParenOnNewLine(closingOnNewLine)
                                     .lineLength(lineLength)
                                     .build();
+                    i++;
                 }
             }
         }
