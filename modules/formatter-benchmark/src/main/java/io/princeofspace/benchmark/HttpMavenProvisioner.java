@@ -42,6 +42,8 @@ final class HttpMavenProvisioner implements Provisioner {
         return jars;
     }
 
+    // Catches RuntimeException only to delete the temp download before rethrowing.
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
     private File resolve(String coord) {
         try {
             DefaultArtifact artifact = new DefaultArtifact(coord);

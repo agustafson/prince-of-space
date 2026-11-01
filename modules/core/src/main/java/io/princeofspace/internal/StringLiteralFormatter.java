@@ -576,10 +576,9 @@ final class StringLiteralFormatter {
             if (Character.isHighSurrogate(ch)
                     && i + 1 < value.length()
                     && Character.isLowSurrogate(value.charAt(i + 1))) {
+                i++;
                 if (escaped != null) {
-                    escaped.append(ch).append(value.charAt(++i));
-                } else {
-                    i++;
+                    escaped.append(ch).append(value.charAt(i));
                 }
             } else if (Character.isSurrogate(ch)) {
                 if (escaped == null) {

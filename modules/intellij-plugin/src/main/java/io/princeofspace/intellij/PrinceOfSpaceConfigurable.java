@@ -273,6 +273,8 @@ public final class PrinceOfSpaceConfigurable implements Configurable {
         s.normalizeAfterLoad();
     }
 
+    // A null state field surfaces as NPE from valueOf; report it as a configuration error.
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
     private static void validateCommonState(CommonState commonState) throws ConfigurationException {
         try {
             IndentStyle.valueOf(commonState.indentStyle);

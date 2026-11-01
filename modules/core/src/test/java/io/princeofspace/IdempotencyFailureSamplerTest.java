@@ -28,6 +28,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class IdempotencyFailureSamplerTest {
 
+    // Any formatter exception is recorded as a PARSE_FAIL sample, not a test error.
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
     @Test
     void sampleFailures_printFirstDiffPerFile() throws Exception {
         String rootRaw = System.getenv("PRINCE_SAMPLE_ROOT");
