@@ -35,6 +35,7 @@ class SurrogateCharLiteralReproducerTest {
     private static final String WORD_PREFIX = "word ";
     private static final String ESCAPE_SPELLING = "\\u001B";
     private static final String ASCII_ESCAPE_WIDTH = "ZZZZZZ";
+    private static final String CONCAT_SEPARATOR = " + ";
 
     private static final FormatterConfig CONFIG = FormatterConfig.builder()
             .indentSize(2)
@@ -284,7 +285,7 @@ class SurrogateCharLiteralReproducerTest {
     @Test
     void ordinaryConcatKeepsItsFirstOperandBesideTheInitializer() {
         Formatter formatter = new Formatter(FormatterConfig.builder().lineLength(40).build());
-        String expression = String.join(" + ", Collections.nCopies(8, "\"x\""));
+        String expression = String.join(CONCAT_SEPARATOR, Collections.nCopies(8, "\"x\""));
         String output = formatter.format("class T { String s = " + expression + "; }");
         assertThat(output).contains("String s = \"x\"");
         assertThat(formatter.format(output)).isEqualTo(output);
@@ -313,16 +314,16 @@ class SurrogateCharLiteralReproducerTest {
     static Stream<Arguments> concatControlCases() {
         String spelling = "\\200\\200\\200";
         String piece = "\"" + spelling + "\"";
-        String chain = String.join(" + ", Collections.nCopies(128, piece));
+        String chain = String.join(CONCAT_SEPARATOR, Collections.nCopies(128, piece));
         String value = spelling.translateEscapes();
         String slashSpelling = "\\200\\\\";
         return Stream.of(
-                Arguments.of(String.join(" + ", Collections.nCopies(127, piece)), 2200, value.repeat(127), false),
+                Arguments.of(String.join(CONCAT_SEPARATOR, Collections.nCopies(127, piece)), 2200, value.repeat(127), false),
                 Arguments.of(chain, 2200, value.repeat(128), true),
                 Arguments.of("(" + chain + ")", 2200, value.repeat(128), false),
-                Arguments.of(String.join(" + ", Collections.nCopies(128, "\"" + slashSpelling + "\"")),
+                Arguments.of(String.join(CONCAT_SEPARATOR, Collections.nCopies(128, "\"" + slashSpelling + "\"")),
                         900, slashSpelling.translateEscapes().repeat(128), false),
-                Arguments.of(piece + " /* retained */ + " + String.join(" + ", Collections.nCopies(127, piece)),
+                Arguments.of(piece + " /* retained */ + " + String.join(CONCAT_SEPARATOR, Collections.nCopies(127, piece)),
                         2200, value.repeat(128), false));
     }
 
