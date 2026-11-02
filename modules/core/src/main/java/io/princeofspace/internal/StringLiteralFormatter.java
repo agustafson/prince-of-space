@@ -211,7 +211,7 @@ final class StringLiteralFormatter {
         if (stripped instanceof BinaryExpr binary
                 && binary.getOperator() == BinaryExpr.Operator.PLUS
                 && isTopLevelStringConcatChain(stripped)) {
-            return 1 + flatExprSourceWidth(stripped);
+            return initializerTailWidthForStringConcatLiterals(stripped);
         }
         return -1;
     }
@@ -558,6 +558,26 @@ final class StringLiteralFormatter {
             expansion += escapeUnsafeLiteralCharacters(value).length() - value.length();
         }
         return expansion;
+    }
+
+    private int initializerTailWidthForStringConcatLiterals(Expression root) {
+        List<Expression> parts = new ArrayList<>();
+        collectPlusOperands(root, parts);
+        StringBuilder merged = new StringBuilder();
+        int retainedWidth = 0;
+        for (Expression part : parts) {
+            if (!(part instanceof StringLiteralExpr literal)) {
+                return 1 + flatExprSourceWidth(root);
+            }
+            merged.append(semanticValue(literal));
+            retainedWidth += escapeUnsafeLiteralCharacters(literal.getValue()).length();
+        }
+        String value = merged.toString();
+        // Only the rechunking path replaces retained octal spellings with canonical escapes.
+        int bodyWidth = BinaryExprFormatter.shouldRechunkStringConcat(
+                root, parts, value, ctx.column() + 1, fmt.lineLength())
+                ? escapeJava(value).length() : retainedWidth;
+        return 1 + bodyWidth + 2;
     }
 
     private static int mergedStringLiteralChainCharCount(Expression init) {

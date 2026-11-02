@@ -281,6 +281,51 @@ class SurrogateCharLiteralReproducerTest {
         }
     }
 
+    @Test
+    void ordinaryConcatKeepsItsFirstOperandBesideTheInitializer() {
+        Formatter formatter = new Formatter(FormatterConfig.builder().lineLength(40).build());
+        String expression = String.join(" + ", Collections.nCopies(8, "\"x\""));
+        String output = formatter.format("class T { String s = " + expression + "; }");
+        assertThat(output).contains("String s = \"x\"");
+        assertThat(formatter.format(output)).isEqualTo(output);
+    }
+
+    @ParameterizedTest(name = PARAMETER_CASE_NAME)
+    @MethodSource("concatControlCases")
+    void concatControlsRetainOrRechunkTheirSpellings(
+            String expression, int width, String expected, boolean rechunked) throws CharacterCodingException {
+        for (boolean singlePass : new boolean[] {false, true}) {
+            Formatter formatter = new Formatter(FormatterConfig.builder().lineLength(width).build(), singlePass);
+            String output = formatter.format("class T { String s = " + expression + "; }");
+            assertThat(output).contains(rechunked ? "\\u0080" : "\\200");
+            assertThat(output.lines()).allSatisfy(line -> assertThat(line.length()).isLessThanOrEqualTo(width));
+            assertThat(parseSaved(encodeAsUtf8(output)).findAll(StringLiteralExpr.class).stream()
+                    .map(StringLiteralExpr::asString).collect(joining())).isEqualTo(expected);
+            if (expression.contains("/* retained */")) {
+                assertThat(output).containsOnlyOnce("/* retained */");
+            }
+            if (!singlePass) {
+                assertThat(formatter.format(output)).isEqualTo(output);
+            }
+        }
+    }
+
+    static Stream<Arguments> concatControlCases() {
+        String spelling = "\\200\\200\\200";
+        String piece = "\"" + spelling + "\"";
+        String chain = String.join(" + ", Collections.nCopies(128, piece));
+        String value = spelling.translateEscapes();
+        String slashSpelling = "\\200\\\\";
+        return Stream.of(
+                Arguments.of(String.join(" + ", Collections.nCopies(127, piece)), 2200, value.repeat(127), false),
+                Arguments.of(chain, 2200, value.repeat(128), true),
+                Arguments.of("(" + chain + ")", 2200, value.repeat(128), false),
+                Arguments.of(String.join(" + ", Collections.nCopies(128, "\"" + slashSpelling + "\"")),
+                        900, slashSpelling.translateEscapes().repeat(128), false),
+                Arguments.of(piece + " /* retained */ + " + String.join(" + ", Collections.nCopies(127, piece)),
+                        2200, value.repeat(128), false));
+    }
+
     @ParameterizedTest(name = PARAMETER_CASE_NAME)
     @MethodSource("textBlockContents")
     void textBlockValuesAndIndentationSurviveEncoding(String spelling, String expected)
