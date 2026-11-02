@@ -34,7 +34,7 @@ Prince of Space takes its philosophy from Prettier and ktlint: strong, readable 
 
 ```kotlin
 dependencies {
-    implementation("io.github.agustafson.princeofspace:prince-of-space-core:2.2.0")
+    implementation("io.github.agustafson.princeofspace:prince-of-space-core:2.3.1")
 }
 ```
 
@@ -52,7 +52,7 @@ String formatted = formatter.format(sourceCode);
 <dependency>
     <groupId>io.github.agustafson.princeofspace</groupId>
     <artifactId>prince-of-space-core</artifactId>
-    <version>2.2.0</version>
+    <version>2.3.1</version>
 </dependency>
 ```
 
@@ -81,7 +81,7 @@ As of [Spotless Gradle plugin 8.9.0](https://github.com/diffplug/spotless/releas
 spotless {
     java {
         target("src/**/*.java")
-        princeOfSpace("2.2.0") {
+        princeOfSpace("2.3.1") {
             indentSize(4)
             lineLength(120)
             // wrapStyle("balanced"), closingParenOnNewLine(true), trailingCommas(false), javaLanguageLevel(17) also available
@@ -108,7 +108,7 @@ spotless {
 }
 ```
 
-Put the Spotless module on the classpath where your build imports `PrinceOfSpaceStep` — for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout. Use `io.github.agustafson.princeofspace:prince-of-space-spotless:2.2.0` (pin to the version on Maven Central).
+Put the Spotless module on the classpath where your build imports `PrinceOfSpaceStep` — for example `buildSrc` / `implementation`, or `buildscript { dependencies { classpath(...) } }` depending on your Gradle layout. Use `io.github.agustafson.princeofspace:prince-of-space-spotless:2.3.1` (pin to the version on Maven Central).
 
 ### Spotless (Maven)
 
@@ -122,7 +122,7 @@ As of [Spotless Maven plugin 3.9.0](https://github.com/diffplug/spotless/release
   <configuration>
     <java>
       <princeOfSpace>
-        <version>2.2.0</version>
+        <version>2.3.1</version>
       </princeOfSpace>
     </java>
   </configuration>
@@ -151,7 +151,7 @@ If you're pinned to a `spotless-maven-plugin` version older than 3.9.0, use Spot
               <artifactItem>
                 <groupId>io.github.agustafson.princeofspace</groupId>
                 <artifactId>prince-of-space-cli</artifactId>
-                <version>2.2.0</version>
+                <version>2.3.1</version>
                 <destFileName>prince-of-space-cli.jar</destFileName>
               </artifactItem>
             </artifactItems>
@@ -278,11 +278,11 @@ Prince of Space uses `FormatterConfig.defaults()` (line length **120**, wrap **B
 
 | Formatter | Avg ms / file | Failures |
 |-----------|-----------------|----------|
-| Prince of Space (strict, fixed-point) | 6.55 | 0 |
-| Prince of Space (fast, single pass) | 2.65 | 0 |
-| Google Java Format (AOSP) | 3.20 | 0 |
-| Palantir Java Format (AOSP) | 3.05 | 0 |
-| Eclipse JDT (Spotless default) | 2.43 | 0 |
+| Prince of Space (strict, fixed-point) | 8.00 | 0 |
+| Prince of Space (fast, single pass) | 3.42 | 0 |
+| Google Java Format (AOSP) | 3.24 | 0 |
+| Palantir Java Format (AOSP) | 3.16 | 0 |
+| Eclipse JDT (Spotless default) | 2.46 | 0 |
 
 Full detail and regeneration: `./gradlew :formatter-benchmark:run` with `PRINCE_BENCH_ROOT` pointing at a checkout. _Prettier throughput leg skipped in this run (`PRINCE_BENCH_SKIP_PRETTIER=true`)._ Eclipse JDT uses the same Spotless `eclipse()` stack as [`examples/external/outputs/eclipse/`](examples/external/outputs/eclipse/) (Equo P2 + Maven Central on first run).
 
@@ -326,10 +326,10 @@ Group ID: **`io.github.agustafson.princeofspace`**. Published versions appear on
 
 | Artifact | Coordinate | When to use |
 |----------|------------|-------------|
-| `prince-of-space-core` | `io.github.agustafson.princeofspace:prince-of-space-core:2.2.0` | Default — small footprint; JavaParser + SLF4J as normal transitives |
-| `prince-of-space-bundled` | `io.github.agustafson.princeofspace:prince-of-space-bundled:2.2.0` | Single fat JAR, dependencies relocated — no classpath clashes |
-| `prince-of-space-spotless` | `io.github.agustafson.princeofspace:prince-of-space-spotless:2.2.0` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) for **Gradle only** — for Spotless Gradle plugin versions older than 8.9.0, or programmatic `FormatterConfig` composition; see "Spotless (Gradle)" above. Not usable from Maven POM configuration. |
-| `prince-of-space-cli` | `io.github.agustafson.princeofspace:prince-of-space-cli:2.2.0` | Self-contained CLI jar (`java -jar ... --stdin`); used by the `nativeCmd` fallback for Spotless Maven plugin versions older than 3.9.0 (see "Spotless (Maven)" above). Same artifact is also attached to [GitHub Releases](https://github.com/agustafson/prince-of-space/releases) |
+| `prince-of-space-core` | `io.github.agustafson.princeofspace:prince-of-space-core:2.3.1` | Default — small footprint; JavaParser + SLF4J as normal transitives |
+| `prince-of-space-bundled` | `io.github.agustafson.princeofspace:prince-of-space-bundled:2.3.1` | Single fat JAR, dependencies relocated — no classpath clashes |
+| `prince-of-space-spotless` | `io.github.agustafson.princeofspace:prince-of-space-spotless:2.3.1` | Spotless `FormatterStep` (`PrinceOfSpaceStep`) for **Gradle only** — for Spotless Gradle plugin versions older than 8.9.0, or programmatic `FormatterConfig` composition; see "Spotless (Gradle)" above. Not usable from Maven POM configuration. |
+| `prince-of-space-cli` | `io.github.agustafson.princeofspace:prince-of-space-cli:2.3.1` | Self-contained CLI jar (`java -jar ... --stdin`); used by the `nativeCmd` fallback for Spotless Maven plugin versions older than 3.9.0 (see "Spotless (Maven)" above). Same artifact is also attached to [GitHub Releases](https://github.com/agustafson/prince-of-space/releases) |
 
 ## Non-goals
 
