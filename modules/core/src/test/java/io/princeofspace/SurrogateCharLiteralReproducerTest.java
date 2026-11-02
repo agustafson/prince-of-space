@@ -291,6 +291,35 @@ class SurrogateCharLiteralReproducerTest {
         assertThat(formatter.format(output)).isEqualTo(output);
     }
 
+    @Test
+    void printableEscapesKeepTheExistingInitializerLayout() {
+        FormatterConfig config = FormatterConfig.builder().lineLength(40).build();
+        for (String spelling : List.of("\\101", "\\40", "\\'", "\\s")) {
+            String content = spelling.repeat(28 / spelling.length());
+            String input = "class T { String s = \"" + content + "\"; }";
+            String once = new Formatter(config, true).format(input);
+            assertThat(once).contains("    String s = \"");
+            assertThat(parseSaved(once).findAll(StringLiteralExpr.class).stream()
+                    .map(StringLiteralExpr::asString).collect(joining())).isEqualTo(content.translateEscapes());
+            Formatter formatter = new Formatter(config);
+            String stable = formatter.format(input);
+            assertThat(formatter.format(stable)).isEqualTo(stable);
+            if (spelling.equals("\\101")) {
+                assertThat(stable).isEqualTo(once);
+            }
+        }
+    }
+
+    @Test
+    void printableOctalConcatKeepsItsExistingRechunkDecision() {
+        FormatterConfig config = FormatterConfig.builder().lineLength(140).build();
+        String expression = String.join(CONCAT_SEPARATOR, Collections.nCopies(128, "\"\\101\""));
+        String once = new Formatter(config, true).format("class T { T a = " + expression + "; }");
+        assertThat(parseSaved(once).findAll(StringLiteralExpr.class)).hasSize(128);
+        assertThat(once).contains("\\101");
+        assertThat(new Formatter(config).format(once)).isEqualTo(once);
+    }
+
     @ParameterizedTest(name = PARAMETER_CASE_NAME)
     @MethodSource("concatControlCases")
     void concatControlsRetainOrRechunkTheirSpellings(

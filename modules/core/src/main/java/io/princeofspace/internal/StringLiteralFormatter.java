@@ -200,7 +200,10 @@ final class StringLiteralFormatter {
     int tailWidthAfterEqualsForInitializerBreakHeuristic(Expression init) {
         Expression stripped = stripParens(init);
         if (stripped instanceof StringLiteralExpr sl) {
-            return 1 + escapeUnsafeLiteralCharacters(sl.getValue()).length() + 2;
+            // Fitting spellings stay intact; overflowing literals can use shorter canonical chunks.
+            int retainedWidth = escapeUnsafeLiteralCharacters(sl.getValue()).length();
+            int canonicalWidth = escapeJava(semanticValue(sl)).length();
+            return 1 + Math.min(retainedWidth, canonicalWidth) + 2;
         }
         if (stripped instanceof TextBlockLiteralExpr) {
             return 1 + flatExprSourceWidth(stripped);
@@ -573,10 +576,11 @@ final class StringLiteralFormatter {
             retainedWidth += escapeUnsafeLiteralCharacters(literal.getValue()).length();
         }
         String value = merged.toString();
-        // Only the rechunking path replaces retained octal spellings with canonical escapes.
+        int canonicalWidth = escapeJava(value).length();
+        // Keep the preferred width estimate for retained pieces; rechunking uses canonical widths.
         int bodyWidth = BinaryExprFormatter.shouldRechunkStringConcat(
                 root, parts, value, ctx.column() + 1, fmt.lineLength())
-                ? escapeJava(value).length() : retainedWidth;
+                ? canonicalWidth : Math.min(retainedWidth, canonicalWidth);
         return 1 + bodyWidth + 2;
     }
 
