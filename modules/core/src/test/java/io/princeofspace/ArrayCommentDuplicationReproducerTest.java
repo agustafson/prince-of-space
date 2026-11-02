@@ -13,6 +13,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ArrayCommentDuplicationReproducerTest {
 
+    private static final String COMMA_PLACEHOLDER = "{comma}";
+
     @Test
     void trailingArrayCommentsArePreservedOnce() {
         String input = """
@@ -130,10 +132,10 @@ class ArrayCommentDuplicationReproducerTest {
                           1,
                           2, // first row
                           3,
-                          4%s // second row
+                          4{comma} // second row
                       };
                     }
-                    """.formatted(trailingCommas ? "," : ""));
+                    """.replace(COMMA_PLACEHOLDER, trailingCommas ? "," : ""));
             assertThat(formatter.format(output)).isEqualTo(output);
         }
     }
@@ -166,10 +168,10 @@ class ArrayCommentDuplicationReproducerTest {
                       int[] values = {
                           1, // a
                           2, // b
-                          3%s // c
+                          3{comma} // c
                       };
                     }
-                    """.formatted(trailingCommas ? "," : ""));
+                    """.replace(COMMA_PLACEHOLDER, trailingCommas ? "," : ""));
             assertThat(formatter.format(output)).isEqualTo(output);
         }
     }
@@ -227,10 +229,10 @@ class ArrayCommentDuplicationReproducerTest {
                           1,
                           /* a */ 2, // b
                           3,
-                          4%s // c
+                          4{comma} // c
                       };
                     }
-                    """.formatted(trailingCommas ? "," : ""));
+                    """.replace(COMMA_PLACEHOLDER, trailingCommas ? "," : ""));
             assertThat(formatter.format(output)).isEqualTo(output);
         }
     }
@@ -263,11 +265,11 @@ class ArrayCommentDuplicationReproducerTest {
                       int[] values = {
                           1,
                           2, // a
-                          3%s
+                          3{comma}
                           // end
                       };
                     }
-                    """.formatted(trailingCommas ? "," : ""));
+                    """.replace(COMMA_PLACEHOLDER, trailingCommas ? "," : ""));
             assertThat(formatter.format(output)).isEqualTo(output);
         }
     }
@@ -298,10 +300,10 @@ class ArrayCommentDuplicationReproducerTest {
                     class A {
                       int[][] values = {
                           {1, 2}, // row a
-                          {3, 4}%s // row b
+                          {3, 4}{comma} // row b
                       };
                     }
-                    """.formatted(trailingCommas ? "," : ""));
+                    """.replace(COMMA_PLACEHOLDER, trailingCommas ? "," : ""));
             assertThat(formatter.format(output)).isEqualTo(output);
         }
     }
