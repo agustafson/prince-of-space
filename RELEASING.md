@@ -1,5 +1,8 @@
 # Releasing Prince of Space
 
+The info below is the full reference detail.
+To run a release jump straight here: [release process](#dry-run-verify-version-inference-without-publishing)
+
 This document describes the full release process. The release workflow
 (`.github/workflows/release.yml`) automates most steps — this file exists so that
 a human or agent can understand, verify, and if necessary recover from any step.
