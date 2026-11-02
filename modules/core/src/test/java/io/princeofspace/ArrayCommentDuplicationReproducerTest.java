@@ -1,6 +1,7 @@
 package io.princeofspace;
 
 import io.princeofspace.model.FormatterConfig;
+import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.JavaLanguageLevel;
 import io.princeofspace.model.WrapStyle;
 import org.junit.jupiter.api.Test;
@@ -11,6 +12,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ArrayCommentDuplicationReproducerTest {
+
+    private static final String COMMA_PLACEHOLDER = "{comma}";
 
     @Test
     void trailingArrayCommentsArePreservedOnce() {
@@ -99,5 +102,241 @@ class ArrayCommentDuplicationReproducerTest {
             assertThat(output.indexOf("// leading")).isLessThan(output.indexOf("1,"));
             assertThat(formatter.format(output)).isEqualTo(output);
         }
+    }
+
+    @ParameterizedTest
+    @EnumSource(WrapStyle.class)
+    void reproducerRowCommentsPrintOnceAfterTheRowsFinalValue(WrapStyle wrapStyle) {
+        String input = """
+                class ArrayComments {
+                  int[] values = {
+                    1, 2, // first row
+                    3, 4 // second row
+                  };
+                }
+                """;
+        for (boolean trailingCommas : new boolean[] {false, true}) {
+            Formatter formatter = new Formatter(FormatterConfig.builder()
+                    .indentSize(2)
+                    .lineLength(100)
+                    .wrapStyle(wrapStyle)
+                    .trailingCommas(trailingCommas)
+                    .javaLanguageLevel(JavaLanguageLevel.of(25))
+                    .build());
+
+            String output = formatter.format(input);
+
+            assertThat(output).isEqualTo("""
+                    class ArrayComments {
+                      int[] values = {
+                          1,
+                          2, // first row
+                          3,
+                          4{comma} // second row
+                      };
+                    }
+                    """.replace(COMMA_PLACEHOLDER, trailingCommas ? "," : ""));
+            assertThat(formatter.format(output)).isEqualTo(output);
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(WrapStyle.class)
+    void trailingCommentOnEachSingleValueRow_printsOnTheSameValue(WrapStyle wrapStyle) {
+        String input = """
+                class A {
+                  int[] values = {
+                    1, // a
+                    2, // b
+                    3 // c
+                  };
+                }
+                """;
+        for (boolean trailingCommas : new boolean[] {false, true}) {
+            Formatter formatter = new Formatter(FormatterConfig.builder()
+                    .indentSize(2)
+                    .lineLength(100)
+                    .wrapStyle(wrapStyle)
+                    .trailingCommas(trailingCommas)
+                    .javaLanguageLevel(JavaLanguageLevel.of(25))
+                    .build());
+
+            String output = formatter.format(input);
+
+            assertThat(output).isEqualTo("""
+                    class A {
+                      int[] values = {
+                          1, // a
+                          2, // b
+                          3{comma} // c
+                      };
+                    }
+                    """.replace(COMMA_PLACEHOLDER, trailingCommas ? "," : ""));
+            assertThat(formatter.format(output)).isEqualTo(output);
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(WrapStyle.class)
+    void trailingCommentOnArrayThatFitsOneLine_printsOnceAfterItsRow(WrapStyle wrapStyle) {
+        String input = "class A { int[] values = {1, 2, // c\n3}; }\n";
+        Formatter formatter = new Formatter(FormatterConfig.builder()
+                .indentSize(2)
+                .lineLength(100)
+                .wrapStyle(wrapStyle)
+                .javaLanguageLevel(JavaLanguageLevel.of(25))
+                .build());
+
+        String output = formatter.format(input);
+
+        assertThat(output).isEqualTo("""
+                class A {
+                  int[] values = {
+                      1,
+                      2, // c
+                      3
+                  };
+                }
+                """);
+        assertThat(formatter.format(output)).isEqualTo(output);
+    }
+
+    @ParameterizedTest
+    @EnumSource(WrapStyle.class)
+    void blockCommentLeadingValueOnRowWithTrailingLineComment_keepsSourceOrder(WrapStyle wrapStyle) {
+        String input = """
+                class A {
+                  int[] values = {
+                    1, /* a */ 2, // b
+                    3, 4 // c
+                  };
+                }
+                """;
+        for (boolean trailingCommas : new boolean[] {false, true}) {
+            Formatter formatter = new Formatter(FormatterConfig.builder()
+                    .indentSize(2)
+                    .lineLength(100)
+                    .wrapStyle(wrapStyle)
+                    .trailingCommas(trailingCommas)
+                    .javaLanguageLevel(JavaLanguageLevel.of(25))
+                    .build());
+
+            String output = formatter.format(input);
+
+            assertThat(output).isEqualTo("""
+                    class A {
+                      int[] values = {
+                          1,
+                          /* a */ 2, // b
+                          3,
+                          4{comma} // c
+                      };
+                    }
+                    """.replace(COMMA_PLACEHOLDER, trailingCommas ? "," : ""));
+            assertThat(formatter.format(output)).isEqualTo(output);
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(WrapStyle.class)
+    void orphanCommentAfterTrailingRowComment_keepsSourceOrder(WrapStyle wrapStyle) {
+        String input = """
+                class A {
+                  int[] values = {
+                    1, 2, // a
+                    3,
+                    // end
+                  };
+                }
+                """;
+        for (boolean trailingCommas : new boolean[] {false, true}) {
+            Formatter formatter = new Formatter(FormatterConfig.builder()
+                    .indentSize(2)
+                    .lineLength(100)
+                    .wrapStyle(wrapStyle)
+                    .trailingCommas(trailingCommas)
+                    .javaLanguageLevel(JavaLanguageLevel.of(25))
+                    .build());
+
+            String output = formatter.format(input);
+
+            assertThat(output).isEqualTo("""
+                    class A {
+                      int[] values = {
+                          1,
+                          2, // a
+                          3{comma}
+                          // end
+                      };
+                    }
+                    """.replace(COMMA_PLACEHOLDER, trailingCommas ? "," : ""));
+            assertThat(formatter.format(output)).isEqualTo(output);
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(WrapStyle.class)
+    void trailingCommentOnNestedArrayRow_printsOnceAfterItsRow(WrapStyle wrapStyle) {
+        String input = """
+                class A {
+                  int[][] values = {
+                    {1, 2}, // row a
+                    {3, 4} // row b
+                  };
+                }
+                """;
+        for (boolean trailingCommas : new boolean[] {false, true}) {
+            Formatter formatter = new Formatter(FormatterConfig.builder()
+                    .indentSize(2)
+                    .lineLength(100)
+                    .wrapStyle(wrapStyle)
+                    .trailingCommas(trailingCommas)
+                    .javaLanguageLevel(JavaLanguageLevel.of(25))
+                    .build());
+
+            String output = formatter.format(input);
+
+            assertThat(output).isEqualTo("""
+                    class A {
+                      int[][] values = {
+                          {1, 2}, // row a
+                          {3, 4}{comma} // row b
+                      };
+                    }
+                    """.replace(COMMA_PLACEHOLDER, trailingCommas ? "," : ""));
+            assertThat(formatter.format(output)).isEqualTo(output);
+        }
+    }
+
+    @Test
+    void reproducerRowCommentsPrintOnceWithTabIndent() {
+        String input = """
+                class ArrayComments {
+                  int[] values = {
+                    1, 2, // first row
+                    3, 4 // second row
+                  };
+                }
+                """;
+        Formatter formatter = new Formatter(FormatterConfig.builder()
+                .indentStyle(IndentStyle.TABS)
+                .indentSize(1)
+                .lineLength(100)
+                .javaLanguageLevel(JavaLanguageLevel.of(25))
+                .build());
+
+        String output = formatter.format(input);
+
+        assertThat(output).isEqualTo("""
+                class ArrayComments {
+                \tint[] values = {
+                \t\t\t1,
+                \t\t\t2, // first row
+                \t\t\t3,
+                \t\t\t4 // second row
+                \t};
+                }
+                """);
+        assertThat(formatter.format(output)).isEqualTo(output);
     }
 }
