@@ -9,8 +9,13 @@ import com.github.javaparser.ast.expr.Expression;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.IndentStyle;
 import io.princeofspace.model.WrapStyle;
+import org.jspecify.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.ListIterator;
 import java.util.Optional;
 
 import static com.github.javaparser.utils.Utils.isNullOrEmpty;
@@ -31,6 +36,7 @@ final class ArrayInitializerFormatter {
     // R4: inline vs multi-line from flat width; R5: WIDE packs, BALANCED/NARROW one element per line;
     // R3: continuation before elements; optional trailing comma when multiline (FormatterConfig#trailingCommas).
     void format(ArrayInitializerExpr n, Void arg) {
+        removeMirroredTrailingComments(n.getValues());
         ctx.printOrphanCommentsBeforeThisChildNode(n);
         ctx.printComment(n.getComment(), arg);
         boolean hasOrphanComments = !n.getOrphanComments().isEmpty();
@@ -103,6 +109,20 @@ final class ArrayInitializerFormatter {
         return false;
     }
 
+    private static void removeMirroredTrailingComments(NodeList<Expression> values) {
+        IdentityHashMap<Comment, Expression> owners = new IdentityHashMap<>();
+        for (Expression value : values) {
+            if (value.getComment().orElse(null) instanceof LineComment comment
+                    && CommentUtils.hasTrailingLineOrBlockComment(value)) {
+                // JavaParser shares a row's trailing comment across its values; keep the last owner.
+                Expression previous = owners.put(comment, value);
+                if (previous != null) {
+                    previous.removeComment();
+                }
+            }
+        }
+    }
+
     private void printTallInitializer(
             ArrayInitializerExpr n,
             Void arg,
@@ -116,11 +136,27 @@ final class ArrayInitializerFormatter {
             ctx.printCont();
         }
         int elementColumn = ctx.column();
-        for (Iterator<Expression> i = n.getValues().iterator(); i.hasNext(); ) {
+        for (ListIterator<Expression> i = n.getValues().listIterator(); i.hasNext(); ) {
             Expression expr = i.next();
+            Optional<Comment> trailing = expr.getComment()
+                    .filter(comment -> comment instanceof LineComment)
+                    .filter(comment -> CommentUtils.hasTrailingLineOrBlockComment(expr));
+            trailing.ifPresent(comment -> expr.removeComment());
             printValueWithLeadingComment(expr, arg, elementColumn);
-            if (i.hasNext()) {
+            if (i.hasNext() || fmt.trailingCommas()) {
                 ctx.print(",");
+            }
+            trailing.ifPresent(comment -> {
+                Expression next = i.hasNext() ? n.getValues().get(i.nextIndex()) : null;
+                printBlocksBeforeTrailingComment(n, expr, next, comment);
+                ctx.print(" //");
+                String content = comment.getContent();
+                if (!content.isEmpty() && !content.startsWith(" ")) {
+                    ctx.print(" ");
+                }
+                ctx.print(content);
+            });
+            if (i.hasNext()) {
                 ctx.println();
                 if (alignToNestedArrayBrace) {
                     ctx.padToColumn(nestedElementColumn);
@@ -128,9 +164,6 @@ final class ArrayInitializerFormatter {
                     ctx.printCont();
                 }
             }
-        }
-        if (fmt.trailingCommas()) {
-            ctx.print(",");
         }
         ctx.println();
         ctx.indentWithAlignToSafe(elementColumn);
@@ -140,6 +173,31 @@ final class ArrayInitializerFormatter {
             ctx.padToColumn(openBraceColumn);
         }
         ctx.print("}");
+    }
+
+    private void printBlocksBeforeTrailingComment(
+            ArrayInitializerExpr array, Expression value, @Nullable Expression next, Comment trailing) {
+        if (value.getRange().isEmpty() || trailing.getRange().isEmpty()) {
+            return;
+        }
+        // JavaParser splits separator comments between array orphans and the next value's owner.
+        var blocks = new ArrayList<>(array.getOrphanComments());
+        if (next != null) {
+            next.getComment().ifPresent(blocks::add);
+        }
+        blocks.removeIf(block -> !(block instanceof BlockComment)
+                || block.getRange().isEmpty()
+                || !value.getRange().orElseThrow().end.isBefore(block.getRange().orElseThrow().begin)
+                || !block.getRange().orElseThrow().end.isBefore(trailing.getRange().orElseThrow().begin));
+        blocks.sort(Comparator.comparing(block -> block.getRange().orElseThrow().begin));
+        for (Comment block : blocks) {
+            ctx.print(" /*" + block.getContent() + "*/");
+            if (block.isOrphan()) {
+                block.remove();
+            } else if (next != null) {
+                next.removeComment();
+            }
+        }
     }
 
     /**
