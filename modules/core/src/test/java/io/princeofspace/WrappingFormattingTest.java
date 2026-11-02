@@ -874,6 +874,29 @@ class WrappingFormattingTest {
     }
 
     @Test
+    void arrayInitializer_wide_packsRemainingEscapedStringsOnOneLine() {
+        Formatter f = new Formatter(FormatterConfig.builder()
+                .lineLength(120)
+                .wrapStyle(WrapStyle.WIDE)
+                .build());
+        String input = """
+                class T {
+                    private static final String[] SCENARIO85_TERMINAL_COLORS = {"\\u001B[31m", "\\u001B[32m", "\\u001B[33m", "\\u001B[34m", "\\u001B[35m", "\\u001B[36m", "\\u001B[37m", "\\u001B[0m"};
+                }
+                """;
+
+        String out = f.format(input);
+
+        assertThat(out).isEqualTo("""
+                class T {
+                    private static final String[] SCENARIO85_TERMINAL_COLORS = {"\\u001B[31m", "\\u001B[32m", "\\u001B[33m", "\\u001B[34m",
+                            "\\u001B[35m", "\\u001B[36m", "\\u001B[37m", "\\u001B[0m"};
+                }
+                """);
+        assertThat(f.format(out)).isEqualTo(out);
+    }
+
+    @Test
     void arrayInitializer_wide_trailingCommas_addsCommaBeforeClosingBraceWhenMultiline() {
         Formatter f =
                 new Formatter(
