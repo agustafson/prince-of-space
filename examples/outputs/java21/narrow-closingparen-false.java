@@ -1411,6 +1411,42 @@ public class FormatterShowcase
             .replace(" ", "-");
     }
 
+    // Scenario 83: Trailing line comments in array initializers print once, after each row's final value
+    public static final int[] SCENARIO83_ROWS = {
+            1,
+            2, // first row
+            3,
+            4 // second row
+    };
+    private static final byte[] SCENARIO83_RANGES = {
+            (byte) 0x0A,
+            0,
+            0,
+            0,
+            /**/ (byte) 0xFF,
+            0,
+            0,
+            0, // 10.0.0.0/8
+            (byte) 0xAC,
+            (byte) 0x10,
+            0,
+            0,
+            /**/ (byte) 0xFF,
+            (byte) 0xF0,
+            0,
+            0 // 172.16.0.0/12
+    };
+
+    public String[] scenario83MixedSeparators() {
+        String[] separators = {
+                "alpha",
+                "beta", /* first */ /* middle */ // second
+                "gamma",
+                "delta" // third
+        };
+        return separators;
+    }
+
     // Placeholder methods
     private void validate(String locale) {}
 

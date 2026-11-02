@@ -43,3 +43,5 @@ Scenarios **31–44** are shared control-flow and wrapping cases; they appear in
 **Scenario 81** (consecutive line comments between fluent method calls) appears in all four trees and uses Java 8-compatible syntax. It checks that every comment line survives in order beside the next call.
 
 **Scenario 82** (classes annotated with a multi-pair, single-pair and single-member annotation whose string values overflow the line) appears in **all** four trees. It is a regression guard for TDR-030: the annotation's values wrap per `wrapStyle` before any string literal is split into `+`-joined chunks.
+
+**Scenario 83** (trailing line comments in array initializers) appears in **all** four trees and uses Java 8-compatible syntax. It is a regression guard for duplicated trailing comments: each row's `//` comment prints once, after the row's final value, and a block comment before a trailing line comment keeps its source order. It covers a multi-row `int[]`, a `byte[]` table with empty block separators, and a method-local `String[]` with mixed block and line comments.
