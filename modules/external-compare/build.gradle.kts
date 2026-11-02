@@ -40,7 +40,8 @@ spotless {
                 include("**/*.java")
             },
         )
-        googleJavaFormat(libs.versions.google.java.format.get()).aosp()
+        // Spotless's default version supports its reflective Style.valueOf(String) call.
+        googleJavaFormat().aosp()
     }
     format("compareEclipse", JavaExtension::class.java) {
         target(

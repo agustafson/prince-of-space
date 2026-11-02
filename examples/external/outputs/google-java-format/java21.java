@@ -130,7 +130,7 @@ public class FormatterShowcase
         return longTernary;
     }
 
-    // Scenario 9: Binary operator wrapping
+    // Scenario 9: Binary operator wrapping and trailing comments
     public boolean isValid() {
         return legacyField != null
                 && !legacyField.isBlank()
@@ -139,6 +139,13 @@ public class FormatterShowcase
                 && items.stream().allMatch(item -> item != null && !item.isBlank())
                 && complexGenericField != null
                 && complexGenericField.size() > 0;
+    }
+
+    public void updateTagIndex(int[] tagIdxMultipliers, int[][] tagValues, int i) {
+        tagIdxMultipliers[i] =
+                tagIdxMultipliers[i - 1]
+                        * (tagValues[i - 1].length
+                                + 1); // +1 to account for "no value" (omitted tag)
     }
 
     // Scenario 9b: Boolean operator chain with nested wrapped method chain operand
@@ -558,6 +565,11 @@ public class FormatterShowcase
                         .formatted(a, b, c));
     }
 
+    // Scenario 39d: Long JSON literal with escaped quotes
+    public String longEscapedJsonLiteral() {
+        return "{\"string\":\"bar\",\"int\":3,\"long\":3456789123,\"float\":3.142,\"double\":3.141592653589793,\"true\":true,\"false\":false,\"null\":null}";
+    }
+
     // Scenario 40: Synchronized block
     public void synchronizedBlock() {
         synchronized (
@@ -790,7 +802,9 @@ public class FormatterShowcase
                 "showroom-scenario-56-arg-bravo-long-symbolic-middle",
                 "showroom-scenario-56-arg-charlie-long-symbolic-near-tail",
                 // Trailing-arg comment anchors the delimiter region before closing paren formatting
-                "showroom-scenario-56-arg-delta-long-symbolic-suffix");
+                "showroom-scenario-56-arg-delta-long-symbolic-suffix"
+                // Closing-list comment remains inside the call
+                );
     }
 
     public String scenario56DistinctLineCommentsOnCallAndArgument(String value, String suffix) {
@@ -826,6 +840,12 @@ public class FormatterShowcase
         return items.stream(/* All items. */ ).count(/* Count items. */ );
     }
 
+    public String scenario56InlineCommentsBetweenTokens() {
+        String /* domain */ serviceName = null /* use default */;
+        return mergeSymbolicScenario56Arguments(
+                null /* serviceName */, serviceName, "operation", "resource") /* combined */;
+    }
+
     private String mergeSymbolicScenario56Arguments(
             String alpha, String bravo, String charlie, String delta) {
         return alpha + bravo + charlie + delta;
@@ -849,6 +869,7 @@ public class FormatterShowcase
                  */
                 "showroom-scenario57-descriptor-bravo-symbolic-handle",
                 "showroom-scenario57-descriptor-charlie-symbolic-handle"
+                // Closing-array comment remains inside the annotation value
             })
     @SuppressWarnings({"deprecation", "unchecked", "rawtypes", "unused"})
     public void scenario57AnnotatedMethodWithBuckets() {}
@@ -1367,6 +1388,80 @@ public class FormatterShowcase
         var localClass = new Scenario79LocalClassExtraLongSymbolicHandle();
         return localRecord.describe() + "/" + localClass.compose(inputExtraLongSymbolicHandle);
     }
+
+    // Scenario 80: Enum with a plain constant alongside per-constant anonymous bodies, constructor
+    // arguments, and trailing members
+    enum Scenario80MixedConstantBodiesEnumStrategy {
+        SIMPLE_SCENARIO80,
+        OVERRIDE_SCENARIO80 {
+            void run() {
+                return;
+            }
+        },
+        WITH_ARGS_SCENARIO80(1) {
+            void run() {
+                return;
+            }
+        };
+        private final int code;
+
+        Scenario80MixedConstantBodiesEnumStrategy() {
+            this(0);
+        }
+
+        Scenario80MixedConstantBodiesEnumStrategy(int code) {
+            this.code = code;
+        }
+
+        void base() {
+            return;
+        }
+    }
+
+    // Scenario 82: Annotation with several long string pairs wraps its pairs before any string
+    // literal is split
+    @Generated(
+            value = "com.amazing.super.awesome.CodeGenerator",
+            date = "2026-10-21T02:26:43Z",
+            comments = "I've always wanted to be cool")
+    static class Scenario82GeneratedAnnotationWrap {}
+
+    @SuppressWarnings(
+            value =
+                    "this particular suppression token is intentionally long to overflow the line limit when inline now or wrapped")
+    static class Scenario82SinglePairAnnotationWrap {}
+
+    @SuppressWarnings(
+            "this particular suppression token is intentionally long to overflow the line limit when inline now or wrapped")
+    static class Scenario82SingleMemberAnnotationWrap {}
+
+    // Scenario 83: Isolated surrogate code units in char literals are re-emitted as Unicode escapes
+    private char scenario83HighSurrogate = '\uD801';
+    private char scenario83LowSurrogate = '\uDC01';
+
+    // Scenario 84: Escaped NUL and surrogate escapes in Javadoc, block, and line comments stay
+    // printable
+    /** Scenario 84 Javadoc: an escaped NUL stays printable: {@code \u0000} */
+    private int scenario84JavadocEscapedNul;
+
+    /* Scenario 84 block comment: surrogate escape stays escaped: \uD801 and NUL \u0000 */
+    private int scenario84BlockCommentEscapes;
+
+    // Scenario 84 line comment: NUL \u0000 and low surrogate \uDC01 stay escaped
+    private int scenario84LineCommentEscapes;
+
+    // Scenario 85: Escaped string literals are measured at escaped width and wrap without splitting
+    // an escape
+    private static final String[] SCENARIO85_TERMINAL_COLORS = {
+        "\u001B[31m",
+        "\u001B[32m",
+        "\u001B[33m",
+        "\u001B[34m",
+        "\u001B[35m",
+        "\u001B[36m",
+        "\u001B[37m",
+        "\u001B[0m"
+    };
 
     enum UpdateALItemsConversationExecutionStatusScenario54 {
         SUCCESS;
