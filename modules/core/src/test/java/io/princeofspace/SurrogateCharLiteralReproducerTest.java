@@ -36,6 +36,7 @@ class SurrogateCharLiteralReproducerTest {
     private static final String ESCAPE_SPELLING = "\\u001B";
     private static final String ASCII_ESCAPE_WIDTH = "ZZZZZZ";
     private static final String CONCAT_SEPARATOR = " + ";
+    private static final String STRING_FIELD_END = "\"; }";
 
     private static final FormatterConfig CONFIG = FormatterConfig.builder()
             .indentSize(2)
@@ -90,7 +91,7 @@ class SurrogateCharLiteralReproducerTest {
         for (int repeats : new int[] {1, 30}) {
             boolean wrapped = repeats > 1;
             for (String keyword : List.of("class", "cl\\u0061ss")) {
-                String input = keyword + " T { String value = \"" + (WORD_PREFIX + spelling).repeat(repeats) + "\"; }";
+                String input = keyword + " T { String value = \"" + (WORD_PREFIX + spelling).repeat(repeats) + STRING_FIELD_END;
                 String expected = (WORD_PREFIX + value).repeat(repeats);
                 for (boolean singlePass : new boolean[] {false, true}) {
                     Formatter formatter = new Formatter(CONFIG, singlePass);
@@ -218,7 +219,7 @@ class SurrogateCharLiteralReproducerTest {
             for (boolean singlePass : new boolean[] {false, true}) {
                 Formatter formatter = new Formatter(CONFIG, singlePass);
                 String input = "class T { char c = '" + spelling + "'; String s = \""
-                        + (WORD_PREFIX + spelling).repeat(30) + "\"; }";
+                        + (WORD_PREFIX + spelling).repeat(30) + STRING_FIELD_END;
                 String output = formatter.format(input);
                 String saved = encodeAsUtf8(output);
                 assertThat(output).doesNotContain(value);
@@ -258,7 +259,7 @@ class SurrogateCharLiteralReproducerTest {
     void consecutiveC1ControlsKeepTheirValuesAndEscapeWidths() throws CharacterCodingException {
         String value = "\u0080\u0085\u0090\u009F".repeat(20);
         Formatter formatter = new Formatter(CONFIG);
-        String output = formatter.format("class T { String s = \"" + value + "\"; }");
+        String output = formatter.format("class T { String s = \"" + value + STRING_FIELD_END);
         assertThat(output).contains("\\u0080", "\\u0085", "\\u0090", "\\u009F");
         assertThat(output.lines()).allSatisfy(line -> assertThat(line.length()).isLessThanOrEqualTo(60));
         assertThat(parseSaved(encodeAsUtf8(output)).findAll(StringLiteralExpr.class).stream()
@@ -296,7 +297,7 @@ class SurrogateCharLiteralReproducerTest {
         FormatterConfig config = FormatterConfig.builder().lineLength(40).build();
         for (String spelling : List.of("\\101", "\\40", "\\'", "\\s")) {
             String content = spelling.repeat(28 / spelling.length());
-            String input = "class T { String s = \"" + content + "\"; }";
+            String input = "class T { String s = \"" + content + STRING_FIELD_END;
             String once = new Formatter(config, true).format(input);
             assertThat(once).contains("    String s = \"");
             assertThat(parseSaved(once).findAll(StringLiteralExpr.class).stream()
