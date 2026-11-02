@@ -57,7 +57,7 @@ final class ArrayInitializerFormatter {
             if (multi) {
                 if (fmt.wrapStyle() == WrapStyle.WIDE && !hasInteriorComment) {
                     // R5 wide: greedily pack until line full (same list policy as other wide lists).
-                    argumentListFormatter.printGreedyCommaLines(n.getValues(), arg, 2, true, 0);
+                    argumentListFormatter.printGreedyCommaLines(n.getValues(), arg, 2, 0);
                     if (fmt.trailingCommas()) {
                         ctx.print(",");
                         ctx.println();

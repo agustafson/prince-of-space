@@ -19,4 +19,3 @@
 * [9d0d5] fix: preserve surrogates and NUL escapes in formatted source (#131) (Brice Dutheil)
 
 * [3eff7] fix: preserve trailing array comments once and in order (#132) (Brice Dutheil)
-

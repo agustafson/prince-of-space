@@ -121,7 +121,7 @@ final class ArgumentListFormatter {
             ctx.printCont();
             if (fmt.wrapStyle() == WrapStyle.WIDE) {
                 int extraLastLine = fmt.closingParenOnNewLine() ? 2 : 0;
-                printGreedyCommaLines(args, arg, 0, false, extraLastLine);
+                printGreedyCommaLines(args, arg, 0, extraLastLine);
             } else {
                 for (Iterator<? extends Expression> i = args.iterator(); i.hasNext(); ) {
                     printArgumentWithOptionalBlockLambdaIndent(i.next(), arg);
@@ -155,7 +155,7 @@ final class ArgumentListFormatter {
         if (fmt.wrapStyle() == WrapStyle.WIDE) {
             int extraLastLine =
                     fmt.closingParenOnNewLine() ? 2 : 0; // ")" on its own line — no width reserved on last arg line
-            printGreedyCommaLines(args, arg, 0, false, extraLastLine);
+            printGreedyCommaLines(args, arg, 0, extraLastLine);
         } else {
             for (Iterator<? extends Expression> i = args.iterator(); i.hasNext(); ) {
                 ctx.println();
@@ -201,7 +201,6 @@ final class ArgumentListFormatter {
             NodeList<? extends Expression> args,
             Void arg,
             int trailingWidth,
-            boolean avoidLoneLastItem,
             int extraLastLineBudget) {
         boolean first = true;
         int budget = fmt.lineLength() - trailingWidth;
@@ -214,14 +213,12 @@ final class ArgumentListFormatter {
                     ? WidthMeasurer.sourceWidth(e)
                     : WidthMeasurer.flatWidth(e, fmt);
             int need = expressionWidth + (first ? 0 : 2);
-            boolean shouldWrapForLoneLastItem = avoidLoneLastItem && !first && remaining == 2;
             boolean hasInterveningComment = previous != null && CommentUtils.hasCommentBetweenNodes(previous, e);
             boolean currentHasLeadingComment = e.getComment().isPresent();
             int lineBudget = budget + (extraLastLineBudget > 0 && remaining == 1 ? extraLastLineBudget : 0);
             if (!first
                     && (ctx.column() + need > lineBudget
                             || wouldExceedLineLength(need)
-                            || shouldWrapForLoneLastItem
                             || hasInterveningComment
                             || currentHasLeadingComment)) {
                 ctx.print(",");

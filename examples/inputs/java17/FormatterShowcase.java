@@ -863,6 +863,25 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
     @SuppressWarnings("this particular suppression token is intentionally long to overflow the line limit when inline now or wrapped")
     static class Scenario82SingleMemberAnnotationWrap {}
 
+    // Scenario 83: Isolated surrogate code units in char literals are re-emitted as Unicode escapes
+    private char scenario83HighSurrogate = '\uD801';
+    private char scenario83LowSurrogate = '\uDC01';
+
+    // Scenario 84: Escaped NUL and surrogate escapes in Javadoc, block, and line comments stay printable
+    /**
+     * Scenario 84 Javadoc: an escaped NUL stays printable: {@code \u0000}
+     */
+    private int scenario84JavadocEscapedNul;
+
+    /* Scenario 84 block comment: surrogate escape stays escaped: \uD801 and NUL \u0000 */
+    private int scenario84BlockCommentEscapes;
+
+    // Scenario 84 line comment: NUL \u0000 and low surrogate \uDC01 stay escaped
+    private int scenario84LineCommentEscapes;
+
+    // Scenario 85: Escaped string literals are measured at escaped width and wrap without splitting an escape
+    private static final String[] SCENARIO85_TERMINAL_COLORS = {"\u001B[31m", "\u001B[32m", "\u001B[33m", "\u001B[34m", "\u001B[35m", "\u001B[36m", "\u001B[37m", "\u001B[0m"};
+
     enum UpdateALItemsConversationExecutionStatusScenario54 {
         SUCCESS;
         String getI18nKeyScenario54() {
