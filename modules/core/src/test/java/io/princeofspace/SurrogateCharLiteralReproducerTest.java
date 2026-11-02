@@ -238,6 +238,33 @@ class SurrogateCharLiteralReproducerTest {
                 .filter(value -> value != 10 && value != 13).boxed(), IntStream.rangeClosed(127, 159).boxed());
     }
 
+    @Test
+    void fittingOctalControlLiteralsKeepTheirSourceWidth() {
+        Formatter formatter = new Formatter(FormatterConfig.builder().lineLength(40).build());
+        for (String input : List.of(
+                "class T { String s = \"xxxxxxxxxxxxxxxxxx\\200\"; }",
+                "class T { void m() { assert ok : \"xxxxxxxxxxxxx\\200\"; } }")) {
+            String output = formatter.format(input);
+            assertThat(output).contains(input.contains("assert")
+                    ? "        assert ok : \"xxxxxxxxxxxxx\\200\";"
+                    : "    String s = \"xxxxxxxxxxxxxxxxxx\\200\";");
+            assertThat(output.lines()).allSatisfy(line -> assertThat(line.length()).isLessThanOrEqualTo(40));
+            assertThat(formatter.format(output)).isEqualTo(output);
+        }
+    }
+
+    @Test
+    void consecutiveC1ControlsKeepTheirValuesAndEscapeWidths() throws CharacterCodingException {
+        String value = "\u0080\u0085\u0090\u009F".repeat(20);
+        Formatter formatter = new Formatter(CONFIG);
+        String output = formatter.format("class T { String s = \"" + value + "\"; }");
+        assertThat(output).contains("\\u0080", "\\u0085", "\\u0090", "\\u009F");
+        assertThat(output.lines()).allSatisfy(line -> assertThat(line.length()).isLessThanOrEqualTo(60));
+        assertThat(parseSaved(encodeAsUtf8(output)).findAll(StringLiteralExpr.class).stream()
+                .map(StringLiteralExpr::asString).collect(joining())).isEqualTo(value);
+        assertThat(formatter.format(output)).isEqualTo(output);
+    }
+
     @ParameterizedTest(name = PARAMETER_CASE_NAME)
     @MethodSource("textBlockContents")
     void textBlockValuesAndIndentationSurviveEncoding(String spelling, String expected)
@@ -247,9 +274,14 @@ class SurrogateCharLiteralReproducerTest {
             Formatter formatter = new Formatter(CONFIG, singlePass);
             String output = formatter.format(input);
             String saved = encodeAsUtf8(output);
-            assertThat(parseSaved(saved).findFirst(TextBlockLiteralExpr.class).orElseThrow().asString())
+            // JavaParser's asString treats C1 NEL as a line break; use the JDK's text-block processing.
+            assertThat(parseSaved(saved).findFirst(TextBlockLiteralExpr.class).orElseThrow()
+                    .getValue().stripIndent().translateEscapes())
                     .isEqualTo(expected + "\n");
-            assertThat(output).doesNotContain("\0", "\u001B", "\u007F", "\u0080", "\u0090", "\u009F");
+            assertThat(output).doesNotContain("\0", "\u001B", "\u007F", "\u0080", "\u0085", "\u0090", "\u009F");
+            if (expected.indexOf('\u00A0') >= 0) {
+                assertThat(output).contains(expected);
+            }
             if (!singlePass) {
                 assertThat(formatter.format(output)).isEqualTo(output);
             }
@@ -260,10 +292,11 @@ class SurrogateCharLiteralReproducerTest {
         String isolated = Character.toString(0xD801);
         return Stream.of(
                 Arguments.of(isolated, isolated), Arguments.of("\\uD801", isolated),
-                Arguments.of("é😀", "é😀"), Arguments.of("\\0\\033\\177", "\0\u001B\u007F"),
+                Arguments.of("é😀\u00A0", "é😀\u00A0"), Arguments.of("\\0\\033\\177", "\0\u001B\u007F"),
                 Arguments.of("\0\u001B\u007F", "\0\u001B\u007F"),
                 Arguments.of("\\u0080\\u0090\\u009F", "\u0080\u0090\u009F"),
                 Arguments.of("\u0080\u0090\u009F", "\u0080\u0090\u009F"),
+                Arguments.of("\\u0085", "\u0085"),
                 Arguments.of("\ttext\t\n    indented\n\t", "\ttext\n  indented\n"),
                 Arguments.of("\\\\" + isolated, "\\" + isolated));
     }

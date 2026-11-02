@@ -62,7 +62,7 @@ final class StringLiteralFormatter {
         }
         if (msg instanceof StringLiteralExpr sl) {
             String value = semanticValue(sl);
-            int quotedLen = escapeJava(value).length() + 2;
+            int quotedLen = escapeUnsafeLiteralCharacters(sl.getValue()).length() + 2;
             if (ctx.column() + quotedLen > fmt.lineLength()) {
                 emitChunkedStringLiteral(value);
                 return;
@@ -200,7 +200,7 @@ final class StringLiteralFormatter {
     int tailWidthAfterEqualsForInitializerBreakHeuristic(Expression init) {
         Expression stripped = stripParens(init);
         if (stripped instanceof StringLiteralExpr sl) {
-            return 1 + escapeJava(semanticValue(sl)).length() + 2;
+            return 1 + escapeUnsafeLiteralCharacters(sl.getValue()).length() + 2;
         }
         if (stripped instanceof TextBlockLiteralExpr) {
             return 1 + flatExprSourceWidth(stripped);
