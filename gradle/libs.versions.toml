@@ -6,6 +6,8 @@ eclipse-jdt = "4.34"
 errorprone = "2.50.0"
 errorprone-plugin = "5.1.0"
 google-java-format = "1.37.0"
+# Spotless calls Style.valueOf(String), which Google Java Format 1.37.0 removed.
+google-java-format-spotless = "1.36.1"
 intellij-platform = "2.19.0"
 javaparser = "3.28.2"
 jqwik = "1.9.3"
