@@ -208,13 +208,10 @@ final class StringLiteralFormatter {
         if (stripped instanceof LambdaExpr) {
             return 1 + flatExprSourceWidth(stripped);
         }
-        if (stripped instanceof BinaryExpr b
-                && b.getOperator() == BinaryExpr.Operator.PLUS
+        if (stripped instanceof BinaryExpr binary
+                && binary.getOperator() == BinaryExpr.Operator.PLUS
                 && isTopLevelStringConcatChain(stripped)) {
-            // AST toString() is far shorter than real source for huge literal-only + trees; use the same
-            // merged-string width as a single quoted literal so we break after "=" on the same pass as
-            // visit(StringLiteralExpr), keeping chunk budgets (and idempotency) stable.
-            return initializerTailWidthForMergedStringConcatLiterals(stripped);
+            return 1 + flatExprSourceWidth(stripped);
         }
         return -1;
     }
@@ -561,27 +558,6 @@ final class StringLiteralFormatter {
             expansion += escapeUnsafeLiteralCharacters(value).length() - value.length();
         }
         return expansion;
-    }
-
-    /**
-     * One-line width estimate for {@code = init} when {@code init} is a literal-only {@code +} chain:
-     * same as one double-quoted literal with merged {@link StringLiteralExpr} values (escaped).
-     */
-    private static int initializerTailWidthForMergedStringConcatLiterals(Expression stripped) {
-        Expression root = stripParens(stripped);
-        BinaryExpr b = (BinaryExpr) root;
-        List<Expression> parts = new ArrayList<>();
-        collectPlusOperands(b, parts);
-        StringBuilder merged = new StringBuilder();
-        for (Expression part : parts) {
-            Expression leaf = stripParens(part);
-            if (leaf instanceof StringLiteralExpr sl) {
-                merged.append(semanticValue(sl));
-            } else {
-                return 1 + flatExprSourceWidth(stripped);
-            }
-        }
-        return 1 + escapeJava(merged.toString()).length() + 2;
     }
 
     private static int mergedStringLiteralChainCharCount(Expression init) {

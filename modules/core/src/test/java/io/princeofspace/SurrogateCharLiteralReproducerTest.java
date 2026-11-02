@@ -265,6 +265,22 @@ class SurrogateCharLiteralReproducerTest {
         assertThat(formatter.format(output)).isEqualTo(output);
     }
 
+    @Test
+    void retainedOctalConcatPiecesUseTheirSourceWidths() {
+        for (String spelling : List.of("\\200", "\\0", "\\33", "\\177")) {
+            String input = "class T { String s = \"" + spelling.repeat(5) + "\" + \"x\"; }";
+            for (int width = 40; width <= 80; width++) {
+                Formatter formatter = new Formatter(FormatterConfig.builder().lineLength(width).build());
+                String output = formatter.format(input);
+                String sameWidth = "Z".repeat(spelling.length());
+                assertThat(output.replace(spelling, sameWidth))
+                        .as("Retained spelling %s at width %s", spelling, width)
+                        .isEqualTo(formatter.format(input.replace(spelling, sameWidth)));
+                assertThat(formatter.format(output)).isEqualTo(output);
+            }
+        }
+    }
+
     @ParameterizedTest(name = PARAMETER_CASE_NAME)
     @MethodSource("textBlockContents")
     void textBlockValuesAndIndentationSurviveEncoding(String spelling, String expected)
@@ -297,6 +313,7 @@ class SurrogateCharLiteralReproducerTest {
                 Arguments.of("\\u0080\\u0090\\u009F", "\u0080\u0090\u009F"),
                 Arguments.of("\u0080\u0090\u009F", "\u0080\u0090\u009F"),
                 Arguments.of("\\u0085", "\u0085"),
+                Arguments.of("\u0085", "\u0085"),
                 Arguments.of("\ttext\t\n    indented\n\t", "\ttext\n  indented\n"),
                 Arguments.of("\\\\" + isolated, "\\" + isolated));
     }
