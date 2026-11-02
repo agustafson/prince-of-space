@@ -15,6 +15,7 @@ import com.github.javaparser.ast.type.ClassOrInterfaceType;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,8 +26,48 @@ import java.util.Optional;
 final class CommentUtils {
 
     private static final int SINGLE_ARGUMENT_COUNT = 1;
+    private static final char BACKSLASH = '\\';
+    private static final HexFormat COMMENT_HEX = HexFormat.of().withUpperCase();
 
     private CommentUtils() {}
+
+    /** Encodes decoded comment content without making literal backslashes eligible Unicode escapes. */
+    static String escapeCommentContent(String content) {
+        StringBuilder escaped = new StringBuilder(content.length());
+        for (int i = 0; i < content.length(); i++) {
+            char ch = content.charAt(i);
+            if (ch == BACKSLASH) {
+                int end = i + 1;
+                while (end < content.length() && content.charAt(end) == BACKSLASH) {
+                    end++;
+                }
+                boolean protect = end < content.length()
+                        && ((end - i) % 2 != 0)
+                        && (content.charAt(end) == 'u' || needsCommentEscape(content, end));
+                escaped.append(content, i, end - 1);
+                // Escaping the last backslash protects both literal text and newly inserted escapes.
+                escaped.append(protect ? "\\u005C" : "\\");
+                i = end - 1;
+            } else if (needsCommentEscape(content, i)) {
+                escaped.append("\\u").append(COMMENT_HEX.toHexDigits(ch));
+            } else {
+                escaped.append(ch);
+            }
+        }
+        return escaped.toString();
+    }
+
+    private static boolean needsCommentEscape(String content, int index) {
+        char ch = content.charAt(index);
+        if (ch == 0) {
+            return true;
+        }
+        if (Character.isHighSurrogate(ch)) {
+            return index + 1 == content.length() || !Character.isLowSurrogate(content.charAt(index + 1));
+        }
+        return Character.isLowSurrogate(ch)
+                && (index == 0 || !Character.isHighSurrogate(content.charAt(index - 1)));
+    }
 
     /** Removes every owner of the exact comment instance within a call subtree. */
     @SuppressWarnings({"ReferenceEquality", "PMD.CompareObjectsWithEquals"})

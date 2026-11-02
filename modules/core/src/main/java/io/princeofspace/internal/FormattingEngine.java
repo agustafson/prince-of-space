@@ -8,13 +8,19 @@ import com.github.javaparser.Problem;
 import com.github.javaparser.Providers;
 import com.github.javaparser.UnicodeEscapeProcessingProvider;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.comments.Comment;
+import com.github.javaparser.ast.expr.CharLiteralExpr;
+import com.github.javaparser.ast.expr.TextBlockLiteralExpr;
 import io.princeofspace.BenchDiagnostics;
 import io.princeofspace.model.FormatResult;
 import io.princeofspace.model.FormatterConfig;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
 
 /**
  * JavaParser-aware implementation of the format pipeline.
@@ -234,6 +240,21 @@ public final class FormattingEngine {
      * is discarded after {@link #printAfterTransform} returns and never observed by callers.
      */
     private void transform(CompilationUnit cu) {
+        // Escape decoded code units before layout so widths match the persisted source.
+        cu.findAll(CharLiteralExpr.class)
+                .forEach(literal -> literal.setValue(
+                        StringLiteralFormatter.escapeUnsafeLiteralCharacters(literal.getValue())));
+        cu.findAll(TextBlockLiteralExpr.class)
+                .forEach(literal -> literal.setValue(
+                        StringLiteralFormatter.escapeTextBlockContent(literal.getValue())));
+        Set<Comment> comments = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (Comment comment : cu.getAllComments()) {
+            // JavaParser can attach the same comment instance to several nodes.
+            if (comments.add(comment)) {
+                comment.setContent(CommentUtils.escapeCommentContent(comment.getContent()));
+            }
+        }
+
         @SuppressWarnings("ConstantConditions") // Void visitor arg is java.lang.Void; null is the only value
         Void visitorArg = null;
         new BraceEnforcer().visit(cu, visitorArg);

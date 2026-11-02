@@ -211,7 +211,7 @@ final class ArgumentListFormatter {
         while (iter.hasNext()) {
             Expression e = iter.next();
             int expressionWidth = (e instanceof LambdaExpr lambda && lambda.getBody() instanceof BlockStmt)
-                    ? e.toString().length()
+                    ? WidthMeasurer.sourceWidth(e)
                     : WidthMeasurer.flatWidth(e, fmt);
             int need = expressionWidth + (first ? 0 : 2);
             boolean shouldWrapForLoneLastItem = avoidLoneLastItem && !first && remaining == 2;

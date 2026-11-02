@@ -68,20 +68,21 @@ final class InlineBlockComments {
             if (detached.contains(range.begin) || range.begin.line != range.end.line) {
                 continue;
             }
+            String text = "/*" + comment.getContent() + "*/";
             // Empty calls have no argument node to anchor inline comments.
             if (left.getText().equals("(") && right.getText().equals(")")
                     && leftEnd.line == range.begin.line && rightBegin.line == range.end.line
                     && emptyCalls.containsKey(rightBegin)) {
                 int separatorWidth = emptyArguments.containsKey(rightBegin) ? 1 : 0;
-                emptyArguments.merge(rightBegin, token.getText(), (a, b) -> a + " " + b);
-                addWidth(emptyCalls.get(rightBegin), token.getText().length() + separatorWidth);
+                emptyArguments.merge(rightBegin, text, (a, b) -> a + " " + b);
+                addWidth(emptyCalls.get(rightBegin), text.length() + separatorWidth);
             } else if (leftEnd.line == range.begin.line && ends.containsKey(leftEnd)) {
                 // R10: `value /* label */,` describes this value even when JavaParser owns it on the next one.
-                after.merge(leftEnd, token.getText(), (a, b) -> a + " " + b);
-                addWidth(ends.get(leftEnd), token.getText().length() + 1);
+                after.merge(leftEnd, text, (a, b) -> a + " " + b);
+                addWidth(ends.get(leftEnd), text.length() + 1);
             } else if (rightBegin.line == range.end.line && starts.containsKey(rightBegin)) {
-                before.merge(rightBegin, token.getText(), (a, b) -> a + " " + b);
-                addWidth(starts.get(rightBegin), token.getText().length() + 1);
+                before.merge(rightBegin, text, (a, b) -> a + " " + b);
+                addWidth(starts.get(rightBegin), text.length() + 1);
             } else {
                 continue;
             }

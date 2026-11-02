@@ -701,7 +701,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     private boolean forEachHeaderNeedsWrap(ForEachStmt n) {
         int oneLineWidth = FOR_LOOP_OPEN_PREFIX_WIDTH
-                + n.getVariable().toString().length()
+                + WidthMeasurer.sourceWidth(n.getVariable())
                 + FOR_EACH_INLINE_SEPARATOR_WIDTH
                 + WidthMeasurer.flatWidth(n.getIterable(), fmt)
                 + FOR_LOOP_HEADER_CLOSING_PAREN_WIDTH;
@@ -757,7 +757,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (fmt.wrapStyle() == WrapStyle.WIDE) {
             boolean first = true;
             for (Type t : args) {
-                int need = t.toString().length() + (first ? 0 : 2);
+                int need = WidthMeasurer.sourceWidth(t) + (first ? 0 : 2);
                 if (first && ctx.column() + need > fmt.lineLength()) {
                     printer.println();
                     ctx.printCont();
