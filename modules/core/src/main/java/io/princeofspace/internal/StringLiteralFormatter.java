@@ -613,7 +613,7 @@ final class StringLiteralFormatter {
         }
         return switch (codePoint) {
             case '"', '\\', '\b', '\n', '\t', '\f', '\r' -> 2;
-            default -> Character.isSurrogate((char) codePoint) || codePoint < ' ' || codePoint == '\u007F'
+            default -> Character.isSurrogate((char) codePoint) || Character.isISOControl(codePoint)
                     ? "\\u0000".length() : 1;
         };
     }
@@ -643,7 +643,7 @@ final class StringLiteralFormatter {
                     escaped.append(ch).append(value.charAt(i));
                 }
             } else if (Character.isSurrogate(ch)
-                    || ((ch < ' ' || ch == '\u007F') && (!textBlock || !Character.isWhitespace(ch)))) {
+                    || (Character.isISOControl(ch) && (!textBlock || !Character.isWhitespace(ch)))) {
                 if (escaped == null) {
                     escaped =
                             new StringBuilder(value.length() + "\\u0000".length())

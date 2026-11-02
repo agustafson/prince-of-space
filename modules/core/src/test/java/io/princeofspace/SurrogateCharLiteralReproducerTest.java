@@ -235,7 +235,7 @@ class SurrogateCharLiteralReproducerTest {
 
     static Stream<Integer> controlCharacters() {
         return Stream.concat(IntStream.rangeClosed(0, 31)
-                .filter(value -> value != 10 && value != 13).boxed(), Stream.of(127));
+                .filter(value -> value != 10 && value != 13).boxed(), IntStream.rangeClosed(127, 159).boxed());
     }
 
     @ParameterizedTest(name = PARAMETER_CASE_NAME)
@@ -249,7 +249,7 @@ class SurrogateCharLiteralReproducerTest {
             String saved = encodeAsUtf8(output);
             assertThat(parseSaved(saved).findFirst(TextBlockLiteralExpr.class).orElseThrow().asString())
                     .isEqualTo(expected + "\n");
-            assertThat(output).doesNotContain("\0", "\u001B", "\u007F");
+            assertThat(output).doesNotContain("\0", "\u001B", "\u007F", "\u0080", "\u0090", "\u009F");
             if (!singlePass) {
                 assertThat(formatter.format(output)).isEqualTo(output);
             }
@@ -262,6 +262,8 @@ class SurrogateCharLiteralReproducerTest {
                 Arguments.of(isolated, isolated), Arguments.of("\\uD801", isolated),
                 Arguments.of("é😀", "é😀"), Arguments.of("\\0\\033\\177", "\0\u001B\u007F"),
                 Arguments.of("\0\u001B\u007F", "\0\u001B\u007F"),
+                Arguments.of("\\u0080\\u0090\\u009F", "\u0080\u0090\u009F"),
+                Arguments.of("\u0080\u0090\u009F", "\u0080\u0090\u009F"),
                 Arguments.of("\ttext\t\n    indented\n\t", "\ttext\n  indented\n"),
                 Arguments.of("\\\\" + isolated, "\\" + isolated));
     }
@@ -280,7 +282,7 @@ class SurrogateCharLiteralReproducerTest {
 
     @Test
     void arraysMeasureExpandedShortStringSpellings() throws CharacterCodingException {
-        for (String value : List.of("\0", "\u001B", Character.toString(0xD801))) {
+        for (String value : List.of("\0", "\u001B", "\u0080", "\u009F", Character.toString(0xD801))) {
             String values = String.join(", ", Collections.nCopies(10, "\"" + value + "\""));
             String input = "class T { String[] v = {" + values + "}; }";
             for (WrapStyle style : WrapStyle.values()) {

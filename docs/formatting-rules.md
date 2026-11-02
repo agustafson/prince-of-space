@@ -34,6 +34,8 @@ A single target line width. The formatter tries to keep lines at or below this l
 
 This is similar to how Prettier treats `printWidth` as a guide rather than a hard wall.
 
+Character and string literals keep ISO control characters escaped, including C1 controls (`U+0080`-`U+009F`). Wrapping accounts for the full escape width. Text blocks retain whitespace used for incidental indentation.
+
 ```java
 // Line is 125 chars, lineLength is 120. Wrapping produces clean output, so we wrap:
 var result = someService.processRequest(
