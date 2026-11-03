@@ -1321,6 +1321,7 @@ public class FormatterShowcase
     // Scenario 84 line comment: NUL \u0000 and low surrogate \uDC01 stay escaped
     private int scenario84LineCommentEscapes;
     // Scenario 85: Escaped string literals are measured at escaped width and wrap without splitting an escape
+    private static final String SCENARIO85_LITERAL_ESCAPE = "\\n";
     private static final String[] SCENARIO85_TERMINAL_COLORS = {
             "\u001B[31m",
             "\u001B[32m",

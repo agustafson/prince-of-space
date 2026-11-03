@@ -273,3 +273,11 @@ Use it as the primary source of *why* design choices exist.
 - **Rationale:** Annotation values previously never wrapped (except with comments), so the string in the last pair was split mid-sentence into `"..." + "..."` while earlier pairs stayed on the long line. Wrapping the pairs first yields output that matches argument-list behavior and avoids needless string splitting.
 - **Consequences:** Output shape changes for long annotations; showroom goldens may need regeneration.
 - **Related docs:** `docs/canonical-formatting-rules.md` (Rule 4, Rule 5)
+
+### TDR-031: Translate Unicode escapes before parsing with JLS eligibility
+- **Date:** 2026-11-03
+- **Status:** Accepted
+- **Decision:** Translate Unicode escapes in one pass before JavaParser lexes the source. Track both the parity of contiguous translated backslashes and whether the previous character came from an escape, as required by [JLS 3.3](https://docs.oracle.com/javase/specs/jls/se17/html/jls-3.html#jls-3.3). Reject malformed eligible escapes as `FormatResult.ParseFailure` before parsing. Keep the existing literal and comment output escaping rules.
+- **Rationale:** JavaParser 3.28.2's Unicode provider loses backslash parity after an escape produces a backslash, which can change comment boundaries and literal values. Its character stream can also treat provider I/O failures as end of input. A small source decoder avoids both behaviours and keeps token, node and comment positions in the same decoded coordinate system.
+- **Consequences:** Compiler-backed regression tests compare saved source values independently of JavaParser, alongside direct JLS translation tests and idempotence checks. Malformed Unicode escapes in comments are rejected instead of rewritten. The public API and formatting options are unchanged.
+- **Related docs:** `docs/canonical-formatting-rules.md` (Rule 10), `modules/core/src/main/java/io/princeofspace/internal/UnicodeEscapes.java`

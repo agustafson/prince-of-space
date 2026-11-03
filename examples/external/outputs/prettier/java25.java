@@ -1744,6 +1744,7 @@ public class FormatterShowcase
     private int scenario84LineCommentEscapes;
 
     // Scenario 85: Escaped string literals are measured at escaped width and wrap without splitting an escape
+    private static final String SCENARIO85_LITERAL_ESCAPE = "\u005C\\u006e";
     private static final String[] SCENARIO85_TERMINAL_COLORS = {
         "\u001B[31m",
         "\u001B[32m",

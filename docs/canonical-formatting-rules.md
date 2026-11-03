@@ -114,6 +114,7 @@ For wrapped argument/parameter-like lists:
 
 ### Rule 10: Comments and annotation safety
 
+- Translate Unicode escapes before tokenisation according to JLS 3.3, including backslash eligibility. Reject malformed eligible escapes, including those in comments.
 - Preserve comment semantics and placement intent.
 - Keep single-line block comments beside values and identifiers between their original neighboring tokens. For example, `null /* serviceName */,` labels that value; moving the comment past the comma associates it with the next argument. The same intent applies before a semicolon or identifier.
 - Preserve type-use annotation semantics and declaration annotation correctness.
