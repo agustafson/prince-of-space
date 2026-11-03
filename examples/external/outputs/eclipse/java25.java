@@ -1194,7 +1194,7 @@ public class FormatterShowcase
 
 	/*
 	 * Scenario 84 block comment: surrogate escape stays escaped: \uD801 and NUL
-	 * \u0000
+	 * \u0000; legacy star *\u005C\u005Cu002A/ stays inside
 	 */
 	private int scenario84BlockCommentEscapes;
 
@@ -1203,6 +1203,7 @@ public class FormatterShowcase
 
 	// Scenario 85: Escaped string literals are measured at escaped width and wrap
 	// without splitting an escape
+	private static final String SCENARIO85_LITERAL_ESCAPE = "\u005C\\u006e";
 	private static final String[] SCENARIO85_TERMINAL_COLORS = {"\u001B[31m", "\u001B[32m", "\u001B[33m", "\u001B[34m",
 			"\u001B[35m", "\u001B[36m", "\u001B[37m", "\u001B[0m"};
 

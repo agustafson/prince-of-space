@@ -42,11 +42,13 @@ final class CommentUtils {
                     end++;
                 }
                 boolean protect = end < content.length()
-                        && ((end - i) % 2 != 0)
                         && (content.charAt(end) == 'u' || needsCommentEscape(content, end));
-                escaped.append(content, i, end - 1);
-                // Escaping the last backslash protects both literal text and newly inserted escapes.
-                escaped.append(protect ? "\\u005C" : "\\");
+                if (protect) {
+                    // Legacy block-comment scanning can expose even runs immediately after '*'.
+                    escaped.append("\\u005C".repeat(end - i));
+                } else {
+                    escaped.append(content, i, end);
+                }
                 i = end - 1;
             } else if (needsCommentEscape(content, i)) {
                 escaped.append("\\u").append(COMMENT_HEX.toHexDigits(ch));

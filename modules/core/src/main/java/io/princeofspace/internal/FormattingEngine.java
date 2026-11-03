@@ -2,11 +2,8 @@ package io.princeofspace.internal;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseResult;
-import com.github.javaparser.ParseStart;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.Problem;
-import com.github.javaparser.Providers;
-import com.github.javaparser.UnicodeEscapeProcessingProvider;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.CharLiteralExpr;
@@ -17,6 +14,7 @@ import io.princeofspace.model.FormatterConfig;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -192,16 +190,24 @@ public final class FormattingEngine {
     private FormatResult singlePassFormat(String sourceCode) {
         long t0 = System.nanoTime();
         // Decode before parsing: JavaParser's Unicode processor remaps node positions without comments.
-        ParseResult<CompilationUnit> result = sourceCode.contains("\\u")
-                ? parser.parse(ParseStart.COMPILATION_UNIT,
-                        new UnicodeEscapeProcessingProvider(Providers.provider(sourceCode)))
-                : parser.parse(sourceCode);
+        UnicodeEscapes.DecodedSource decoded;
+        try {
+            decoded = UnicodeEscapes.decode(sourceCode);
+        } catch (UnicodeEscapes.MalformedEscapeException malformed) {
+            if (BenchDiagnostics.isEnabled()) {
+                BenchDiagnostics.recordSinglePassPhases(System.nanoTime() - t0, 0, 0);
+            }
+            return new FormatResult.ParseFailure(List.of(malformed.getMessage()));
+        }
+        ParseResult<CompilationUnit> result = parser.parse(decoded.source());
         long tAfterParse = System.nanoTime();
-        if (!result.isSuccessful()) {
+        var ambiguity = result.getResult().flatMap(CompilationUnit::getTokenRange).flatMap(decoded::ambiguityProblem);
+        if (!result.isSuccessful() || ambiguity.isPresent()) {
             if (BenchDiagnostics.isEnabled()) {
                 BenchDiagnostics.recordSinglePassPhases(tAfterParse - t0, 0, 0);
             }
-            List<String> problems = result.getProblems().stream().map(Problem::toString).toList();
+            List<String> problems = new ArrayList<>(result.getProblems().stream().map(Problem::toString).toList());
+            ambiguity.ifPresent(problems::add);
             return new FormatResult.ParseFailure(problems);
         }
         return result.getResult()

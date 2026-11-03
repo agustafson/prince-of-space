@@ -5,6 +5,7 @@ import com.github.javaparser.UnicodeEscapeProcessingProvider;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.nio.CharBuffer;
@@ -17,14 +18,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class CommentEscapingTest {
 
+    @ParameterizedTest
+    @ValueSource(ints = {1, 2, 3, 4, 5})
+    void protectsEveryBackslashBeforeUnicodeLookingText(int backslashes) {
+        String content = "\\".repeat(backslashes) + "u002A/";
+        assertThat(CommentUtils.escapeCommentContent(content)).isEqualTo("\\u005C".repeat(backslashes) + "u002A/");
+    }
+
     @ParameterizedTest(name = "[{index}]")
     @MethodSource("decodedComments")
-    void encodedContentRetainsDecodedCharactersAndConverges(String decoded) throws IOException {
+    void encodedContentRetainsDecodedCharactersAndConverges(String decoded)
+            throws IOException, UnicodeEscapes.MalformedEscapeException {
         String escaped = CommentUtils.escapeCommentContent(decoded);
 
         assertThat(StandardCharsets.UTF_8.newEncoder().canEncode(CharBuffer.wrap(escaped))).isTrue();
         assertThat(escaped).doesNotContain("\0");
         assertThat(decode(escaped)).isEqualTo(decoded);
+        assertThat(UnicodeEscapes.decode(escaped).source()).isEqualTo(decoded);
+        assertThat(UnicodeEscapes.decode(escaped).ambiguities()).isEmpty();
         assertThat(CommentUtils.escapeCommentContent(decode(escaped))).isEqualTo(escaped);
     }
 

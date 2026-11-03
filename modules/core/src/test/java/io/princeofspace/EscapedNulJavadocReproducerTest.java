@@ -99,8 +99,8 @@ class EscapedNulJavadocReproducerTest {
             "\\uuuu0000 | \\u0000",
             "\\u0000\\u0000 | \\u0000\\u0000",
             "\\u005c\\u0000 | \\u005C\\u0000",
-            "\\u005c\\u005c\\u0000 | \\\\\\u0000",
-            "\\\\u0000 | \\\\u0000"
+            "\\u005c\\u005c\\u0000 | \\u005C\\u005C\\u0000",
+            "\\\\u0000 | \\u005C\\u005Cu0000"
     })
     void preservesVisibleNulSpellingAndPrecedingBackslashes(String source, String expected) throws CharacterCodingException {
         assertEscapedComment("/** Escaped NUL: " + source + " */ class T {}", "Escaped NUL: " + expected);

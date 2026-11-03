@@ -226,6 +226,17 @@ JavaParser will accept, such as records, sealed types, switch expressions, text 
 language features supported by the bundled parser version. It does not introduce extra style knobs;
 it only controls the accepted source-language surface.
 
+Unicode escapes follow modern [JLS 3.3](https://docs.oracle.com/javase/specs/jls/se17/html/jls-3.html#jls-3.3).
+Some rare combinations of escaped and raw backslashes, and raw runs after block-comment stars,
+have different meanings on JDK 8/11 and JDK 17+. Prince rejects differing escape eligibility outside literal content and
+reports the raw source offset. This conservative check also rejects harmless ambiguous comment
+text. Literal content remains supported. Selecting language level 8 does not select the historical
+JDK 8 scanner.
+
+When printing comment content, Prince encodes complete backslash runs before literal `u` or
+an inserted Unicode escape. This preserves literal comment text when historical block-comment
+scanners read the character after an opening or internal star.
+
 **Config:** `javaLanguageLevel: JavaLanguageLevel.of(<release>)` in the API, or `--java-version <release>` in the CLI
 **Default:** `JavaLanguageLevel.of(17)`
 
