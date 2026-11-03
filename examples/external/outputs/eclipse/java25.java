@@ -1194,7 +1194,7 @@ public class FormatterShowcase
 
 	/*
 	 * Scenario 84 block comment: surrogate escape stays escaped: \uD801 and NUL
-	 * \u0000
+	 * \u0000; legacy star *\u005C\u005Cu002A/ stays inside
 	 */
 	private int scenario84BlockCommentEscapes;
 

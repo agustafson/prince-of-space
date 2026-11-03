@@ -65,6 +65,13 @@ class UnicodeCompatibilityTest {
                 Arguments.of("Javadoc", "/** " + reverse + "u000A */ class T {}"),
                 Arguments.of("string closing delimiter", "class T { String value = \"" + forward + "u0022; }"),
                 Arguments.of("char closing delimiter", "class T { char value = '" + forward + "u0027; }"),
+                Arguments.of("text block closing delimiter", "class T { String value = \"\"\"\n" + forward + "u0022\"\"; }"),
+                Arguments.of("raw pair at block opening", "class T { /*\\\\u002A/ int x; // */\n }"),
+                Arguments.of("raw triple after block star", "class T { /* a *\\\\\\u002A/ int x; // */\n }"),
+                Arguments.of("raw pair after escaped star", "class T { /* a \\u002A\\\\u002A/ int x; // */\n }"),
+                Arguments.of("raw pair after Javadoc body star", "class T { /** a *\\\\u002A/ int x; // */\n }"),
+                Arguments.of("raw pair after extra Javadoc star", "class T { /***\\\\u002A/ int x; // */\n }"),
+                Arguments.of("malformed after block opening", "class T { /*\\\\uZZZZ */ }"),
                 Arguments.of("literal before ambiguity", "class T { String value = \"" + forward + "u006e\"; } // "
                         + forward + "u000A"));
     }
@@ -97,5 +104,34 @@ class UnicodeCompatibilityTest {
                 Arguments.of("leading trivia and CRLF", "\t// header\r\n" + prefix + "return \"" + forward + "u006e\";" + suffix),
                 Arguments.of("generics and shifts", prefix + "java.util.List<java.util.List<String>> list = null; "
                         + "int n = 8 >>> 1; return \"" + forward + "u006e\" + (list == null ? n : 0);" + suffix));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/*", "/* a *", "/**", "/** a *", "// *"})
+    void preservesPortableCommentBackslashes(String prefix) throws Exception {
+        String escapes = "\\u005C".repeat(2) + "u002A/ int hidden; // ";
+        String source = "public class EscapeProbe {\n" + prefix + escapes
+                + (prefix.startsWith("//") ? "\n" : "*/\n")
+                + "public static String value() { return String.valueOf(EscapeProbe.class.getDeclaredFields().length); } }";
+        assertThat(compileAndInvoke(directory.resolve("before"), source)).isEqualTo("0");
+        for (boolean singlePass : new boolean[] {true, false}) {
+            Formatter formatter = new Formatter(FormatterConfig.defaults(), singlePass);
+            String output = formatter.format(source);
+            assertThat(output).contains("\\u005C\\u005Cu002A");
+            assertThat(compileAndInvoke(directory.resolve("after-" + singlePass), output)).isEqualTo("0");
+            if (!singlePass) {
+                assertThat(formatter.format(output)).isEqualTo(output);
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/**", "/* a ", "// *"})
+    void permitsOrdinaryRawPairsAfterJavadocOpenersAndLineCommentStars(String prefix) {
+        String source = "class T {\n" + prefix + "\\\\u002A/ int x; // "
+                + (prefix.startsWith("//") ? "\n" : "*/\n") + "}";
+        Formatter formatter = new Formatter(FormatterConfig.defaults());
+        String output = formatter.format(source);
+        assertThat(formatter.format(output)).isEqualTo(output);
     }
 }

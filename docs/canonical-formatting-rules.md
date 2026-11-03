@@ -115,7 +115,8 @@ For wrapped argument/parameter-like lists:
 ### Rule 10: Comments and annotation safety
 
 - Translate Unicode escapes before tokenisation according to JLS 3.3, including backslash eligibility. Reject malformed eligible escapes, including those in comments.
-- Reject mixed-provenance Unicode escapes outside literal content when historical JDK 8/11 comment scanning and modern JLS eligibility differ. Report the raw source offset as `FormatResult.ParseFailure`, regardless of `javaLanguageLevel`. Escapes inside character, string and text-block content remain eligible for formatting.
+- Reject Unicode escapes outside literal content when historical JDK 8/11 comment scanning and modern JLS eligibility differ, including raw backslash runs after block-comment stars. Report the raw source offset as `FormatResult.ParseFailure`, regardless of `javaLanguageLevel`. Escapes inside character, string and text-block content remain eligible for formatting.
+- Encode every backslash in comment content before literal `u` or an inserted Unicode escape as a Unicode backslash escape. Preserve decoded content across historical and modern compiler scanners, including block-comment openings and internal stars.
 - Preserve comment semantics and placement intent.
 - Keep single-line block comments beside values and identifiers between their original neighboring tokens. For example, `null /* serviceName */,` labels that value; moving the comment past the comma associates it with the next argument. The same intent applies before a semicolon or identifier.
 - Preserve type-use annotation semantics and declaration annotation correctness.

@@ -81,7 +81,7 @@ class UnicodeEscapePreservationTest {
                 + "return /* \\u005Cu000A \\uD800 */ \"ok\" /* \\u0000 \\\\uZZZZ */; } }";
         Formatter formatter = new Formatter(CONFIG);
         String output = formatter.format(source);
-        assertThat(output).contains("/* \\u005Cu000A \\uD800 */ \"ok\"", "\"ok\" /* \\u0000 \\\\uZZZZ */;");
+        assertThat(output).contains("/* \\u005Cu000A \\uD800 */ \"ok\"", "\"ok\" /* \\u0000 \\u005C\\u005CuZZZZ */;");
         assertThat(compileAndInvoke(directory, output)).isEqualTo("ok");
         assertThat(formatter.format(output)).isEqualTo(output);
     }
