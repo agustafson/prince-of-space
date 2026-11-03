@@ -62,17 +62,19 @@ class UnicodeEscapePreservationTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("malformedSources")
-    void reportsMalformedUnicodeBeforeParsing(String source) {
+    void reportsMalformedUnicodeBeforeParsing(String source, int expectedOffset) {
         for (boolean singlePass : new boolean[] {true, false}) {
             FormatResult result = new Formatter(CONFIG, singlePass).formatResult(source);
             assertThat(result).isInstanceOfSatisfying(FormatResult.ParseFailure.class,
-                    failure -> assertThat(failure.message()).contains("Invalid Unicode escape at source offset"));
+                    failure -> assertThat(failure.message())
+                            .isEqualTo("Parse failed:\nInvalid Unicode escape at source offset " + expectedOffset));
         }
     }
 
-    static Stream<String> malformedSources() {
+    static Stream<Arguments> malformedSources() {
         return Stream.of("class T {} // \\u", "class T {} /* \\uZZZZ */", "class T {} /** \\uu12 */",
-                "class T { String value = \"\\u００４１\"; }", "class T {} \\u000g", "class T {} // \\u005C\\\\uZZZZ");
+                "class T { String value = \"\\u００４１\"; }", "class T {} \\u000g", "class T {} // \\u005C\\\\uZZZZ")
+                .map(source -> Arguments.of(source, source.lastIndexOf("\\u")));
     }
 
     @Test

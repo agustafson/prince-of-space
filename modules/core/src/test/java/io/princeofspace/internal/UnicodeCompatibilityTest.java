@@ -4,6 +4,8 @@ import io.princeofspace.Formatter;
 import io.princeofspace.model.FormatResult;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.JavaLanguageLevel;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -39,41 +41,52 @@ class UnicodeCompatibilityTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("ambiguousSources")
-    void rejectsAmbiguitiesOutsideLiteralContent(String name, String source) {
+    void rejectsAmbiguitiesOutsideLiteralContent(String name, String source, int expectedOffset) {
         for (boolean singlePass : new boolean[] {true, false}) {
             FormatResult result = new Formatter(FormatterConfig.defaults(), singlePass).formatResult(source);
             assertThat(result).isInstanceOfSatisfying(FormatResult.ParseFailure.class,
-                    failure -> assertThat(failure.message()).contains("Compiler-dependent Unicode escape"));
+                    failure -> assertThat(failure.message()).isEqualTo(
+                            "Parse failed:\nCompiler-dependent Unicode escape at source offset " + expectedOffset
+                                    + " outside literal content: JDK 8/11 and JDK 17+ can interpret it differently"));
         }
     }
 
     static Stream<Arguments> ambiguousSources() {
-        String forward = "\\u005C" + "\\\\";
-        String reverse = "\\u005C" + "\\\\\\";
+        String forward = "\\u005C" + "\\" + "|" + "\\";
+        String reverse = "\\u005C" + "\\\\" + "|" + "\\";
+        String rawPair = "\\" + "|" + "\\";
+        String rawTriple = "\\\\" + "|" + "\\";
         return Stream.of(
-                Arguments.of("LF ends comment", "class T { void run() { int s = 0;\n// " + forward + "u000A s=1;\n} }"),
-                Arguments.of("LF stays in comment", "class T { void run() { int s = 0;\n// " + reverse + "u000A s=1;\n} }"),
-                Arguments.of("CR ends comment", "class T {} // " + forward + "u000D int s;"),
-                Arguments.of("CR stays in comment", "class T {} // " + reverse + "u000D int s;"),
-                Arguments.of("star closes block comment", "class T {} /* " + forward + "u002A/ // */"),
-                Arguments.of("star stays in block comment", "class T {} /* " + reverse + "u002A/ // */"),
-                Arguments.of("slash closes block comment", "class T {} /* " + forward + "u002A\\u002F // */"),
-                Arguments.of("repeated u", "class T {} // " + forward + "uuuu000A"),
-                Arguments.of("malformed only under legacy interpretation", "class T {} // " + reverse + "uZZZZ"),
-                Arguments.of("harmless comment text", "class T {} // " + forward + "u0078"),
-                Arguments.of("comment-only source", "// " + reverse + "u000A"),
-                Arguments.of("Javadoc", "/** " + reverse + "u000A */ class T {}"),
-                Arguments.of("string closing delimiter", "class T { String value = \"" + forward + "u0022; }"),
-                Arguments.of("char closing delimiter", "class T { char value = '" + forward + "u0027; }"),
-                Arguments.of("text block closing delimiter", "class T { String value = \"\"\"\n" + forward + "u0022\"\"; }"),
-                Arguments.of("raw pair at block opening", "class T { /*\\\\u002A/ int x; // */\n }"),
-                Arguments.of("raw triple after block star", "class T { /* a *\\\\\\u002A/ int x; // */\n }"),
-                Arguments.of("raw pair after escaped star", "class T { /* a \\u002A\\\\u002A/ int x; // */\n }"),
-                Arguments.of("raw pair after Javadoc body star", "class T { /** a *\\\\u002A/ int x; // */\n }"),
-                Arguments.of("raw pair after extra Javadoc star", "class T { /***\\\\u002A/ int x; // */\n }"),
-                Arguments.of("malformed after block opening", "class T { /*\\\\uZZZZ */ }"),
-                Arguments.of("literal before ambiguity", "class T { String value = \"" + forward + "u006e\"; } // "
+                ambiguous("LF ends comment", "class T { void run() { int s = 0;\n// " + forward + "u000A s=1;\n} }"),
+                ambiguous("LF stays in comment", "class T { void run() { int s = 0;\n// " + reverse + "u000A s=1;\n} }"),
+                ambiguous("CR ends comment", "class T {} // " + forward + "u000D int s;"),
+                ambiguous("CR stays in comment", "class T {} // " + reverse + "u000D int s;"),
+                ambiguous("star closes block comment", "class T {} /* " + forward + "u002A/ // */"),
+                ambiguous("star stays in block comment", "class T {} /* " + reverse + "u002A/ // */"),
+                ambiguous("slash closes block comment", "class T {} /* " + forward + "u002A\\u002F // */"),
+                ambiguous("repeated u", "class T {} // " + forward + "uuuu000A"),
+                ambiguous("malformed only under legacy interpretation", "class T {} // " + reverse + "uZZZZ"),
+                ambiguous("harmless comment text", "class T {} // " + forward + "u0078"),
+                ambiguous("comment-only source", "// " + reverse + "u000A"),
+                ambiguous("Javadoc", "/** " + reverse + "u000A */ class T {}"),
+                ambiguous("string closing delimiter", "class T { String value = \"" + forward + "u0022; }"),
+                ambiguous("char closing delimiter", "class T { char value = '" + forward + "u0027; }"),
+                ambiguous("text block closing delimiter", "class T { String value = \"\"\"\n" + forward + "u0022\"\"; }"),
+                ambiguous("raw pair at block opening", "class T { /*" + rawPair + "u002A/ int x; // */\n }"),
+                ambiguous("raw triple after block star", "class T { /* a *" + rawTriple + "u002A/ int x; // */\n }"),
+                ambiguous("raw pair after escaped star", "class T { /* a \\u002A" + rawPair + "u002A/ int x; // */\n }"),
+                ambiguous("raw pair after Javadoc body star", "class T { /** a *" + rawPair + "u002A/ int x; // */\n }"),
+                ambiguous("raw pair after extra Javadoc star", "class T { /***" + rawPair + "u002A/ int x; // */\n }"),
+                ambiguous("malformed after block opening", "class T { /*" + rawPair + "uZZZZ */ }"),
+                ambiguous("literal before ambiguity", "class T { String value = \"" + forward.replace("|", "") + "u006e\"; } // "
                         + forward + "u000A"));
+    }
+
+    private static Arguments ambiguous(String name, String markedSource) {
+        int offset = markedSource.indexOf('|');
+        assertThat(offset).isNotNegative();
+        assertThat(markedSource.indexOf('|', offset + 1)).isEqualTo(-1);
+        return Arguments.of(name, markedSource.substring(0, offset) + markedSource.substring(offset + 1), offset);
     }
 
     @ParameterizedTest(name = "{0}")
@@ -101,18 +114,25 @@ class UnicodeCompatibilityTest {
                 Arguments.of("ineligible malformed string", prefix + "return \"" + reverse + "uZZZZ\";" + suffix),
                 Arguments.of("multiple literals", prefix + "return \"" + forward + "u006e\" + \"" + reverse + "u006e\";" + suffix),
                 Arguments.of("text block", prefix + "return \"\"\"\n" + forward + "u006e\n" + reverse + "u006e\n\"\"\";" + suffix),
+                Arguments.of("star before string backslashes", prefix + "return \"*\\\\u006e\";" + suffix),
+                Arguments.of("star before text block backslashes", prefix + "return \"\"\"\n*\\\\u006e\n\"\"\";" + suffix),
                 Arguments.of("leading trivia and CRLF", "\t// header\r\n" + prefix + "return \"" + forward + "u006e\";" + suffix),
                 Arguments.of("generics and shifts", prefix + "java.util.List<java.util.List<String>> list = null; "
                         + "int n = 8 >>> 1; return \"" + forward + "u006e\" + (list == null ? n : 0);" + suffix));
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"/*", "/* a *", "/**", "/** a *", "// *"})
-    void preservesPortableCommentBackslashes(String prefix) throws Exception {
+    static Stream<Arguments> portableComments() {
         String escapes = "\\u005C".repeat(2) + "u002A/ int hidden; // ";
-        String source = "public class EscapeProbe {\n" + prefix + escapes
+        return Stream.of("/*", "/* a *", "/**", "/** a *", "// *").map(prefix -> Arguments.of(prefix,
+                "public class EscapeProbe {\n" + prefix + escapes
                 + (prefix.startsWith("//") ? "\n" : "*/\n")
-                + "public static String value() { return String.valueOf(EscapeProbe.class.getDeclaredFields().length); } }";
+                + "public static String value() { return String.valueOf(EscapeProbe.class.getDeclaredFields().length); } "
+                + "public static void main(String[] args) { System.out.print(value()); } }"));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("portableComments")
+    void preservesPortableCommentBackslashes(String name, String source) throws Exception {
         assertThat(compileAndInvoke(directory.resolve("before"), source)).isEqualTo("0");
         for (boolean singlePass : new boolean[] {true, false}) {
             Formatter formatter = new Formatter(FormatterConfig.defaults(), singlePass);
@@ -125,6 +145,28 @@ class UnicodeCompatibilityTest {
         }
     }
 
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("portableComments")
+    @EnabledIfEnvironmentVariable(named = "PRINCE_LEGACY_JAVA_HOMES", matches = ".+")
+    void preservesPortableCommentsWithLegacyCompilers(String name, String source) throws Exception {
+        int compilerIndex = 0;
+        for (String home : System.getenv("PRINCE_LEGACY_JAVA_HOMES").split(",", -1)) {
+            Path javac = Path.of(home).resolve("bin/javac");
+            Path compilerDirectory = directory.resolve("compiler-" + compilerIndex);
+            compilerIndex++;
+            assertThat(compileAndInvoke(compilerDirectory.resolve("before"), source, javac)).isEqualTo("0");
+            for (boolean singlePass : new boolean[] {true, false}) {
+                Formatter formatter = new Formatter(FormatterConfig.defaults(), singlePass);
+                String output = formatter.format(source);
+                assertThat(compileAndInvoke(compilerDirectory.resolve("after-" + singlePass), output, javac))
+                        .isEqualTo("0");
+                if (!singlePass) {
+                    assertThat(formatter.format(output)).isEqualTo(output);
+                }
+            }
+        }
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"/**", "/* a ", "// *"})
     void permitsOrdinaryRawPairsAfterJavadocOpenersAndLineCommentStars(String prefix) {
@@ -132,6 +174,16 @@ class UnicodeCompatibilityTest {
                 + (prefix.startsWith("//") ? "\n" : "*/\n") + "}";
         Formatter formatter = new Formatter(FormatterConfig.defaults());
         String output = formatter.format(source);
+        assertThat(output).contains("\\u005C\\u005Cu002A/ int x;");
+        assertThat(formatter.format(output)).isEqualTo(output);
+    }
+
+    @Test
+    void permitsRawPairsAtAFileStartingJavadocOpener() {
+        String source = "/**\\\\u002A/ int x; // */ class T {}";
+        Formatter formatter = new Formatter(FormatterConfig.defaults());
+        String output = formatter.format(source);
+        assertThat(output).contains("\\u005C\\u005Cu002A/ int x;");
         assertThat(formatter.format(output)).isEqualTo(output);
     }
 }
