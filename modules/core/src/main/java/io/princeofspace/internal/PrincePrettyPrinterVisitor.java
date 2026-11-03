@@ -1306,7 +1306,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         }
     }
 
-    // Text blocks: R4 is soft — content is preserved verbatim; we do not reflow string interior.
+    // R4: print normalised AST text-block content without reflowing its interior.
     @Override
     public void visit(TextBlockLiteralExpr n, Void arg) {
         printOrphanCommentsBeforeThisChildNode(n);

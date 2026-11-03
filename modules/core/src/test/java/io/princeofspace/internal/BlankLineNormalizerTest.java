@@ -132,10 +132,14 @@ class BlankLineNormalizerTest {
     @Test
     void tokenOffsets_accountForCommentsTabsCrLfGenericsAndShifts() {
         String literal = "\"\"\"\r\n\t{\r\n\r\n\t}\r\n\r\n\r\n\t\"\"\"";
-        String input = "\t/* \"\"\"\r\n comment */\r\nclass T {\r\n"
-                + "java.util.List<java.util.List<String>> a; int b = 32 >>> 2;\r\n"
-                + "String s = " + literal + " + " + literal + ";\r\n} // trailing EOF";
-        assertThat(BlankLineNormalizer.normalize(input)).isEqualTo(input);
+        String prefix = "\t/* \"\"\"\r\n comment */\r\nclass T {\r\n";
+        String declarations = "java.util.List<java.util.List<java.util.List<java.util.List<String>>>> a;\r\n"
+                + "int b = 32 >>> 2; { b >>= 1; b >>>= 1; }\f\r\n";
+        String values = "String s = " + literal + " + " + literal + ";\r\n";
+        String suffix = "} // trailing EOF";
+        String input = prefix + "\r\n" + declarations + "\r\n\r\n" + values + "\r\n\r\n" + suffix;
+        assertThat(BlankLineNormalizer.normalize(input))
+                .isEqualTo(prefix + declarations + "\r\n" + values + suffix);
     }
 
     @Test
