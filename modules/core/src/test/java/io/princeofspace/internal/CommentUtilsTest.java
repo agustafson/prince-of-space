@@ -106,16 +106,20 @@ class CommentUtilsTest {
     }
 
     @Test
-    void removeAllCommentsFromTree_removesOwnedAndOrphanComments() {
+    void removeMirroredCommentOwners_keepsNestedCommentsAndParents() {
         MethodCallExpr expr = (MethodCallExpr) StaticJavaParser.parseExpression("foo(a)");
-        expr.setComment(new BlockComment(" owned "));
+        BlockComment leading = new BlockComment(" repeated ");
+        BlockComment nested = new BlockComment(" repeated ");
+        expr.setComment(leading);
         expr.addOrphanComment(new LineComment(" orphan "));
+        expr.getArgument(0).setComment(nested);
 
-        CommentUtils.removeAllCommentsFromTree(expr);
+        CommentUtils.removeMirroredCommentOwners(expr, leading);
 
         assertThat(expr.getComment()).isEmpty();
-        assertThat(expr.getOrphanComments()).isEmpty();
-        assertThat(expr.getAllContainedComments()).isEmpty();
+        assertThat(expr.getOrphanComments()).hasSize(1);
+        assertThat(expr.getArgument(0).getComment()).containsSame(nested);
+        assertThat(expr.getArgument(0).getParentNode()).containsSame(expr);
     }
 
     @Test

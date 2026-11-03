@@ -205,7 +205,11 @@ public final class FormattingEngine {
             return new FormatResult.ParseFailure(problems);
         }
         return result.getResult()
-                .map(cu -> printAfterTransform(cu, t0, tAfterParse))
+                .map(cu -> {
+                    result.getCommentsCollection().ifPresent(comments ->
+                            CommentUtils.restoreUnattachedComments(cu, comments.getComments()));
+                    return printAfterTransform(cu, t0, tAfterParse);
+                })
                 .orElseGet(
                         () -> {
                             if (BenchDiagnostics.isEnabled()) {

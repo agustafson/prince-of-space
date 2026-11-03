@@ -125,10 +125,10 @@ public class FormatterShowcase
 
     // Scenario 8: Ternary expressions
     public String getDisplayName() {
-        String shortTernary = items.isEmpty() ? "none" : "some";
+        String shortTernary = items.isEmpty(/* collection */) ? "none" : "some";
         String longTernary = legacyField != null && !legacyField.isEmpty()
-                ? legacyField.trim().toUpperCase()
-                : items.stream().findFirst().orElse("unknown").toUpperCase();
+                ? /* preferred */ legacyField.trim().toUpperCase()
+                : /* fallback */ items.stream().findFirst().orElse("unknown").toUpperCase();
         return longTernary;
     }
 
@@ -654,7 +654,11 @@ public class FormatterShowcase
 
     public String scenario56InlineCommentsBetweenTokens() {
         String /* domain */ serviceName = null /* use default */;
-        return mergeSymbolicScenario56Arguments(null /* serviceName */, serviceName, "operation", "resource") /* combined */;
+        return mergeSymbolicScenario56Arguments(
+                null /* serviceName */,
+                serviceName /* serviceName */,
+                "operation",
+                "resource") /* combined */; /* result */ // Keep this result suffix after the semicolon.
     }
 
     private String mergeSymbolicScenario56Arguments(String alpha, String bravo, String charlie, String delta) {
@@ -676,11 +680,11 @@ public class FormatterShowcase
             /*
              * Annotation array element block commentary must stay anchored when lists wrap across lines.
              */
-            "showroom-scenario57-descriptor-bravo-symbolic-handle",
-            "showroom-scenario57-descriptor-charlie-symbolic-handle"
+            "showroom-scenario57-descriptor-bravo-symbolic-handle" /* descriptor */,
+            "showroom-scenario57-descriptor-charlie-symbolic-handle" /* descriptor */
             // Closing-array comment remains inside the annotation value
-    })
-    @SuppressWarnings({"deprecation", "unchecked", "rawtypes", "unused"})
+    }) /* shelf */
+    @SuppressWarnings({"deprecation", "unchecked", "rawtypes", "unused"}) // Warning categories.
     public void scenario57AnnotatedMethodWithBuckets() {
     }
 

@@ -55,15 +55,15 @@ final class DeclarationFormatter {
      * line) are printed with {@code printMemberAnnotations}; this splits them from inline return-type
      * annotations.
      */
-    NodeList<AnnotationExpr> declarationAnnotations(MethodDeclaration n) {
+    List<AnnotationExpr> declarationAnnotations(MethodDeclaration n) {
         if (n.getModifiers().isEmpty()) {
-            return new NodeList<>(n.getAnnotations());
+            return new ArrayList<>(n.getAnnotations());
         }
         int firstModifierColumn =
                 n.getModifiers().get(0).getRange().map(r -> r.begin.column).orElse(Integer.MAX_VALUE);
         int firstModifierLine =
                 n.getModifiers().get(0).getRange().map(r -> r.begin.line).orElse(Integer.MAX_VALUE);
-        NodeList<AnnotationExpr> result = new NodeList<>();
+        List<AnnotationExpr> result = new ArrayList<>();
         for (AnnotationExpr annotation : n.getAnnotations()) {
             int annotationColumn = annotation.getRange().map(r -> r.begin.column).orElse(Integer.MIN_VALUE);
             int annotationLine = annotation.getRange().map(r -> r.begin.line).orElse(Integer.MIN_VALUE);
@@ -84,20 +84,19 @@ final class DeclarationFormatter {
      * Return-type annotations that sit after the last modifier token (same line as modifiers or after)
      * are printed immediately before the type name.
      */
-    NodeList<AnnotationExpr> inlineReturnTypeAnnotations(MethodDeclaration n) {
+    List<AnnotationExpr> inlineReturnTypeAnnotations(MethodDeclaration n) {
         if (n.getModifiers().isEmpty()) {
-            return new NodeList<>();
+            return List.of();
         }
-        int lastModifierColumn =
+        var lastModifierEnd =
                 n.getModifiers()
                         .get(n.getModifiers().size() - 1)
                         .getRange()
-                        .map(r -> r.end.column)
-                        .orElse(Integer.MAX_VALUE);
-        NodeList<AnnotationExpr> result = new NodeList<>();
+                        .map(r -> r.end);
+        List<AnnotationExpr> result = new ArrayList<>();
         for (AnnotationExpr annotation : n.getAnnotations()) {
-            int annotationColumn = annotation.getRange().map(r -> r.begin.column).orElse(Integer.MIN_VALUE);
-            if (annotationColumn > lastModifierColumn) {
+            if (lastModifierEnd.isPresent() && annotation.getBegin().isPresent()
+                    && annotation.getBegin().orElseThrow().isAfter(lastModifierEnd.orElseThrow())) {
                 result.add(annotation);
             }
         }
@@ -201,8 +200,8 @@ final class DeclarationFormatter {
     void formatMethod(MethodDeclaration n, Void arg) {
         ctx.printOrphanCommentsBeforeThisChildNode(n);
         ctx.printComment(n.getComment(), arg);
-        NodeList<AnnotationExpr> declAnnotations = declarationAnnotations(n);
-        NodeList<AnnotationExpr> inlineReturnAnnotations = inlineReturnTypeAnnotations(n);
+        List<AnnotationExpr> declAnnotations = declarationAnnotations(n);
+        List<AnnotationExpr> inlineReturnAnnotations = inlineReturnTypeAnnotations(n);
         ctx.printMemberAnnotations(declAnnotations, arg);
         ctx.printModifiers(n.getModifiers());
         argumentListFormatter.printTypeParameters(n.getTypeParameters(), arg);
@@ -212,7 +211,11 @@ final class DeclarationFormatter {
         if (!inlineReturnAnnotations.isEmpty()) {
             for (Iterator<AnnotationExpr> i = inlineReturnAnnotations.iterator(); i.hasNext(); ) {
                 ctx.accept(i.next(), arg);
-                ctx.print(" ");
+                if (ctx.column() == 0) {
+                    ctx.printCont();
+                } else {
+                    ctx.print(" ");
+                }
             }
         }
         ctx.accept(n.getType(), arg);
@@ -381,10 +384,17 @@ final class DeclarationFormatter {
         if (hasEntries) {
             printEnumConstants(n, arg);
         }
-        if (hasMembers) {
+        List<Comment> suffix = hasEntries
+                ? CommentUtils.takeCapturedSemicolonSuffix(n.getEntries().get(n.getEntries().size() - 1)) : List.of();
+        if (hasMembers || !suffix.isEmpty()) {
             ctx.print(";");
+            for (Comment comment : suffix) {
+                ctx.printInlineComment(comment);
+            }
             ctx.println();
-            ctx.printMembers(n.getMembers(), arg);
+            if (hasMembers) {
+                ctx.printMembers(n.getMembers(), arg);
+            }
         } else if (hasEntries) {
             ctx.println();
         }
