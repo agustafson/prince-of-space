@@ -14,6 +14,7 @@ import io.princeofspace.model.FormatterConfig;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -193,25 +194,24 @@ public final class FormattingEngine {
         try {
             decoded = UnicodeEscapes.decode(sourceCode);
         } catch (UnicodeEscapes.MalformedEscapeException malformed) {
+            if (BenchDiagnostics.isEnabled()) {
+                BenchDiagnostics.recordSinglePassPhases(System.nanoTime() - t0, 0, 0);
+            }
             return new FormatResult.ParseFailure(List.of(malformed.getMessage()));
         }
         ParseResult<CompilationUnit> result = parser.parse(decoded.source());
         long tAfterParse = System.nanoTime();
-        if (!result.isSuccessful()) {
+        var ambiguity = result.getResult().flatMap(CompilationUnit::getTokenRange).flatMap(decoded::ambiguityProblem);
+        if (!result.isSuccessful() || ambiguity.isPresent()) {
             if (BenchDiagnostics.isEnabled()) {
                 BenchDiagnostics.recordSinglePassPhases(tAfterParse - t0, 0, 0);
             }
-            List<String> problems = result.getProblems().stream().map(Problem::toString).toList();
+            List<String> problems = new ArrayList<>(result.getProblems().stream().map(Problem::toString).toList());
+            ambiguity.ifPresent(problems::add);
             return new FormatResult.ParseFailure(problems);
         }
         return result.getResult()
-                .map(cu -> {
-                    var ambiguity = decoded.ambiguityProblem(cu.getTokenRange().orElseThrow());
-                    if (ambiguity.isPresent()) {
-                        return new FormatResult.ParseFailure(List.of(ambiguity.orElseThrow()));
-                    }
-                    return printAfterTransform(cu, t0, tAfterParse);
-                })
+                .map(cu -> printAfterTransform(cu, t0, tAfterParse))
                 .orElseGet(
                         () -> {
                             if (BenchDiagnostics.isEnabled()) {

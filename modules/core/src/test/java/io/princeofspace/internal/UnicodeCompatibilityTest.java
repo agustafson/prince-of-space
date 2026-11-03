@@ -89,6 +89,31 @@ class UnicodeCompatibilityTest {
         return Arguments.of(name, markedSource.substring(0, offset) + markedSource.substring(offset + 1), offset);
     }
 
+    @Test
+    void includesAmbiguityOffsetAlongsideSyntaxProblems() {
+        String escape = "\\u005C" + "\\\\" + "u000a";
+        String source = "class T {} // " + escape + " garbage";
+        int expectedOffset = source.indexOf(escape) + 7;
+        for (boolean singlePass : new boolean[] {true, false}) {
+            FormatResult result = new Formatter(FormatterConfig.defaults(), singlePass).formatResult(source);
+            assertThat(result).isInstanceOfSatisfying(FormatResult.ParseFailure.class,
+                    failure -> assertThat(failure.message()).contains("Parse error",
+                            "Compiler-dependent Unicode escape at source offset " + expectedOffset));
+        }
+    }
+
+    @Test
+    void keepsLiteralAmbiguitiesExemptWhenOtherSyntaxFails() {
+        String escape = "\\u005C" + "\\\\" + "u006e";
+        String source = "class T { String value = \"" + escape + "\"; int ; }";
+        for (boolean singlePass : new boolean[] {true, false}) {
+            FormatResult result = new Formatter(FormatterConfig.defaults(), singlePass).formatResult(source);
+            assertThat(result).isInstanceOfSatisfying(FormatResult.ParseFailure.class,
+                    failure -> assertThat(failure.message()).contains("Parse error")
+                            .doesNotContain("Compiler-dependent Unicode escape"));
+        }
+    }
+
     @ParameterizedTest(name = "{0}")
     @MethodSource("literalPrograms")
     void permitsMixedEscapesInsideLiterals(String name, String source) throws Exception {
