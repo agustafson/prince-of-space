@@ -1,7 +1,16 @@
 package io.princeofspace.internal;
 
+import com.github.javaparser.GeneratedJavaParserTokenManager;
+import com.github.javaparser.Providers;
+import com.github.javaparser.SimpleCharStream;
+import com.github.javaparser.Token;
+
+import static com.github.javaparser.GeneratedJavaParserConstants.EOF;
+import static com.github.javaparser.GeneratedJavaParserConstants.GT;
+import static com.github.javaparser.GeneratedJavaParserConstants.TEXT_BLOCK_LITERAL;
+
 /**
- * Post-processes formatted output to enforce blank-line rules:
+ * Post-processes formatted output to enforce structural blank-line rules outside text blocks:
  *
  * <ol>
  *   <li>No blank line immediately after a line that ends with <code>{</code> (including type bodies).
@@ -44,17 +53,18 @@ final class BlankLineNormalizer {
 
         // Decide which lines to keep. A line is "blank" when it contains only whitespace.
         boolean[] keep = new boolean[lineCount];
+        keepTextBlockLines(source, lineBounds, keep);
         // Track last kept non-blank line index for Rule 1 and consecutive-blank checks.
         int lastKeptNonBlank = -1;
         boolean lastKeptWasBlank = false;
         for (int i = 0; i < lineCount; i++) {
-            if (!isBlankLine(source, lineBounds, i)) {
+            if (keep[i] || !isBlankLine(source, lineBounds, i)) {
                 keep[i] = true;
                 lastKeptNonBlank = i;
                 lastKeptWasBlank = false;
             } else {
                 keep[i] = shouldKeepBlank(
-                        source, lineBounds, lineCount, i, lastKeptNonBlank, lastKeptWasBlank);
+                        source, lineBounds, keep, lineCount, i, lastKeptNonBlank, lastKeptWasBlank);
                 if (keep[i]) {
                     lastKeptWasBlank = true;
                 }
@@ -75,6 +85,38 @@ final class BlankLineNormalizer {
             sb.append(source, lineStart(lineBounds, i), lineEnd(lineBounds, i));
         }
         return sb.toString();
+    }
+
+    private static void keepTextBlockLines(String source, int[] lineBounds, boolean[] keep) {
+        if (!source.contains("\"\"\"")) {
+            return;
+        }
+        GeneratedJavaParserTokenManager lexer =
+                new GeneratedJavaParserTokenManager(new SimpleCharStream(Providers.provider(source)));
+        int offset = 0;
+        int line = 0;
+        Token token;
+        do {
+            token = lexer.getNextToken();
+            for (Token special = token.specialToken; special != null; special = special.specialToken) {
+                offset += special.image.length();
+            }
+            // JavaParser backs up after >>/>>> but retains the overlapping image on each GT token.
+            int end = offset + (token.kind == GT ? 1 : token.image.length());
+            if (token.kind == TEXT_BLOCK_LITERAL) {
+                while (line < keep.length && lineEnd(lineBounds, line) < offset) {
+                    line++;
+                }
+                while (line < keep.length && lineStart(lineBounds, line) < end) {
+                    keep[line] = true;
+                    line++;
+                }
+            }
+            offset = end;
+        } while (token.kind != EOF);
+        if (offset != source.length()) {
+            throw new IllegalStateException("Token lengths do not cover printed source");
+        }
     }
 
     private static int lineStart(int[] bounds, int lineIndex) {
@@ -99,6 +141,7 @@ final class BlankLineNormalizer {
     private static boolean shouldKeepBlank(
             String source,
             int[] lineBounds,
+            boolean[] keep,
             int lineCount,
             int blankIndex,
             int lastKeptNonBlank,
@@ -112,7 +155,7 @@ final class BlankLineNormalizer {
         // Find next non-blank line (forward scan from blankIndex+1).
         int nextNonBlank = -1;
         for (int j = blankIndex + 1; j < lineCount; j++) {
-            if (!isBlankLine(source, lineBounds, j)) {
+            if (keep[j] || !isBlankLine(source, lineBounds, j)) {
                 nextNonBlank = j;
                 break;
             }

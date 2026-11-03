@@ -30,7 +30,7 @@ With **`spaces`**, `indentSize` is how many space characters make up one indent 
 
 ### 2. Line Length
 
-A single target line width. The formatter tries to keep lines at or below this length by wrapping when necessary. Some constructs cannot be wrapped — such as very long string literals, generated data files, or deeply nested expressions with no safe break point — and will exceed `lineLength` when no wrap point exists. Comment content and text-block values are preserved.
+A single target line width. The formatter tries to keep lines at or below this length by wrapping when necessary. Some constructs cannot be wrapped — such as very long string literals, generated data files, or deeply nested expressions with no safe break point — and will exceed `lineLength` when no wrap point exists.
 
 This is similar to how Prettier treats `printWidth` as a guide rather than a hard wall.
 
@@ -409,9 +409,10 @@ if (condition) {
 
 - One blank line between methods
 - One blank line between field groups and methods
-- No more than one consecutive blank line anywhere (collapse multiples)
+- No more than one consecutive structural blank line (collapse multiples)
 - No blank line after opening brace or before closing brace
 - Preserve single blank lines within method bodies (developer intent)
+- Keep blank lines inside text blocks, including those beside literal braces
 
 ---
 
