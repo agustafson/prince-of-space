@@ -47,6 +47,8 @@ class UnicodeEscapePreservationTest {
                 Arguments.of("line comment continues", method("String s = \"after\";\n// \\u005C\\\\\\u000A s=\"before\";\nreturn s;"), "after"),
                 Arguments.of("block comment ends", method("String s = \"after\";\n/* \\u005C\\\\u002A/ s=\"before\"; // */\nreturn s;"), "before"),
                 Arguments.of("block comment continues", method("String s = \"after\";\n/* \\u005C\\\\\\u002A/ s=\"before\"; // */\nreturn s;"), "after"),
+                Arguments.of("line comment escape stays inactive", method("String s = \"after\";\n// \\u005Cu000A s=\"before\";\nreturn s;"), "after"),
+                Arguments.of("block comment escape stays inactive", method("String s = \"after\";\n/* \\u005Cu002A/ s=\"before\"; // */\nreturn s;"), "after"),
                 Arguments.of("initializer", "static String text = \"" + FORWARD + "\"; " + method("return text;"), "\\n"),
                 Arguments.of("return literal", method("return \"" + FORWARD + "\";"), "\\n"),
                 Arguments.of("reverse literal", method("return \"" + REVERSE + "\";"), "\\\\u006e"),
