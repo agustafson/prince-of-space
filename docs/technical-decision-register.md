@@ -281,3 +281,11 @@ Use it as the primary source of *why* design choices exist.
 - **Rationale:** JavaParser 3.28.2's Unicode provider loses backslash parity after an escape produces a backslash, which can change comment boundaries and literal values. Its character stream can also treat provider I/O failures as end of input. A small source decoder avoids both behaviours and keeps token, node and comment positions in the same decoded coordinate system.
 - **Consequences:** Compiler-backed regression tests compare saved source values independently of JavaParser, alongside direct JLS translation tests and idempotence checks. Malformed Unicode escapes in comments are rejected instead of rewritten. The public API and formatting options are unchanged.
 - **Related docs:** `docs/canonical-formatting-rules.md` (Rule 10), `modules/core/src/main/java/io/princeofspace/internal/UnicodeEscapes.java`
+
+### TDR-032: Reject compiler-dependent Unicode interpretation outside literals
+- **Date:** 2026-11-03
+- **Status:** Accepted
+- **Decision:** While decoding, record escape eligibility differences between raw backslash runs and modern JLS translation. Permit these positions inside character, string and text-block content; reject other positions as `FormatResult.ParseFailure` with their zero-based UTF-16 offset in the raw source. Apply the policy at every configured Java language level.
+- **Rationale:** Installed JDK 8/11 and JDK 17/21/25 compilers interpret rare escaped comments differently. Printing either interpretation can activate or remove code for the other compiler. JavaParser's existing tokens identify literal content without introducing a second Java lexer. The check deliberately also rejects harmless comment text with differing escape eligibility.
+- **Consequences:** Ordinary escapes and valid literal values remain supported. Ambiguous inputs require source clarification before formatting. Literal delimiters and Unicode-created comment terminators are outside the exemption. The public API and configuration remain unchanged.
+- **Related docs:** TDR-031, `docs/canonical-formatting-rules.md` (Rule 10), [OpenJDK 11 comment scanner](https://github.com/openjdk/jdk/blob/jdk-11%2B28/src/jdk.compiler/share/classes/com/sun/tools/javac/parser/UnicodeReader.java#L118-L128), [JLS 17 section 3.3](https://docs.oracle.com/javase/specs/jls/se17/html/jls-3.html#jls-3.3)

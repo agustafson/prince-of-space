@@ -16,7 +16,7 @@ class UnicodeEscapesTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("translations")
     void followsJlsEligibility(String name, String source, String expected) throws Exception {
-        assertThat(UnicodeEscapes.decode(source)).isEqualTo(expected);
+        assertThat(UnicodeEscapes.decode(source).source()).isEqualTo(expected);
     }
 
     @SuppressWarnings("PMD.AvoidDuplicateLiterals") // Keep each source spelling visible beside its expected translation.
@@ -52,7 +52,7 @@ class UnicodeEscapesTest {
     @ParameterizedTest
     @ValueSource(strings = {"", "class T {}", "\\", "\\\\u0041", "\\\\uZZZZ"})
     void retainsSourceWhenNoEscapeIsEligible(String source) throws Exception {
-        assertThat(UnicodeEscapes.decode(source)).isSameAs(source);
+        assertThat(UnicodeEscapes.decode(source).source()).isSameAs(source);
     }
 
     @ParameterizedTest
@@ -65,6 +65,6 @@ class UnicodeEscapesTest {
 
     @Test
     void consumesExactlyFourHexDigits() throws Exception {
-        assertThat(UnicodeEscapes.decode("\\u00412")).isEqualTo("A2");
+        assertThat(UnicodeEscapes.decode("\\u00412").source()).isEqualTo("A2");
     }
 }

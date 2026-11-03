@@ -26,7 +26,7 @@ class CommentEscapingTest {
         assertThat(StandardCharsets.UTF_8.newEncoder().canEncode(CharBuffer.wrap(escaped))).isTrue();
         assertThat(escaped).doesNotContain("\0");
         assertThat(decode(escaped)).isEqualTo(decoded);
-        assertThat(UnicodeEscapes.decode(escaped)).isEqualTo(decoded);
+        assertThat(UnicodeEscapes.decode(escaped).source()).isEqualTo(decoded);
         assertThat(CommentUtils.escapeCommentContent(decode(escaped))).isEqualTo(escaped);
     }
 

@@ -189,13 +189,13 @@ public final class FormattingEngine {
     private FormatResult singlePassFormat(String sourceCode) {
         long t0 = System.nanoTime();
         // Decode before parsing: JavaParser's Unicode processor remaps node positions without comments.
-        String decoded;
+        UnicodeEscapes.DecodedSource decoded;
         try {
             decoded = UnicodeEscapes.decode(sourceCode);
         } catch (UnicodeEscapes.MalformedEscapeException malformed) {
             return new FormatResult.ParseFailure(List.of(malformed.getMessage()));
         }
-        ParseResult<CompilationUnit> result = parser.parse(decoded);
+        ParseResult<CompilationUnit> result = parser.parse(decoded.source());
         long tAfterParse = System.nanoTime();
         if (!result.isSuccessful()) {
             if (BenchDiagnostics.isEnabled()) {
@@ -205,7 +205,13 @@ public final class FormattingEngine {
             return new FormatResult.ParseFailure(problems);
         }
         return result.getResult()
-                .map(cu -> printAfterTransform(cu, t0, tAfterParse))
+                .map(cu -> {
+                    var ambiguity = decoded.ambiguityProblem(cu.getTokenRange().orElseThrow());
+                    if (ambiguity.isPresent()) {
+                        return new FormatResult.ParseFailure(List.of(ambiguity.orElseThrow()));
+                    }
+                    return printAfterTransform(cu, t0, tAfterParse);
+                })
                 .orElseGet(
                         () -> {
                             if (BenchDiagnostics.isEnabled()) {

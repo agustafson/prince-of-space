@@ -27,6 +27,8 @@ class InternalArchitectureTest {
                     "io.princeofspace.internal.PrincePrettyPrinterVisitor",
                     "io.princeofspace.internal.LayoutContext",
                     "io.princeofspace.internal.CommentUtils",
+                    "io.princeofspace.internal.UnicodeEscapes$DecodedSource",
+                    "io.princeofspace.internal.UnicodeEscapes$Ambiguity",
                     "io.princeofspace.internal.LayoutContext$SilentCloseable");
 
     private static final DescribedPredicate<JavaClass> INTERNAL_PUBLIC_SURFACE_OWNER =
