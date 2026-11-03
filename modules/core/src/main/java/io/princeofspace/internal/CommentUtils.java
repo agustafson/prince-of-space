@@ -46,8 +46,10 @@ import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TreeSet;
 import java.util.function.Predicate;
 
 /** Static comment-oriented AST helpers used by visitor delegates. */
@@ -56,6 +58,7 @@ final class CommentUtils {
     private static final int SINGLE_ARGUMENT_COUNT = 1;
     private static final char BACKSLASH = '\\';
     private static final HexFormat COMMENT_HEX = HexFormat.of().withUpperCase();
+    private static final DataKey<NavigableSet<Position>> SOURCE_COMMENT_STARTS = new DataKey<>() {};
     private static final DataKey<List<Comment>> SEMICOLON_SUFFIX = new DataKey<>() {};
     private static final DataKey<List<Comment>> STATEMENT_ENDING = new DataKey<>() {};
     private static final DataKey<List<Comment>> CHAIN_DOT_PREFIX = new DataKey<>() {};
@@ -88,6 +91,24 @@ final class CommentUtils {
     private static final String PMD_IDENTITY_COMPARISON = "PMD.CompareObjectsWithEquals";
 
     private CommentUtils() {}
+
+    /** Indexes parsed source positions once; normalisation never creates new comment positions. */
+    static void indexSourceCommentStarts(CompilationUnit unit) {
+        unit.removeData(SOURCE_COMMENT_STARTS);
+        if (unit.getRange().isEmpty() || unit.getTokenRange().isEmpty()) {
+            return;
+        }
+        List<Comment> comments = new ArrayList<>(unit.getAllContainedComments());
+        unit.getComment().ifPresent(comments::add);
+        NavigableSet<Position> starts = new TreeSet<>();
+        for (Comment comment : comments) {
+            if (comment.getBegin().isEmpty()) {
+                return;
+            }
+            starts.add(comment.getBegin().orElseThrow());
+        }
+        unit.setData(SOURCE_COMMENT_STARTS, Collections.unmodifiableNavigableSet(starts));
+    }
 
     /** Retains source comments that JavaParser did not attach after comparing equal-content orphans. */
     static void restoreUnattachedComments(CompilationUnit unit, Collection<Comment> sourceComments) {
@@ -366,6 +387,9 @@ final class CommentUtils {
     }
 
     private static List<Comment> takeCommentsBetween(Node root, Position start, Position end) {
+        if (!sourceGapMayContainComments(root, start, end)) {
+            return List.of();
+        }
         var seen = Collections.newSetFromMap(new IdentityHashMap<Comment, Boolean>());
         List<Comment> comments = new ArrayList<>(root.getAllContainedComments());
         root.getComment().ifPresent(comments::add);
@@ -378,6 +402,16 @@ final class CommentUtils {
             removeMirroredCommentOwners(root, comment);
         }
         return comments;
+    }
+
+    private static boolean sourceGapMayContainComments(Node root, Position start, Position end) {
+        CompilationUnit unit = root.findCompilationUnit().orElse(null);
+        if (unit == null || !unit.containsData(SOURCE_COMMENT_STARTS)) {
+            return true;
+        }
+        // Detached and reparented comments retain their source positions, so this is a superset.
+        Position next = unit.getData(SOURCE_COMMENT_STARTS).higher(start);
+        return next != null && next.isBefore(end);
     }
 
     /** Assigns opening and trailing comments to the call boundary that prints them. */

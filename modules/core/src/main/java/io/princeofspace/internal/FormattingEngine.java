@@ -208,6 +208,7 @@ public final class FormattingEngine {
                 .map(cu -> {
                     result.getCommentsCollection().ifPresent(comments ->
                             CommentUtils.restoreUnattachedComments(cu, comments.getComments()));
+                    CommentUtils.indexSourceCommentStarts(cu);
                     return printAfterTransform(cu, t0, tAfterParse);
                 })
                 .orElseGet(

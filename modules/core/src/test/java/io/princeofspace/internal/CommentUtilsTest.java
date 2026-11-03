@@ -3,6 +3,7 @@ package io.princeofspace.internal;
 import com.github.javaparser.Position;
 import com.github.javaparser.Range;
 import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.comments.BlockComment;
@@ -120,6 +121,73 @@ class CommentUtilsTest {
         assertThat(expr.getOrphanComments()).hasSize(1);
         assertThat(expr.getArgument(0).getComment()).containsSame(nested);
         assertThat(expr.getArgument(0).getParentNode()).containsSame(expr);
+    }
+
+    @Test
+    void sourceCommentIndexRetainsReparentedCommentPositions() {
+        var unit = StaticJavaParser.parse("class T { void f() { call(1, /* repeated */ 2, /* repeated */ 3); } }");
+        MethodCallExpr call = unit.findFirst(MethodCallExpr.class).orElseThrow();
+        List<Comment> comments = unit.getAllContainedComments();
+        assertThat(comments).hasSize(2);
+        CommentUtils.indexSourceCommentStarts(unit);
+        for (Comment comment : comments) {
+            CommentUtils.removeMirroredCommentOwners(unit, comment);
+            call.addOrphanComment(comment);
+        }
+        for (int pass = 0; pass < 2; pass++) {
+            for (int i = 0; i < comments.size(); i++) {
+                Comment comment = comments.get(i);
+                assertThat(CommentUtils.takeExpressionBoundaryComments(call.getArgument(i + 1)))
+                        .singleElement().isSameAs(comment);
+                call.addOrphanComment(comment);
+            }
+        }
+    }
+
+    @Test
+    void sourceCommentIndexHandlesCommentFreeUnits() {
+        var unit = StaticJavaParser.parse("class T { void f() { call(1, 2, 3); } }");
+        String original = unit.toString();
+        CommentUtils.indexSourceCommentStarts(unit);
+        CommentUtils.normaliseCallCommentOwners(unit);
+        assertThat(unit.toString()).isEqualTo(original);
+        assertThat(unit.getAllContainedComments()).isEmpty();
+    }
+
+    @Test
+    void sourceCommentIndexKeepsStrictGapEndpoints() {
+        var unit = StaticJavaParser.parse("class T { void f() { call(1, /* start */ /* inside */ /* end */ 2); } }");
+        MethodCallExpr call = unit.findFirst(MethodCallExpr.class).orElseThrow();
+        List<Comment> comments = unit.getAllContainedComments();
+        assertThat(comments).hasSize(3);
+        comments.get(0).setRange(new Range(call.getArgument(0).getEnd().orElseThrow(),
+                comments.get(0).getEnd().orElseThrow()));
+        comments.get(2).setRange(new Range(comments.get(2).getBegin().orElseThrow(),
+                call.getArgument(1).getBegin().orElseThrow()));
+        CommentUtils.indexSourceCommentStarts(unit);
+        for (Comment comment : comments) {
+            CommentUtils.removeMirroredCommentOwners(unit, comment);
+            call.addOrphanComment(comment);
+        }
+        assertThat(CommentUtils.takeExpressionBoundaryComments(call.getArgument(1)))
+                .singleElement().isSameAs(comments.get(1));
+    }
+
+    @Test
+    void commentGapLookupSupportsDetachedAndProgrammaticRoots() {
+        MethodCallExpr call = (MethodCallExpr) StaticJavaParser.parseExpression("call(1, /* label */ 2)");
+        Comment comment = call.getAllContainedComments().get(0);
+        CommentUtils.removeMirroredCommentOwners(call, comment);
+        call.addOrphanComment(comment);
+        assertThat(CommentUtils.takeExpressionBoundaryComments(call.getArgument(1)))
+                .singleElement().isSameAs(comment);
+
+        call.addOrphanComment(comment);
+        CompilationUnit unit = new CompilationUnit();
+        unit.addClass("T").addMethod("f").setBody(new BlockStmt().addStatement(call));
+        CommentUtils.indexSourceCommentStarts(unit);
+        assertThat(CommentUtils.takeExpressionBoundaryComments(call.getArgument(1)))
+                .singleElement().isSameAs(comment);
     }
 
     @Test
