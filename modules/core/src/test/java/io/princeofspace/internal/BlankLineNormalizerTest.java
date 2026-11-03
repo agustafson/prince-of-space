@@ -120,4 +120,41 @@ class BlankLineNormalizerTest {
         String input = "import\tjava.util.List;\n\nimport\tjava.util.Map;\n\nclass T {}\n";
         assertThat(BlankLineNormalizer.normalize(input)).isEqualTo(input);
     }
+
+    @Test
+    void textBlockBlanks_preservedWhileStructuralBlanksAreRemoved() {
+        String literal = "\"\"\"\n{\n\n}\na\n\n\nb\n\"\"\"";
+        String input = "class T {\n\nString s = " + literal + ";\n\n\nvoid m() {\n\n}\n\n}";
+        assertThat(BlankLineNormalizer.normalize(input))
+                .isEqualTo("class T {\nString s = " + literal + ";\n\nvoid m() {\n}\n}");
+    }
+
+    @Test
+    void tokenOffsets_accountForCommentsTabsCrLfGenericsAndShifts() {
+        String literal = "\"\"\"\r\n\t{\r\n\r\n\t}\r\n\r\n\r\n\t\"\"\"";
+        String prefix = "\t/* \"\"\"\r\n comment */\r\nclass T {\r\n";
+        String declarations = "java.util.List<java.util.List<java.util.List<java.util.List<String>>>> a;\r\n"
+                + "int b = 32 >>> 2; { b >>= 1; b >>>= 1; }\f\r\n";
+        String values = "String s = " + literal + " + " + literal + ";\r\n";
+        String suffix = "} // trailing EOF";
+        String input = prefix + "\r\n" + declarations + "\r\n\r\n" + values + "\r\n\r\n" + suffix;
+        assertThat(BlankLineNormalizer.normalize(input))
+                .isEqualTo(prefix + declarations + "\r\n" + values + suffix);
+    }
+
+    @Test
+    void quoteSequencesInCommentsAndStrings_doNotProtectStructuralBlanks() {
+        String input = "class T {\n/* \"\"\" */\n\n\nString s = \"\\\"\\\"\\\"\";\n\n\n}";
+        assertThat(BlankLineNormalizer.normalize(input))
+                .isEqualTo("class T {\n/* \"\"\" */\n\nString s = \"\\\"\\\"\\\"\";\n}");
+    }
+
+    @Test
+    void modernSyntaxAndEscapedDelimiters_keepLiteralBoundaries() {
+        String input = "/// \"\"\" in markdown\nrecord R(String s) {\n"
+                + "String f(Object o) { return switch (o) {\n"
+                + "case String x when !x.isEmpty() -> \"\"\"\n\\\"\"\"\n\n\nend\n\"\"\";\n"
+                + "default -> \"\\u0000\";\n}; }\n}\n";
+        assertThat(BlankLineNormalizer.normalize(input)).isEqualTo(input);
+    }
 }

@@ -108,6 +108,7 @@ For wrapped argument/parameter-like lists:
 
 ### Rule 9: Blank lines
 
+- These rules apply to structural whitespace outside text blocks. Keep blank lines inside text-block literals, including those beside literal braces.
 - Collapse multiple blank lines to at most one.
 - No blank line immediately after an opening brace.
 - No blank line immediately before a closing brace.

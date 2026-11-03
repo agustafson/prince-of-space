@@ -435,8 +435,14 @@ public class FormatterShowcase
         return """
         Report for %s
         =============
+
+
+        {
+
         Items: %d
         Status: %s
+
+        }
         """.formatted(
                 legacyField,
                 items.size(),
