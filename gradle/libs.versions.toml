@@ -3,7 +3,7 @@ archunit = "1.4.2"
 assertj = "3.27.7"
 # Keep aligned with NullAway (0.13.x targets Error Prone ~2.45; 2.49+ breaks NullAway at runtime).
 eclipse-jdt = "4.34"
-errorprone = "2.50.0"
+errorprone = "2.52.0"
 errorprone-plugin = "5.1.0"
 google-java-format = "1.37.0"
 # Spotless calls Style.valueOf(String), which Google Java Format 1.37.0 removed.
