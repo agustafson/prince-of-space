@@ -426,13 +426,23 @@ public String toString() {
 // Parameter annotations: inline (preserved as-is)
 public void process(@Nonnull String name, @Valid Request request) {
 
-// Type-use annotations (e.g., JSpecify @Nullable): position preserved
-// We do NOT move these. If a developer writes:
+// Type-use annotations (e.g., JSpecify @Nullable): preserve the annotated type
 public @Nullable String result() { ... }
-// it stays exactly there. We respect type-use annotation placement.
+
+// Method annotations on a following line stay inline with the return type
+public
+@Nullable String anotherResult() { ... }
+// Formats as: public @Nullable String anotherResult() { ... }
 ```
 
-Type-use annotations (like JSpecify's `@Nullable`) are placed directly adjacent to the type they annotate. The formatter preserves this position and does not reorder annotations relative to modifiers. This is critical for JSpecify/nullness correctness where `@Nullable` must be next to the type, not before modifiers.
+Each annotation prints once, including repeatable annotations. Method annotations before the first
+modifier print on separate lines. Annotations after that modifier print inline before the return
+type, including annotations written between modifiers or on a following line. The formatter compares
+complete source positions so indentation and line breaks preserve annotation presence and meaning.
+
+Annotations on parameters, type parameters, bounds, type arguments and array dimensions retain their
+annotated declaration or type. Java 11 and later also support annotated `var` lambda parameters in
+field initializers, including array initializers.
 
 ---
 

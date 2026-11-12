@@ -57,6 +57,8 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
     }
 
     // Scenario 7: Lambda expressions
+    private final java.util.function.Function<String, String> annotatedFieldLambda = (@org.jspecify.annotations.Nullable String value) -> value;
+
     public void processWithCallbacks() {
         items.forEach(item -> System.out.println(item));
 
@@ -112,9 +114,15 @@ public class FormatterShowcase implements Comparable<FormatterShowcase>, java.io
     }
 
     // Scenario 13: Annotation placement
-    @Override @SuppressWarnings("unchecked") public int compareTo(FormatterShowcase other) {
+    @Override @SuppressWarnings("unchecked")
+    public int compareTo(FormatterShowcase other) {
         return this.legacyField.compareTo(other.legacyField);
     }
+
+    public @Deprecated static String annotationBetweenModifiers() { return "legacy"; }
+
+    public
+    @Deprecated String annotationOnFollowingLine() { return legacyField; }
 
     // Scenario 14: Array initializers
     public static final String[] DEFAULT_COLUMNS = {"id", "name", "email", "created_at", "updated_at", "status", "role", "department", "very_long_column_name_created_timestamp_millis", "very_long_column_name_updated_timestamp_millis", "very_long_column_name_external_system_identifier"};
