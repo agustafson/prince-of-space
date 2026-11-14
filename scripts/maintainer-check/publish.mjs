@@ -19,8 +19,21 @@ if (!repository || !token || !prPath || !reviewsPath) {
 }
 
 const pullRequest = JSON.parse(await readFile(prPath, 'utf8'));
-const reviews = flattenReviewPages(JSON.parse(await readFile(reviewsPath, 'utf8')));
-const result = evaluateMaintainerApproval({ pullRequest, reviews });
+// When any review page could not be read, no approval can be verified: publish
+// a fail-closed failure for the known head instead of trusting partial data.
+const result =
+  process.env.REVIEWS_UNREADABLE === 'true'
+    ? {
+        conclusion: 'failure',
+        title: 'Review evidence unavailable',
+        summary:
+          'Not every review page could be read, so no maintainer approval can be verified. ' +
+          'This result is fail-closed and is refreshed by the next evaluation.',
+      }
+    : evaluateMaintainerApproval({
+        pullRequest,
+        reviews: flattenReviewPages(JSON.parse(await readFile(reviewsPath, 'utf8'))),
+      });
 
 const runUrl =
   process.env.GITHUB_SERVER_URL && process.env.GITHUB_RUN_ID

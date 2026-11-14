@@ -66,10 +66,12 @@ artifact of its own run.
 **The publisher runs only from the default branch.** It is triggered by
 `workflow_run` after the collector completes, which always uses the default-branch
 workflow file and can access secrets even when the triggering run could not; by a
-hourly scheduled reconciliation (below); and by `workflow_dispatch`, which requires
+scheduled reconciliation sweep (below); and by `workflow_dispatch`, which requires
 write access and, off the default branch, is rejected by the environment's
 deployment policy before any step runs. A pull request cannot change what the
-publisher runs.
+publisher runs. Resolution and publication are separate jobs: the resolve job holds
+no environment and no secrets and only turns the event into a list of pull request
+numbers; the publish job is the only privileged step in the chain.
 
 Within the publisher:
 
@@ -86,10 +88,11 @@ Within the publisher:
 - **Review pages are fetched with pagination** (`--paginate --slurp`), so no
   approval or later change-requested review can be hidden beyond the first page; a
   failed page fails the run.
-- **Evaluations are serialized per pull request** (by head branch for event runs,
-  by the given number for dispatch reruns) so an older evaluation cannot publish
-  after a newer one for the same pull request. A dispatch rerun does not share the
-  event-run group; any cross-path overlap is bounded by the reconciliation sweep.
+- **Evaluations are serialized per pull request.** Every entry path — collector
+  events, dispatch reruns and the scheduled sweep — funnels into one shared
+  publication job keyed by the pull request number, so evaluations of the same
+  pull request queue behind each other whatever path started them, and an older
+  evaluation cannot publish over a newer revocation.
 - The workflow has no default token permissions; the job grants itself read-only
   `pull-requests`, `contents` and `actions` access for metadata, the artifact and
   the trusted checkout.
@@ -98,10 +101,19 @@ Within the publisher:
 
 **A failed or modified collector cannot leave a stale success standing.** A pull
 request can make its own collector fail, stay silent on a dismissal, or never run
-at all. The publisher therefore also reconciles hourly from the default branch:
-it re-evaluates every open pull request and re-publishes the check, so a withdrawn
-approval takes effect within the hour even when no trustworthy collector event
-arrives.
+at all. The publisher therefore also reconciles on a schedule from the default
+branch: it re-lists every open pull request and re-publishes each check, with each
+pull request isolated in its own job so one failure never skips the others, and
+any failed read or publication marks the sweep unsuccessful. A pull request whose
+review evidence cannot be read gets a fail-closed failure result for its known
+head, never silence.
+
+Schedules carry no deadline. GitHub may delay or drop scheduled runs, and in a
+project like this one it disables schedules after 60 days without repository
+activity, so a withdrawn approval takes effect on the next collector event or on
+the next successful sweep — never by a fixed time. Repository activity re-enables
+a disabled schedule, and a maintainer can refresh one pull request at any moment
+with a manual dispatch.
 
 **The environment is the credential boundary for the key.** Environment secrets are
 available to *any* job that references the environment — including a
@@ -112,10 +124,10 @@ keeps the key away from contributor-controlled workflow jobs. Restrict it to
 `main` (the publisher's only ref) and verify it after setup: a pull request job
 that references `environment: maintainer-check` must fail to deploy.
 
-**The jobs are named `maintainer-approval-publisher`** (and
-`maintainer-approval-reconcile`) — deliberately different from the check name — so
-the Actions-created job check and the app-published `maintainer-approval` check
-never share a context.
+**The jobs are named `maintainer-approval-resolve` and
+`maintainer-approval-publisher`** — deliberately different from the check name —
+so the Actions-created job checks and the app-published `maintainer-approval`
+check never share a context.
 
 Until the publisher workflow is merged to the default branch, the `workflow_run`
 chain and the schedule cannot run (GitHub only triggers them when the workflow file

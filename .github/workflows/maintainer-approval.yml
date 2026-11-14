@@ -23,45 +23,32 @@ on:
         required: true
         type: number
   schedule:
-    # Hourly trusted reconciliation: re-publishes the check for every open
-    # pull request, so a failed or modified collector run cannot leave a stale
-    # published success standing after an approval is withdrawn.
+    # Scheduled reconciliation: re-publishes the check for every open pull
+    # request, so a failed or modified collector run cannot leave a stale
+    # published success standing after an approval is withdrawn. GitHub may
+    # delay or drop scheduled runs, so this complements — never replaces —
+    # event-driven publication.
     - cron: '17 * * * *'
 
 permissions: {}
 
 jobs:
-  # The job name intentionally differs from the published check name
-  # (`maintainer-approval`, created through the dedicated app). A same-named job
-  # in a contributor workflow would run under the shared GitHub Actions identity
-  # and must never satisfy the app-bound required check.
-  maintainer-approval-publisher:
-    name: maintainer-approval-publisher
+  # Unprivileged resolution only: no environment, no secrets, no checkout.
+  # The collector's artifact is extracted into an isolated temporary
+  # directory, never the workspace, so no artifact-supplied file can reach a
+  # trusted checkout; only the validated integer is used.
+  resolve:
+    name: maintainer-approval-resolve
     runs-on: ubuntu-latest
     # Only react to collector runs that succeeded; failed collectors publish
     # nothing here, and the scheduled reconciliation closes that gap.
-    if: ${{ github.event_name != 'schedule' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success') }}
-    environment: maintainer-check
-    # Serialize evaluations per pull request (event runs share the pull
-    # request's head branch name; dispatch runs use the given number) so an
-    # older evaluation cannot publish after a newer one for the same pull
-    # request. Cross-path overlap is bounded by the hourly reconciliation.
-    concurrency:
-      group: maintainer-approval-${{ github.event.workflow_run.head_branch || inputs['pull-request'] }}
-      cancel-in-progress: false
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      numbers: ${{ steps.numbers.outputs.numbers }}
     permissions:
-      # Read-only job token: pull request metadata, review pages, the
-      # collector's artifact, and the trusted checkout.
       pull-requests: read
-      contents: read
       actions: read
     steps:
-      # The artifact is written by the collector run, which may come from a
-      # pull request head: treat everything in it as untrusted. It is
-      # extracted into an isolated temporary directory, never the workspace,
-      # so no artifact-supplied file (for example a .git directory) can reach
-      # the trusted checkout or its Git metadata. Only the validated integer
-      # is used; all pull request and review data is fetched from the API.
       - name: Read the collector's pull request record
         if: github.event_name == 'workflow_run'
         uses: actions/download-artifact@v8
@@ -71,35 +58,82 @@ jobs:
           github-token: ${{ github.token }}
           path: ${{ runner.temp }}/collector-record
 
-      - name: Resolve the target pull request number
-        id: target
+      - name: List the pull requests to publish
+        id: numbers
         env:
+          GH_TOKEN: ${{ github.token }}
           DISPATCH_PR: ${{ inputs['pull-request'] }}
         run: |
           set -euo pipefail
-          number="$DISPATCH_PR"
-          if [ -z "$number" ]; then
-            number="$(tr -d '[:space:]' < "$RUNNER_TEMP/collector-record/pr-number")"
-          fi
-          case "$number" in
-            ''|*[!0-9]*) echo "Invalid pull request number: '$number'" >&2; exit 1 ;;
+          case "${{ github.event_name }}" in
+            workflow_run)
+              number="$(tr -d '[:space:]' < "$RUNNER_TEMP/collector-record/pr-number")"
+              case "$number" in
+                ''|*[!0-9]*) echo "Invalid pull request number: '$number'" >&2; exit 1 ;;
+              esac
+              numbers="[$number]"
+              ;;
+            workflow_dispatch)
+              numbers="[${DISPATCH_PR}]"
+              ;;
+            *)
+              # Scheduled sweep: every open pull request, bounded at 100.
+              numbers="$(gh api --paginate --slurp \
+                "repos/${{ github.repository }}/pulls?state=open&per_page=100" \
+                | jq -c '[.[][] | .number] | sort | .[:100]')"
+              ;;
           esac
-          echo "number=$number" >> "$GITHUB_OUTPUT"
+          echo "numbers=$numbers" >> "$GITHUB_OUTPUT"
 
-      - name: Fetch the pull request and every review page
-        id: fetch
+  # One shared publication job across every entry path — collector events,
+  # dispatch reruns and the scheduled sweep — keyed by pull request number, so
+  # evaluations of the same pull request serialize whatever path started them
+  # and an older evaluation cannot publish over a newer revocation. The matrix
+  # isolates each pull request: with fail-fast disabled, one failure never
+  # skips the others, and any failed leg marks the run unsuccessful.
+  publish:
+    name: maintainer-approval-publisher
+    needs: resolve
+    if: ${{ needs.resolve.outputs.numbers != '' && needs.resolve.outputs.numbers != '[]' }}
+    runs-on: ubuntu-latest
+    environment: maintainer-check
+    strategy:
+      fail-fast: false
+      matrix:
+        number: ${{ fromJSON(needs.resolve.outputs.numbers) }}
+    concurrency:
+      group: maintainer-approval-publish-${{ matrix.number }}
+      cancel-in-progress: false
+    permissions:
+      # Read-only job token: pull request metadata, review pages and the
+      # trusted checkout.
+      pull-requests: read
+      contents: read
+    steps:
+      - name: Fetch the pull request
         env:
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ steps.target.outputs.number }}
         run: |
           set -euo pipefail
-          gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}" > "$RUNNER_TEMP/pr.json"
+          gh api "repos/${{ github.repository }}/pulls/${{ matrix.number }}" > "$RUNNER_TEMP/pr.json"
+
+      - name: Fetch every review page
+        id: reviews
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
           # --paginate walks every page; --slurp wraps the pages in one JSON
-          # array of arrays, which publish.mjs flattens. A failed page fails
-          # the step, so no review can be silently missing.
-          gh api --paginate --slurp \
-            "repos/${{ github.repository }}/pulls/${PR_NUMBER}/reviews?per_page=100" \
-            > "$RUNNER_TEMP/reviews.json"
+          # array of arrays, which publish.mjs flattens. A failed page is not
+          # ignored: the check is published fail-closed and the job fails.
+          if gh api --paginate --slurp \
+              "repos/${{ github.repository }}/pulls/${{ matrix.number }}/reviews?per_page=100" \
+              > "$RUNNER_TEMP/reviews.json"; then
+            echo "unreadable=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Could not read every review page for pull request ${{ matrix.number }}; publishing a fail-closed result"
+            echo "unreadable=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Check publisher configuration
         id: config
@@ -115,10 +149,10 @@ jobs:
 
       # Executable scripts come only from the trusted publisher revision:
       # github.sha is the default-branch commit this workflow definition runs
-      # from on workflow_run, and any dispatched ref outside the environment's
-      # deployment policy is rejected before this step runs. A pull request's
-      # base branch is never trusted — contributors can create branches — so
-      # no pull request revision is ever executed here.
+      # from on workflow_run and schedule, and any dispatched ref outside the
+      # environment's deployment policy is rejected before this step runs. A
+      # pull request's base branch is never trusted — contributors can create
+      # branches — so no pull request revision is ever executed here.
       - name: Check out the trusted publisher revision
         if: steps.config.outputs.configured == 'true'
         uses: actions/checkout@v7
@@ -142,70 +176,11 @@ jobs:
           APP_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_JSON: ${{ runner.temp }}/pr.json
           REVIEWS_JSON: ${{ runner.temp }}/reviews.json
-        run: node scripts/maintainer-check/publish.mjs
-
-  # Trusted reconciliation, independent of pull-request-controlled collectors:
-  # re-evaluates every open pull request hourly, so a dismissed approval or a
-  # modified, failing or silent collector cannot leave a stale success.
-  maintainer-approval-reconcile:
-    name: maintainer-approval-reconcile
-    if: github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-    environment: maintainer-check
-    concurrency:
-      group: maintainer-approval-reconcile
-      cancel-in-progress: false
-    permissions:
-      pull-requests: read
-      contents: read
-    steps:
-      - name: Check publisher configuration
-        id: config
-        env:
-          APP_ID: ${{ vars.MAINTAINER_CHECK_APP_ID }}
-        run: |
-          if [ -z "$APP_ID" ]; then
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Check out the trusted publisher revision
-        if: steps.config.outputs.configured == 'true'
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-
-      - name: Mint the publisher app token
-        if: steps.config.outputs.configured == 'true'
-        uses: actions/create-github-app-token@v3
-        id: app-token
-        with:
-          app-id: ${{ vars.MAINTAINER_CHECK_APP_ID }}
-          private-key: ${{ secrets.MAINTAINER_CHECK_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-          permission-checks: write
-
-      - name: Re-publish the check for every open pull request
-        if: steps.config.outputs.configured == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          APP_TOKEN: ${{ steps.app-token.outputs.token }}
+          REVIEWS_UNREADABLE: ${{ steps.reviews.outputs.unreadable }}
         run: |
           set -euo pipefail
-          gh api --paginate --slurp \
-            "repos/${{ github.repository }}/pulls?state=open&per_page=100" \
-            > "$RUNNER_TEMP/open-prs.json"
-          for pr_number in $(jq -r '[.[][]] | sort_by(.number) | .[].number' "$RUNNER_TEMP/open-prs.json"); do
-            echo "Reconciling pull request ${pr_number}"
-            if ! gh api "repos/${{ github.repository }}/pulls/${pr_number}" > "$RUNNER_TEMP/pr.json" \
-               || ! gh api --paginate --slurp \
-                    "repos/${{ github.repository }}/pulls/${pr_number}/reviews?per_page=100" \
-                    > "$RUNNER_TEMP/reviews.json"; then
-              echo "::warning::Could not fetch pull request ${pr_number}; skipping it in this sweep"
-              continue
-            fi
-            PR_JSON="$RUNNER_TEMP/pr.json" REVIEWS_JSON="$RUNNER_TEMP/reviews.json" \
-              node scripts/maintainer-check/publish.mjs
-          done
+          node scripts/maintainer-check/publish.mjs
+          if [ "${{ steps.reviews.outputs.unreadable }}" = "true" ]; then
+            echo "::error::Review evidence could not be read for pull request ${{ matrix.number }}; this sweep is unsuccessful"
+            exit 1
+          fi
