@@ -158,8 +158,7 @@ final class DeclarationFormatter {
             if (inline) {
                 inlineReturnAnnotations.add(annotation);
             } else {
-                ctx.accept(annotation, arg);
-                ctx.println();
+                ctx.printMemberAnnotations(List.of(annotation), arg);
             }
         }
         ctx.printModifiers(n.getModifiers());
