@@ -158,8 +158,7 @@ final class DeclarationFormatter {
             if (inline) {
                 inlineReturnAnnotations.add(annotation);
             } else {
-                ctx.accept(annotation, arg);
-                ctx.println();
+                ctx.printMemberAnnotations(List.of(annotation), arg);
             }
         }
         ctx.printModifiers(n.getModifiers());
@@ -169,7 +168,11 @@ final class DeclarationFormatter {
         }
         for (AnnotationExpr annotation : inlineReturnAnnotations) {
             ctx.accept(annotation, arg);
-            ctx.print(" ");
+            if (ctx.column() == 0) {
+                ctx.printCont();
+            } else {
+                ctx.print(" ");
+            }
         }
         ctx.accept(n.getType(), arg);
         ctx.print(" ");
@@ -337,10 +340,17 @@ final class DeclarationFormatter {
         if (hasEntries) {
             printEnumConstants(n, arg);
         }
-        if (hasMembers) {
+        List<Comment> suffix = hasEntries
+                ? CommentUtils.takeCapturedSemicolonSuffix(n.getEntries().get(n.getEntries().size() - 1)) : List.of();
+        if (hasMembers || !suffix.isEmpty()) {
             ctx.print(";");
+            for (Comment comment : suffix) {
+                ctx.printInlineComment(comment);
+            }
             ctx.println();
-            ctx.printMembers(n.getMembers(), arg);
+            if (hasMembers) {
+                ctx.printMembers(n.getMembers(), arg);
+            }
         } else if (hasEntries) {
             ctx.println();
         }

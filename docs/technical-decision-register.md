@@ -273,3 +273,12 @@ Use it as the primary source of *why* design choices exist.
 - **Rationale:** Annotation values previously never wrapped (except with comments), so the string in the last pair was split mid-sentence into `"..." + "..."` while earlier pairs stayed on the long line. Wrapping the pairs first yields output that matches argument-list behavior and avoids needless string splitting.
 - **Consequences:** Output shape changes for long annotations; showroom goldens may need regeneration.
 - **Related docs:** `docs/canonical-formatting-rules.md` (Rule 4, Rule 5)
+
+### TDR-031: Preserve source comment identity and syntax boundaries
+
+- **Date:** 2026-11-03
+- **Status:** Accepted
+- **Decision:** Emit each source comment once, in source order, on the first pass and after convergence. Distinct comments with identical text remain distinct. Preserve comments at their argument, selector, annotation, statement and operator boundaries. Comments around `?`, `:` and the closing `)` of an `if` condition stay in their source token gap. Ternary operator-gap comments use the wrapped conditional printer; comments nested inside a condition or branch follow that expression's layout.
+- **Rationale:** JavaParser can mirror a comment onto several nodes or omit an equal-content orphan. Nested printers can then duplicate, lose or move comments. Capture comments by source position before nested printing and remove mirrored owners by identity so each explanation stays beside the code it describes.
+- **Consequences:** This clarifies Rule 10's existing preservation contract. A lone trailing line comment may lead its own statement or declaration when it crosses no other comments. Mixed suffix groups retain their order and association, and comments before a semicolon stay before it. Rule 6 still allows an operand's leading line comment to print before its operator in a wrapped binary expression. Regression tests check first-pass boundaries separately from convergence; existing showroom scenarios cover repeated comments, mixed suffixes and conditional token gaps.
+- **Related docs:** `docs/canonical-formatting-rules.md` (Rules 6, 10), `docs/formatting-rules.md`, `docs/showroom-scenarios.md` (Scenarios 8, 56, 57)

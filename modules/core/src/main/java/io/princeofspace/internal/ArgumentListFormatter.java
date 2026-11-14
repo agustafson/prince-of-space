@@ -2,6 +2,8 @@ package io.princeofspace.internal;
 
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.Parameter;
+import com.github.javaparser.ast.comments.Comment;
+import com.github.javaparser.ast.comments.LineComment;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.LambdaExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
@@ -13,6 +15,8 @@ import io.princeofspace.model.WrapStyle;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
 
 import static com.github.javaparser.utils.Utils.isNullOrEmpty;
 
@@ -98,7 +102,7 @@ final class ArgumentListFormatter {
         int last = args.size() - 1;
         for (int i = 0; i < last; i++) {
             ctx.accept(args.get(i), arg);
-            ctx.print(", ");
+            printSeparator(args.get(i + 1), false, arg);
         }
         ctx.accept(args.get(last), arg);
     }
@@ -123,22 +127,20 @@ final class ArgumentListFormatter {
                 int extraLastLine = fmt.closingParenOnNewLine() ? 2 : 0;
                 printGreedyCommaLines(args, arg, 0, extraLastLine);
             } else {
-                for (Iterator<? extends Expression> i = args.iterator(); i.hasNext(); ) {
-                    printArgumentWithOptionalBlockLambdaIndent(i.next(), arg);
-                    if (i.hasNext()) {
-                        ctx.print(",");
-                        ctx.println();
-                        ctx.printCont();
+                for (int i = 0; i < args.size(); i++) {
+                    printArgumentWithOptionalBlockLambdaIndent(args.get(i), arg);
+                    if (i + 1 < args.size()) {
+                        printSeparator(args.get(i + 1), true, arg);
                     }
                 }
             }
             return;
         }
         if (!argsNeedWrap(args)) {
-            for (Iterator<? extends Expression> i = args.iterator(); i.hasNext(); ) {
-                ctx.accept(i.next(), arg);
-                if (i.hasNext()) {
-                    ctx.print(", ");
+            for (int i = 0; i < args.size(); i++) {
+                ctx.accept(args.get(i), arg);
+                if (i + 1 < args.size()) {
+                    printSeparator(args.get(i + 1), false, arg);
                 }
             }
             return;
@@ -157,12 +159,12 @@ final class ArgumentListFormatter {
                     fmt.closingParenOnNewLine() ? 2 : 0; // ")" on its own line — no width reserved on last arg line
             printGreedyCommaLines(args, arg, 0, extraLastLine);
         } else {
-            for (Iterator<? extends Expression> i = args.iterator(); i.hasNext(); ) {
-                ctx.println();
-                ctx.printCont();
-                printArgumentWithOptionalBlockLambdaIndent(i.next(), arg);
-                if (i.hasNext()) {
-                    ctx.print(",");
+            ctx.println();
+            ctx.printCont();
+            for (int i = 0; i < args.size(); i++) {
+                printArgumentWithOptionalBlockLambdaIndent(args.get(i), arg);
+                if (i + 1 < args.size()) {
+                    printSeparator(args.get(i + 1), true, arg);
                 }
             }
         }
@@ -216,21 +218,57 @@ final class ArgumentListFormatter {
             boolean hasInterveningComment = previous != null && CommentUtils.hasCommentBetweenNodes(previous, e);
             boolean currentHasLeadingComment = e.getComment().isPresent();
             int lineBudget = budget + (extraLastLineBudget > 0 && remaining == 1 ? extraLastLineBudget : 0);
-            if (!first
-                    && (ctx.column() + need > lineBudget
+            if (!first) {
+                printSeparator(e, ctx.column() + need > lineBudget
                             || wouldExceedLineLength(need)
                             || hasInterveningComment
-                            || currentHasLeadingComment)) {
-                ctx.print(",");
-                ctx.println();
-                ctx.printCont();
-            } else if (!first) {
-                ctx.print(", ");
+                            || currentHasLeadingComment, arg);
             }
             ctx.accept(e, arg);
             first = false;
             remaining--;
             previous = e;
+        }
+    }
+
+    /** Prints source-line suffixes before applying the next argument's wrapping decision. */
+    private void printSeparator(Expression next, boolean wrapped, Void arg) {
+        List<Comment> comments = CommentUtils.takeExpressionBoundaryComments(next);
+        var comma = CommentUtils.commaBeforeArgument(next);
+        int index = 0;
+        while (index < comments.size() && comma.isPresent()
+                && comments.get(index).getBegin().orElseThrow().isBefore(comma.orElseThrow())) {
+            Comment comment = comments.get(index);
+            index++;
+            ctx.printInlineComment(comment);
+            if (comment instanceof LineComment) {
+                ctx.println();
+            }
+        }
+        ctx.print(",");
+        int sourceLine = comma.map(position -> position.line).orElse(-1);
+        boolean inlineSuffix = comments.stream().anyMatch(comment -> comment instanceof LineComment
+                && !comment.getContent().isBlank() && comment.getBegin().orElseThrow().line == sourceLine);
+        if (inlineSuffix) {
+            while (index < comments.size() && comments.get(index).getBegin().orElseThrow().line == sourceLine) {
+                Comment comment = comments.get(index);
+                index++;
+                ctx.printInlineComment(comment);
+                if (comment instanceof LineComment) {
+                    ctx.println();
+                }
+            }
+        } else if (wrapped || index < comments.size()) {
+            ctx.println();
+        } else {
+            ctx.print(" ");
+            return;
+        }
+        ctx.printCont();
+        while (index < comments.size()) {
+            ctx.printComment(Optional.of(comments.get(index)), arg);
+            index++;
+            ctx.printCont();
         }
     }
 
@@ -256,7 +294,7 @@ final class ArgumentListFormatter {
      */
     boolean paramsNeedWrap(NodeList<Parameter> ps) {
         int width = ctx.column() + 1 + paramsFlatWidth(ps);
-        return width > fmt.lineLength();
+        return width > fmt.lineLength() || ps.stream().anyMatch(CommentUtils::hasLeadingLineOrBlockComment);
     }
 
     /**
@@ -316,10 +354,12 @@ final class ArgumentListFormatter {
                                     ? CLOSING_PAREN_INLINE_RESERVED_WIDTH
                                     : -CLOSING_PAREN_INLINE_RESERVED_WIDTH;
                 }
-                if (first && (ctx.column() + need > lineBudget || wouldExceedLineLength(need))) {
+                if (first && (CommentUtils.hasLeadingLineOrBlockComment(p)
+                        || ctx.column() + need > lineBudget || wouldExceedLineLength(need))) {
                     ctx.println();
                     lineBreakContinuation.run();
-                } else if (!first && (ctx.column() + need > lineBudget || wouldExceedLineLength(need))) {
+                } else if (!first && (CommentUtils.hasLeadingLineOrBlockComment(p)
+                        || ctx.column() + need > lineBudget || wouldExceedLineLength(need))) {
                     ctx.print(",");
                     ctx.println();
                     lineBreakContinuation.run();

@@ -9,6 +9,8 @@ This document lists the key formatting decision points for the Prince of Space f
 
 Inline block comments carry placement intent: `null /* serviceName */,` likely explains what the value refers to. Keep the comment before the comma, beside that value. Likewise, preserve a value comment before `;` or a comment before an identifier such as `String /* domain */ serviceName`. Moving a comment outside its neighboring tokens can change what it appears to describe, even when the Java program still compiles. See [Rule 10](canonical-formatting-rules.md#rule-10-comments-and-annotation-safety).
 
+Comment groups retain their order and each comment appears once, including repeated identical comments. Comments inside a call stay beside their argument. A lone trailing line comment may move above its own statement or declaration; mixed suffix groups stay together after the semicolon.
+
 ---
 
 ## Part 1: Configuration Options (The Knobs)

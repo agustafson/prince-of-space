@@ -147,10 +147,14 @@ public class FormatterShowcase
 
     // Scenario 8: Ternary expressions
     public String getDisplayName() {
-        var shortTernary = items.isEmpty() ? "none" : "some";
+        var shortTernary = items.isEmpty(/* collection */) ? "none" : "some";
         var longTernary = legacyField != null && !legacyField.isBlank()
-            ? legacyField.trim().toUpperCase()
-            : items.stream().findFirst().orElse("unknown").toUpperCase();
+            ? /* preferred */legacyField.trim().toUpperCase()
+            : /* fallback */items
+                .stream()
+                .findFirst()
+                .orElse("unknown")
+                .toUpperCase();
         return longTernary;
     }
 
@@ -996,10 +1000,10 @@ public class FormatterShowcase
         String /* domain */serviceName = null/* use default */;
         return mergeSymbolicScenario56Arguments(
             null/* serviceName */,
-            serviceName,
+            serviceName/* serviceName */,
             "operation",
             "resource"
-        )/* combined */;
+        )/* combined */;/* result */// Keep this result suffix after the semicolon.
     }
 
     private String mergeSymbolicScenario56Arguments(
@@ -1027,12 +1031,12 @@ public class FormatterShowcase
             /*
              * Annotation array element block commentary must stay anchored when lists wrap across lines.
              */
-            "showroom-scenario57-descriptor-bravo-symbolic-handle",
-            "showroom-scenario57-descriptor-charlie-symbolic-handle",
+            "showroom-scenario57-descriptor-bravo-symbolic-handle"/* descriptor */,
+            "showroom-scenario57-descriptor-charlie-symbolic-handle"/* descriptor */,
             // Closing-array comment remains inside the annotation value
         }
-    )
-    @SuppressWarnings({ "deprecation", "unchecked", "rawtypes", "unused" })
+    )/* shelf */
+    @SuppressWarnings({ "deprecation", "unchecked", "rawtypes", "unused" }) // Warning categories.
     public void scenario57AnnotatedMethodWithBuckets() {}
 
     // Scenario 58: Nested array initializers with line and block comments between elements
