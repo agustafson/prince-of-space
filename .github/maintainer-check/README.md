@@ -44,7 +44,7 @@ installed only on this repository. No webhooks, no events, no other permissions.
    variable `MAINTAINER_CHECK_APP_ID` with the numeric **App ID** from the app's
    General page.
 
-Until the variable is set, the workflow logs a warning and publishes nothing (forks of
+Until the variable is set, the workflows log a warning and publish nothing (forks of
 this repository stay quiet the same way).
 
 ### Rotating the key
@@ -65,26 +65,43 @@ artifact of its own run.
 
 **The publisher runs only from the default branch.** It is triggered by
 `workflow_run` after the collector completes, which always uses the default-branch
-workflow file and can access secrets even when the triggering run could not, and by
-`workflow_dispatch`, which requires write access. A pull request cannot change what
-the publisher runs.
+workflow file and can access secrets even when the triggering run could not; by a
+hourly scheduled reconciliation (below); and by `workflow_dispatch`, which requires
+write access and, off the default branch, is rejected by the environment's
+deployment policy before any step runs. A pull request cannot change what the
+publisher runs.
 
 Within the publisher:
 
-- The pull request number from the collector artifact is treated as untrusted input:
-  it is validated as an integer, and all pull request and review data is fetched
-  from the API, not from the artifact.
-- Review pages are fetched with pagination (`--paginate --slurp`), so no approval or
-  later change-requested review can be hidden beyond the first page; a failed page
-  fails the run.
-- The predicate checkout is pinned to the pull request's **base sha** — which also
-  covers pull requests targeting a non-default branch — never a merge ref, and
-  nothing from the pull request is ever executed.
+- **Executable scripts come only from the trusted publisher revision.** The
+  checkout is pinned to `github.sha` — the default-branch commit the publisher
+  workflow itself runs from. A pull request's base branch is never trusted
+  (contributors can create branches containing modified scripts), so no pull
+  request revision is ever executed here.
+- **The collector's artifact is treated as hostile.** It is extracted into an
+  isolated temporary directory, never the workspace, so no artifact-supplied file
+  (for example a `.git` directory) can reach the trusted checkout or its Git
+  metadata. Only the pull request number is read, validated as an integer, and all
+  pull request and review data is fetched from the API.
+- **Review pages are fetched with pagination** (`--paginate --slurp`), so no
+  approval or later change-requested review can be hidden beyond the first page; a
+  failed page fails the run.
+- **Evaluations are serialized per pull request** (by head branch for event runs,
+  by the given number for dispatch reruns) so an older evaluation cannot publish
+  after a newer one for the same pull request. A dispatch rerun does not share the
+  event-run group; any cross-path overlap is bounded by the reconciliation sweep.
 - The workflow has no default token permissions; the job grants itself read-only
   `pull-requests`, `contents` and `actions` access for metadata, the artifact and
-  the base checkout.
+  the trusted checkout.
 - The app token is minted per run, scoped to this repository, with `checks: write`
   only.
+
+**A failed or modified collector cannot leave a stale success standing.** A pull
+request can make its own collector fail, stay silent on a dismissal, or never run
+at all. The publisher therefore also reconciles hourly from the default branch:
+it re-evaluates every open pull request and re-publishes the check, so a withdrawn
+approval takes effect within the hour even when no trustworthy collector event
+arrives.
 
 **The environment is the credential boundary for the key.** Environment secrets are
 available to *any* job that references the environment — including a
@@ -92,18 +109,18 @@ available to *any* job that references the environment — including a
 environment's deployment branch policy excludes that ref. `pull_request` runs use
 `refs/pull/N/merge`, which matches no allowed pattern, so the policy in setup step 4
 keeps the key away from contributor-controlled workflow jobs. Restrict it to
-`main` (the publisher's only ref: `workflow_run` runs on the default branch) and
-verify it after setup: a pull request job that references
-`environment: maintainer-check` must fail to deploy.
+`main` (the publisher's only ref) and verify it after setup: a pull request job
+that references `environment: maintainer-check` must fail to deploy.
 
-**The job is named `maintainer-approval-publisher`** — deliberately different from
-the check name — so the Actions-created job check and the app-published
-`maintainer-approval` check never share a context.
+**The jobs are named `maintainer-approval-publisher`** (and
+`maintainer-approval-reconcile`) — deliberately different from the check name — so
+the Actions-created job check and the app-published `maintainer-approval` check
+never share a context.
 
-Until this workflow is merged to the default branch, the `workflow_run` chain cannot
-run (GitHub only triggers `workflow_run` when the workflow file exists on the
-default branch); before that, only the `workflow_dispatch` path is exercisable, and
-only from refs the environment's deployment policy allows.
+Until the publisher workflow is merged to the default branch, the `workflow_run`
+chain and the schedule cannot run (GitHub only triggers them when the workflow file
+exists on the default branch); before that, only the `workflow_dispatch` path is
+exercisable, and only from refs the environment's deployment policy allows.
 
 ## Policy
 
@@ -111,18 +128,19 @@ The predicate (`scripts/maintainer-check/predicate.mjs`) implements the accepted
 maintainer policy, covered by unit tests (`node --test scripts/maintainer-check/`,
 run by the `Maintainer check predicate` CI job):
 
-- Maintainer-authored: the author is a non-bot `OWNER`, `MEMBER` or `COLLABORATOR`.
-- Otherwise maintainer-approved: an `APPROVED` review by a non-bot maintainer; each
-  reviewer's latest review decides (a later `CHANGES_REQUESTED` or `DISMISSED`
+- Maintainer-authored: the author is one of the selected maintainer accounts,
+  `agustafson` and `bric3`, matched by their stable numeric GitHub user ids.
+- Otherwise maintainer-approved: an `APPROVED` review by one of those accounts;
+  each reviewer's latest review decides (a later `CHANGES_REQUESTED` or `DISMISSED`
   overrides their approval).
 - Bot accounts never count, as author or approver.
 - Drafts publish `neutral` until marked ready.
 
-Automation keeps working because its approvals come from real-user accounts:
-`dependabot-auto-merge.yml` approves eligible dependency updates with the
-PAT-backed `GH_ACTIONS_PUSH_TOKEN`, whose owner has a maintainer association.
-Maintenance pull requests opened by workflows follow the same path — a real-user
-approval satisfies the check.
+Automation keeps working because its approvals come from a selected maintainer
+account: `dependabot-auto-merge.yml` approves eligible dependency updates with the
+PAT-backed `GH_ACTIONS_PUSH_TOKEN`, owned by `agustafson`. Maintenance pull requests
+opened by workflows follow the same path — an approval from a selected maintainer
+account satisfies the check.
 
 ## Binding the check in the ruleset (separate change)
 

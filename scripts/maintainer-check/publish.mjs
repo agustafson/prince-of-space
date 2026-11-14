@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Publishes the protected `maintainer-approval` check run through the dedicated
 // publisher GitHub App. Only .github/workflows/maintainer-approval.yml runs this
-// script, with the base-revision copies of both files; see
+// script, with the trusted publisher revision's copies of both files — the
+// default-branch commit the publisher workflow runs from; see
 // .github/maintainer-check/README.md for the trust model.
 import { readFile } from 'node:fs/promises';
 
