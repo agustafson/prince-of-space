@@ -4,7 +4,8 @@ The `maintainer-approval` check is published by a dedicated GitHub App that belo
 to this repository's owner, not by an ordinary GitHub Actions job. This directory
 documents why, how to set the app up, and how the workflow stays trusted.
 
-- Workflow: [`.github/workflows/maintainer-approval.yml`](../workflows/maintainer-approval.yml)
+- Trusted publisher: [`.github/workflows/maintainer-approval.yml`](../workflows/maintainer-approval.yml)
+- Unprivileged collector: [`.github/workflows/maintainer-approval-collector.yml`](../workflows/maintainer-approval-collector.yml)
 - Predicate and publisher script: [`scripts/maintainer-check/`](../../scripts/maintainer-check/)
 - Decision record: `docs/technical-decision-register.md` (TDR-031)
 
@@ -34,37 +35,75 @@ installed only on this repository. No webhooks, no events, no other permissions.
 3. On the app's **Install App** page, install it on your account for **only this
    repository**.
 4. In this repository: **Settings → Environments → New environment**, name it
-   `maintainer-check`.
+   `maintainer-check`. Under **Deployment branches and tags** choose **Selected
+   branches and tags** and add the pattern `main`. This is the credential boundary:
+   see below.
 5. In that environment, add environment secret
    `MAINTAINER_CHECK_APP_PRIVATE_KEY` and paste the whole `.pem` contents.
 6. In **Settings → Secrets and variables → Actions → Variables**, add repository
    variable `MAINTAINER_CHECK_APP_ID` with the numeric **App ID** from the app's
    General page.
 
-Until both are set, the workflow logs a warning and publishes nothing (forks of this
-repository stay quiet the same way).
+Until the variable is set, the workflow logs a warning and publishes nothing (forks of
+this repository stay quiet the same way).
 
 ### Rotating the key
 
 Generate a new private key on the app's page, update the environment secret, then
 delete the old key. No workflow change is needed.
 
-## How the workflow stays trusted
+## How the publisher stays trusted
 
-- It triggers on `pull_request_target` and `pull_request_review`. Both run the
-  workflow file from the **base branch**, so a pull request cannot modify the code
-  that runs here.
-- The predicate checkout is pinned to the pull request's **base sha**, never the
-  merge ref, and nothing from the pull request is ever executed.
-- The private key is an environment secret, visible only to jobs that reference the
-  `maintainer-check` environment. Untrusted `pull_request` runs never see it.
+Two workflows cooperate; only the second is privileged.
+
+**The collector is deliberately unprivileged.** `pull_request` and
+`pull_request_review` run the pull request's *own* workflow version in the
+merge-ref context — so a pull request can change what the collector runs — and pull
+requests from forks or Dependabot receive no secrets at all. The collector therefore
+holds no permissions and no secrets: it only writes the pull request number into an
+artifact of its own run.
+
+**The publisher runs only from the default branch.** It is triggered by
+`workflow_run` after the collector completes, which always uses the default-branch
+workflow file and can access secrets even when the triggering run could not, and by
+`workflow_dispatch`, which requires write access. A pull request cannot change what
+the publisher runs.
+
+Within the publisher:
+
+- The pull request number from the collector artifact is treated as untrusted input:
+  it is validated as an integer, and all pull request and review data is fetched
+  from the API, not from the artifact.
+- Review pages are fetched with pagination (`--paginate --slurp`), so no approval or
+  later change-requested review can be hidden beyond the first page; a failed page
+  fails the run.
+- The predicate checkout is pinned to the pull request's **base sha** — which also
+  covers pull requests targeting a non-default branch — never a merge ref, and
+  nothing from the pull request is ever executed.
 - The workflow has no default token permissions; the job grants itself read-only
-  `pull-requests` and `contents` access for metadata and the base checkout.
+  `pull-requests`, `contents` and `actions` access for metadata, the artifact and
+  the base checkout.
 - The app token is minted per run, scoped to this repository, with `checks: write`
   only.
-- The job is named `maintainer-approval-publisher` — deliberately different from the
-  check name — so the Actions-created job check and the app-published
-  `maintainer-approval` check never share a context.
+
+**The environment is the credential boundary for the key.** Environment secrets are
+available to *any* job that references the environment — including a
+`pull_request`-triggered job a same-repository contributor adds — unless the
+environment's deployment branch policy excludes that ref. `pull_request` runs use
+`refs/pull/N/merge`, which matches no allowed pattern, so the policy in setup step 4
+keeps the key away from contributor-controlled workflow jobs. Restrict it to
+`main` (the publisher's only ref: `workflow_run` runs on the default branch) and
+verify it after setup: a pull request job that references
+`environment: maintainer-check` must fail to deploy.
+
+**The job is named `maintainer-approval-publisher`** — deliberately different from
+the check name — so the Actions-created job check and the app-published
+`maintainer-approval` check never share a context.
+
+Until this workflow is merged to the default branch, the `workflow_run` chain cannot
+run (GitHub only triggers `workflow_run` when the workflow file exists on the
+default branch); before that, only the `workflow_dispatch` path is exercisable, and
+only from refs the environment's deployment policy allows.
 
 ## Policy
 
@@ -107,4 +146,5 @@ protects nothing. The publisher app's numeric id equals the value stored in
 
 Maintainers can dispatch the workflow manually with a pull request number
 (**Actions → Maintainer approval → Run workflow**) to republish the check, for
-example after a dismissed review.
+example after a dismissed review. The dispatch must run from a ref the
+`maintainer-check` environment's deployment policy allows — normally `main`.

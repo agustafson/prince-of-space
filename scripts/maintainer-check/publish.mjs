@@ -5,7 +5,7 @@
 // .github/maintainer-check/README.md for the trust model.
 import { readFile } from 'node:fs/promises';
 
-import { CHECK_NAME, evaluateMaintainerApproval } from './predicate.mjs';
+import { CHECK_NAME, evaluateMaintainerApproval, flattenReviewPages } from './predicate.mjs';
 
 const repository = process.env.GITHUB_REPOSITORY;
 const token = process.env.APP_TOKEN;
@@ -18,7 +18,7 @@ if (!repository || !token || !prPath || !reviewsPath) {
 }
 
 const pullRequest = JSON.parse(await readFile(prPath, 'utf8'));
-const reviews = JSON.parse(await readFile(reviewsPath, 'utf8'));
+const reviews = flattenReviewPages(JSON.parse(await readFile(reviewsPath, 'utf8')));
 const result = evaluateMaintainerApproval({ pullRequest, reviews });
 
 const runUrl =

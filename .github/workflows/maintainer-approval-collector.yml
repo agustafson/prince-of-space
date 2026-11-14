@@ -1,0 +1,40 @@
+name: Maintainer approval collector
+
+# Unprivileged bridge for the trusted publisher (.github/workflows/
+# maintainer-approval.yml). pull_request and pull_request_review run the pull
+# request's own workflow version in the untrusted merge-ref context, and pull
+# requests from forks or Dependabot receive no secrets at all — so this
+# workflow holds no secrets and no permissions. It only records which pull
+# request changed; the trusted publisher, triggered by workflow_run from the
+# default branch, does the privileged work. See .github/maintainer-check/
+# README.md and TDR-031.
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+
+permissions: {}
+
+jobs:
+  collect:
+    name: maintainer-approval-collector
+    runs-on: ubuntu-latest
+    steps:
+      - name: Record the pull request number
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          case "$PR_NUMBER" in
+            ''|*[!0-9]*) echo "No pull request number on this event" >&2; exit 1 ;;
+          esac
+          printf '%s' "$PR_NUMBER" > pr-number
+
+      - name: Upload the record for the trusted publisher
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-number
+          path: pr-number
+          retention-days: 1

@@ -32,6 +32,18 @@ function isBot(user) {
   return user?.type === 'Bot';
 }
 
+// The trusted workflow fetches review pages with `gh api --paginate --slurp`,
+// which returns an array of page arrays; a plain array is accepted too.
+export function flattenReviewPages(rawReviews) {
+  if (!Array.isArray(rawReviews)) {
+    return [];
+  }
+  if (rawReviews.length > 0 && Array.isArray(rawReviews[0])) {
+    return rawReviews.flat();
+  }
+  return rawReviews;
+}
+
 function isMaintainerAssociation(association) {
   return MAINTAINER_ASSOCIATIONS.has(association);
 }

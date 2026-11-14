@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { CHECK_NAME, evaluateMaintainerApproval } from './predicate.mjs';
+import { CHECK_NAME, evaluateMaintainerApproval, flattenReviewPages } from './predicate.mjs';
 
 function pr({ login = 'contributor', type = 'User', association = 'NONE', draft = false } = {}) {
   return {
@@ -152,4 +152,26 @@ test('a bot maintainer-lookalike association does not pass', () => {
     reviews: [review({ login: 'someone[bot]', type: 'Bot', association: 'OWNER' })],
   });
   assert.equal(result.conclusion, 'failure');
+});
+
+test('review pages are flattened before evaluation', () => {
+  const pageOne = [review({ login: 'maintainer', association: 'OWNER', submittedAt: '2026-01-01T00:00:00Z' })];
+  const pageTwo = [
+    review({ login: 'maintainer', association: 'OWNER', state: 'DISMISSED', submittedAt: '2026-01-02T00:00:00Z' }),
+    review({ login: 'other', association: 'COLLABORATOR', submittedAt: '2026-01-03T00:00:00Z' }),
+  ];
+  const flattened = flattenReviewPages([pageOne, pageTwo]);
+  assert.equal(flattened.length, 3);
+  assert.equal(
+    evaluateMaintainerApproval({ pullRequest: pr(), reviews: flattened }).conclusion,
+    'success',
+  );
+});
+
+test('flattenReviewPages accepts plain and empty review lists', () => {
+  const plain = [review({ login: 'x' })];
+  assert.equal(flattenReviewPages(plain).length, 1);
+  assert.deepEqual(flattenReviewPages([]), []);
+  assert.deepEqual(flattenReviewPages([[]]), []);
+  assert.deepEqual(flattenReviewPages(null), []);
 });

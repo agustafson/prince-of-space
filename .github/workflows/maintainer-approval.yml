@@ -1,17 +1,22 @@
 name: Maintainer approval
 
-# Trusted publisher of the protected `maintainer-approval` check. This workflow
-# runs the base-branch version of itself (pull_request_target / pull_request_review
-# always run the default-branch workflow file), never checks out or executes pull
-# request code, and holds no permissions beyond a read-only job token. The private
-# key lives only in the `maintainer-check` environment. See
-# .github/maintainer-check/README.md before editing, and TDR-031.
+# Trusted publisher of the protected `maintainer-approval` check. It runs only
+# from the default branch: workflow_run jobs use the default-branch workflow
+# file and can access secrets even when the triggering run could not, and
+# workflow_dispatch needs write access. Pull request lifecycle and review
+# events arrive through the unprivileged collector workflow
+# (.github/workflows/maintainer-approval-collector.yml), because
+# pull_request_review runs the pull request's own workflow version in the
+# untrusted merge-ref context and fork and Dependabot pulls receive no secrets
+# at all. The private key lives only in the `maintainer-check` environment,
+# whose deployment branch policy must exclude every branch except the default
+# branch (see .github/maintainer-check/README.md). The workflow never checks
+# out or executes pull request code. See TDR-031.
 
 on:
-  pull_request_target:
-    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft]
-  pull_request_review:
-    types: [submitted, edited, dismissed]
+  workflow_run:
+    workflows: [Maintainer approval collector]
+    types: [completed]
   workflow_dispatch:
     inputs:
       pull-request:
@@ -22,8 +27,8 @@ on:
 permissions: {}
 
 concurrency:
-  group: maintainer-approval-${{ github.event.pull_request.number || inputs['pull-request'] }}
-  cancel-in-progress: true
+  group: maintainer-approval-${{ inputs['pull-request'] || github.event.workflow_run.id }}
+  cancel-in-progress: false
 
 jobs:
   # The job name intentionally differs from the published check name
@@ -33,19 +38,58 @@ jobs:
   maintainer-approval-publisher:
     name: maintainer-approval-publisher
     runs-on: ubuntu-latest
+    # Only react to collector runs that succeeded; a failed collector recorded
+    # nothing trustworthy to publish.
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     environment: maintainer-check
     permissions:
-      # Read-only job token: pull request metadata and the trusted base checkout.
+      # Read-only job token: pull request metadata, review pages, the
+      # collector's artifact, and the trusted base checkout.
       pull-requests: read
       contents: read
+      actions: read
     steps:
-      - name: Resolve the target pull request
+      # The artifact is written by the collector run, which may come from a
+      # pull request head: treat the number as untrusted input. It is validated
+      # below, and all pull request and review data is fetched from the API.
+      - name: Read the collector's pull request record
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v8
+        with:
+          name: pr-number
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Resolve the target pull request number
+        id: target
+        env:
+          DISPATCH_PR: ${{ inputs['pull-request'] }}
+        run: |
+          set -euo pipefail
+          number="$DISPATCH_PR"
+          if [ -z "$number" ]; then
+            number="$(tr -d '[:space:]' < pr-number)"
+          fi
+          case "$number" in
+            ''|*[!0-9]*) echo "Invalid pull request number: '$number'" >&2; exit 1 ;;
+          esac
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch the pull request and every review page
+        id: fetch
         env:
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number || inputs['pull-request'] }}
+          PR_NUMBER: ${{ steps.target.outputs.number }}
         run: |
+          set -euo pipefail
           gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}" > "$RUNNER_TEMP/pr.json"
-          gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}/reviews?per_page=100" > "$RUNNER_TEMP/reviews.json"
+          # --paginate walks every page; --slurp wraps the pages in one JSON
+          # array of arrays, which publish.mjs flattens. A failed page fails
+          # the step, so no review can be silently missing.
+          gh api --paginate --slurp \
+            "repos/${{ github.repository }}/pulls/${PR_NUMBER}/reviews?per_page=100" \
+            > "$RUNNER_TEMP/reviews.json"
+          echo "base_sha=$(jq -r '.base.sha' "$RUNNER_TEMP/pr.json")" >> "$GITHUB_OUTPUT"
 
       - name: Check publisher configuration
         id: config
@@ -59,13 +103,15 @@ jobs:
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
 
-      # Pinned to the base revision: never the pull request's merge ref, so the
-      # predicate code that runs here is maintainer-controlled.
+      # Pinned to the base revision of the pull request (or the dispatched
+      # branch): never a pull request's merge ref, so the predicate code that
+      # runs here is maintainer-controlled even when the base is not the
+      # default branch.
       - name: Check out the trusted base revision
         if: steps.config.outputs.configured == 'true'
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          ref: ${{ steps.fetch.outputs.base_sha }}
 
       - name: Mint the publisher app token
         if: steps.config.outputs.configured == 'true'
