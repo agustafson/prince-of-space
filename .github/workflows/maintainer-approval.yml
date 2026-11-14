@@ -113,7 +113,10 @@ jobs:
     environment: maintainer-check
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.resolve.outputs.targets) }}
+      matrix:
+        # Each target object {number, head} is one include row, so the
+        # resolved array fans out into one publication job per pull request.
+        include: ${{ fromJSON(needs.resolve.outputs.targets) }}
     concurrency:
       group: maintainer-approval-publish-${{ matrix.number }}
       cancel-in-progress: false
@@ -197,9 +200,11 @@ jobs:
           PR_JSON: ${{ runner.temp }}/pr.json
           REVIEWS_JSON: ${{ runner.temp }}/reviews.json
           REVIEWS_UNREADABLE: ${{ steps.reviews.outputs.unreadable }}
-          # Trusted head sha from the scheduled listing, when the detail read
-          # failed; empty for event and dispatch targets.
-          PR_DETAIL_UNREADABLE_HEAD: ${{ matrix.head }}
+          # Trusted head sha from the scheduled listing, passed only when the
+          # detail read actually failed; empty otherwise and for event and
+          # dispatch targets, so a successful sweep never publishes a
+          # fail-closed result over a valid approval.
+          PR_DETAIL_UNREADABLE_HEAD: ${{ steps.pr.outputs.unreadable == 'true' && matrix.head || '' }}
         run: |
           set -euo pipefail
           if [ "${{ steps.pr.outputs.unreadable }}" = "true" ]; then
