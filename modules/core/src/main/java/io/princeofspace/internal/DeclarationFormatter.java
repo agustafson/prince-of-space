@@ -1,5 +1,6 @@
 package io.princeofspace.internal;
 
+import com.github.javaparser.Position;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.BodyDeclaration;
@@ -48,59 +49,6 @@ final class DeclarationFormatter {
         this.fmt = fmt;
         this.argumentListFormatter = argumentListFormatter;
         this.typeClauseFormatter = typeClauseFormatter;
-    }
-
-    /**
-     * Annotations that lexically precede modifiers on a method (e.g. {@code @Override} on its own
-     * line) are printed with {@code printMemberAnnotations}; this splits them from inline return-type
-     * annotations.
-     */
-    List<AnnotationExpr> declarationAnnotations(MethodDeclaration n) {
-        if (n.getModifiers().isEmpty()) {
-            return new ArrayList<>(n.getAnnotations());
-        }
-        int firstModifierColumn =
-                n.getModifiers().get(0).getRange().map(r -> r.begin.column).orElse(Integer.MAX_VALUE);
-        int firstModifierLine =
-                n.getModifiers().get(0).getRange().map(r -> r.begin.line).orElse(Integer.MAX_VALUE);
-        List<AnnotationExpr> result = new ArrayList<>();
-        for (AnnotationExpr annotation : n.getAnnotations()) {
-            int annotationColumn = annotation.getRange().map(r -> r.begin.column).orElse(Integer.MIN_VALUE);
-            int annotationLine = annotation.getRange().map(r -> r.begin.line).orElse(Integer.MIN_VALUE);
-            // Lexical column alone is not enough: after a first format pass, @Override may sit on the
-            // line above "public" at the *same* column as "public", so we also treat any annotation
-            // starting on a line strictly before the first modifier line as a declaration annotation.
-            boolean beforeOnEarlierLine = annotationLine < firstModifierLine;
-            boolean beforeOnSameLine =
-                    annotationLine == firstModifierLine && annotationColumn < firstModifierColumn;
-            if (beforeOnEarlierLine || beforeOnSameLine) {
-                result.add(annotation);
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Return-type annotations that sit after the last modifier token (same line as modifiers or after)
-     * are printed immediately before the type name.
-     */
-    List<AnnotationExpr> inlineReturnTypeAnnotations(MethodDeclaration n) {
-        if (n.getModifiers().isEmpty()) {
-            return List.of();
-        }
-        var lastModifierEnd =
-                n.getModifiers()
-                        .get(n.getModifiers().size() - 1)
-                        .getRange()
-                        .map(r -> r.end);
-        List<AnnotationExpr> result = new ArrayList<>();
-        for (AnnotationExpr annotation : n.getAnnotations()) {
-            if (lastModifierEnd.isPresent() && annotation.getBegin().isPresent()
-                    && annotation.getBegin().orElseThrow().isAfter(lastModifierEnd.orElseThrow())) {
-                result.add(annotation);
-            }
-        }
-        return result;
     }
 
     /**
@@ -200,22 +148,31 @@ final class DeclarationFormatter {
     void formatMethod(MethodDeclaration n, Void arg) {
         ctx.printOrphanCommentsBeforeThisChildNode(n);
         ctx.printComment(n.getComment(), arg);
-        List<AnnotationExpr> declAnnotations = declarationAnnotations(n);
-        List<AnnotationExpr> inlineReturnAnnotations = inlineReturnTypeAnnotations(n);
-        ctx.printMemberAnnotations(declAnnotations, arg);
+        Optional<Position> firstModifier = n.getModifiers().stream().findFirst().flatMap(Node::getBegin);
+        List<AnnotationExpr> inlineReturnAnnotations = new ArrayList<>();
+        // Select each annotation once without changing its AST parent through a temporary NodeList.
+        for (AnnotationExpr annotation : n.getAnnotations()) {
+            boolean inline = firstModifier
+                    .flatMap(modifier -> annotation.getBegin().map(begin -> begin.isAfter(modifier)))
+                    .orElse(false);
+            if (inline) {
+                inlineReturnAnnotations.add(annotation);
+            } else {
+                ctx.accept(annotation, arg);
+                ctx.println();
+            }
+        }
         ctx.printModifiers(n.getModifiers());
         argumentListFormatter.printTypeParameters(n.getTypeParameters(), arg);
         if (!isNullOrEmpty(n.getTypeParameters())) {
             ctx.print(" ");
         }
-        if (!inlineReturnAnnotations.isEmpty()) {
-            for (Iterator<AnnotationExpr> i = inlineReturnAnnotations.iterator(); i.hasNext(); ) {
-                ctx.accept(i.next(), arg);
-                if (ctx.column() == 0) {
-                    ctx.printCont();
-                } else {
-                    ctx.print(" ");
-                }
+        for (AnnotationExpr annotation : inlineReturnAnnotations) {
+            ctx.accept(annotation, arg);
+            if (ctx.column() == 0) {
+                ctx.printCont();
+            } else {
+                ctx.print(" ");
             }
         }
         ctx.accept(n.getType(), arg);

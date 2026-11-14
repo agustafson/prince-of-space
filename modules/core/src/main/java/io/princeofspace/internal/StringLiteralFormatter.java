@@ -62,7 +62,7 @@ final class StringLiteralFormatter {
         }
         if (msg instanceof StringLiteralExpr sl) {
             String value = semanticValue(sl);
-            int quotedLen = escapeJava(value).length() + 2;
+            int quotedLen = escapeUnsafeLiteralCharacters(sl.getValue()).length() + 2;
             if (ctx.column() + quotedLen > fmt.lineLength()) {
                 emitChunkedStringLiteral(value);
                 return;
@@ -200,7 +200,10 @@ final class StringLiteralFormatter {
     int tailWidthAfterEqualsForInitializerBreakHeuristic(Expression init) {
         Expression stripped = stripParens(init);
         if (stripped instanceof StringLiteralExpr sl) {
-            return 1 + escapeJava(semanticValue(sl)).length() + 2;
+            // Fitting spellings stay intact; overflowing literals can use shorter canonical chunks.
+            int retainedWidth = escapeUnsafeLiteralCharacters(sl.getValue()).length();
+            int canonicalWidth = escapeJava(semanticValue(sl)).length();
+            return 1 + Math.min(retainedWidth, canonicalWidth) + 2;
         }
         if (stripped instanceof TextBlockLiteralExpr) {
             return 1 + flatExprSourceWidth(stripped);
@@ -208,13 +211,10 @@ final class StringLiteralFormatter {
         if (stripped instanceof LambdaExpr) {
             return 1 + flatExprSourceWidth(stripped);
         }
-        if (stripped instanceof BinaryExpr b
-                && b.getOperator() == BinaryExpr.Operator.PLUS
+        if (stripped instanceof BinaryExpr binary
+                && binary.getOperator() == BinaryExpr.Operator.PLUS
                 && isTopLevelStringConcatChain(stripped)) {
-            // AST toString() is far shorter than real source for huge literal-only + trees; use the same
-            // merged-string width as a single quoted literal so we break after "=" on the same pass as
-            // visit(StringLiteralExpr), keeping chunk budgets (and idempotency) stable.
-            return initializerTailWidthForMergedStringConcatLiterals(stripped);
+            return initializerTailWidthForStringConcatLiterals(stripped);
         }
         return -1;
     }
@@ -563,25 +563,25 @@ final class StringLiteralFormatter {
         return expansion;
     }
 
-    /**
-     * One-line width estimate for {@code = init} when {@code init} is a literal-only {@code +} chain:
-     * same as one double-quoted literal with merged {@link StringLiteralExpr} values (escaped).
-     */
-    private static int initializerTailWidthForMergedStringConcatLiterals(Expression stripped) {
-        Expression root = stripParens(stripped);
-        BinaryExpr b = (BinaryExpr) root;
+    private int initializerTailWidthForStringConcatLiterals(Expression root) {
         List<Expression> parts = new ArrayList<>();
-        collectPlusOperands(b, parts);
+        collectPlusOperands(root, parts);
         StringBuilder merged = new StringBuilder();
+        int retainedWidth = 0;
         for (Expression part : parts) {
-            Expression leaf = stripParens(part);
-            if (leaf instanceof StringLiteralExpr sl) {
-                merged.append(semanticValue(sl));
-            } else {
-                return 1 + flatExprSourceWidth(stripped);
+            if (!(part instanceof StringLiteralExpr literal)) {
+                return 1 + flatExprSourceWidth(root);
             }
+            merged.append(semanticValue(literal));
+            retainedWidth += escapeUnsafeLiteralCharacters(literal.getValue()).length();
         }
-        return 1 + escapeJava(merged.toString()).length() + 2;
+        String value = merged.toString();
+        int canonicalWidth = escapeJava(value).length();
+        // Keep the preferred width estimate for retained pieces; rechunking uses canonical widths.
+        int bodyWidth = BinaryExprFormatter.shouldRechunkStringConcat(
+                root, parts, value, ctx.column() + 1, fmt.lineLength())
+                ? canonicalWidth : Math.min(retainedWidth, canonicalWidth);
+        return 1 + bodyWidth + 2;
     }
 
     private static int mergedStringLiteralChainCharCount(Expression init) {
@@ -613,7 +613,7 @@ final class StringLiteralFormatter {
         }
         return switch (codePoint) {
             case '"', '\\', '\b', '\n', '\t', '\f', '\r' -> 2;
-            default -> Character.isSurrogate((char) codePoint) || codePoint < ' ' || codePoint == '\u007F'
+            default -> Character.isSurrogate((char) codePoint) || Character.isISOControl(codePoint)
                     ? "\\u0000".length() : 1;
         };
     }
@@ -643,7 +643,7 @@ final class StringLiteralFormatter {
                     escaped.append(ch).append(value.charAt(i));
                 }
             } else if (Character.isSurrogate(ch)
-                    || ((ch < ' ' || ch == '\u007F') && (!textBlock || !Character.isWhitespace(ch)))) {
+                    || (Character.isISOControl(ch) && (!textBlock || !Character.isWhitespace(ch)))) {
                 if (escaped == null) {
                     escaped =
                             new StringBuilder(value.length() + "\\u0000".length())

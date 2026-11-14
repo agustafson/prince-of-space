@@ -64,6 +64,7 @@ These rules define output shape for Java formatting in `modules/core`.
 - A line of exactly `lineLength` fits; wrapping (and string chunking) is triggered only when a line would **exceed** `lineLength`. Whatever trails a value on the same line — the separator comma, or an inline `)` when `closingParenOnNewLine` is false — counts toward that line.
 - If inline rendering exceeds `lineLength`, wrapping rules apply.
 - If no safe break point exists, long lines may remain over limit.
+- Escape ISO control characters in character and string literals, and non-whitespace ISO controls in text blocks, including C1 controls (`U+0080`-`U+009F`). Measure their emitted source spellings when wrapping, and preserve text-block whitespace used for incidental indentation.
 - **Structure before strings (TDR-030):** a construct is wrapped at its own delimiters (argument lists, annotation element-value pairs, binary chains, ...) before any string literal in it is split into `+`-joined chunks. A literal is chunked only if it still overflows on its own line after that wrap.
 - **Annotation values:** `@Name(a = 1, b = 2)` and `@Name(value)` that do not fit on one line wrap their element-value pairs (or the single member value) per Rule 5 (`wide` packs greedily, `balanced`/`narrow` use one per continuation line); the closing `)` follows Rule 8. A lone array-initializer or nested-annotation value keeps hugging the opening `(` and wraps through its own layout.
 
@@ -118,6 +119,8 @@ For wrapped argument/parameter-like lists:
 - Keep single-line block comments beside values and identifiers between their original neighboring tokens. For example, `null /* serviceName */,` labels that value; moving the comment past the comma associates it with the next argument. The same intent applies before a semicolon or identifier.
 - Keep comments around `?`, `:` and the closing `)` of an `if` condition in their source token gap. Binary comments stay at the same operand boundary; wrapped layouts may print an operand's leading line comment before its operator. Nested receiver chains must not absorb those comments.
 - Preserve type-use annotation semantics and declaration annotation correctness.
+- Emit each annotation once and preserve repeated annotations. Source line breaks, indentation and
+  placement between method modifiers must preserve the annotated declaration or type.
 - Formatting must not change program meaning.
 
 ## Change Control

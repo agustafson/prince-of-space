@@ -107,21 +107,10 @@ final class BinaryExprFormatter {
             List<StringLiteralExpr> concatLeaves = new ArrayList<>();
             if (tryCollectPureStringConcatLeaves((Expression) n, concatLeaves)) {
                 List<Expression> concatLeavesAsExpr = new ArrayList<>(concatLeaves);
-                if (!CommentUtils.anyOperandHasLeadingLineOrBlockComment(concatLeavesAsExpr)
-                        && !CommentUtils.anyOperandHasTrailingLineOrBlockComment(concatLeavesAsExpr)
-                        && !anyInterOperandComments(concatLeavesAsExpr)) {
-                    String merged = mergeStringLiteralValues(concatLeaves);
-                    int max = ctx.config().lineLength();
-                    int mergedQuotedLen = StringLiteralFormatter.escapeJava(merged).length() + 2;
-                    boolean mergedWouldOverflowSingleLiteral = ctx.column() + mergedQuotedLen > max;
-                    boolean hasEscapesSensitiveToBoundaryPlacement = merged.indexOf('\\') >= 0;
-                    if (mergedWouldOverflowSingleLiteral
-                            && !hasEscapesSensitiveToBoundaryPlacement
-                            && !(n.getParentNode().orElse(null) instanceof EnclosedExpr)
-                            && concatLeaves.size() >= MIN_LEAVES_FOR_FORCED_STRING_RECHUNK) {
-                        ctx.emitChunkedStringLiteral(merged);
-                        return;
-                    }
+                String merged = mergeStringLiteralValues(concatLeaves);
+                if (shouldRechunkStringConcat(n, concatLeavesAsExpr, merged, ctx.column(), ctx.config().lineLength())) {
+                    ctx.emitChunkedStringLiteral(merged);
+                    return;
                 }
             }
             List<Expression> parts = new ArrayList<>();
@@ -245,7 +234,18 @@ final class BinaryExprFormatter {
         return sb.toString();
     }
 
-    private boolean anyInterOperandComments(List<Expression> parts) {
+    static boolean shouldRechunkStringConcat(
+            Expression root, List<Expression> leaves, String merged, int column, int lineLength) {
+        return leaves.size() >= MIN_LEAVES_FOR_FORCED_STRING_RECHUNK
+                && merged.indexOf('\\') < 0
+                && !(root.getParentNode().orElse(null) instanceof EnclosedExpr)
+                && !CommentUtils.anyOperandHasLeadingLineOrBlockComment(leaves)
+                && !CommentUtils.anyOperandHasTrailingLineOrBlockComment(leaves)
+                && !anyInterOperandComments(leaves)
+                && column + StringLiteralFormatter.escapeJava(merged).length() + 2 > lineLength;
+    }
+
+    private static boolean anyInterOperandComments(List<Expression> parts) {
         for (int i = 1; i < parts.size(); i++) {
             if (CommentUtils.hasCommentBetweenNodes(parts.get(i - 1), parts.get(i))) {
                 return true;
