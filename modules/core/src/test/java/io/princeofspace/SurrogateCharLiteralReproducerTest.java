@@ -35,6 +35,8 @@ class SurrogateCharLiteralReproducerTest {
     private static final String WORD_PREFIX = "word ";
     private static final String ESCAPE_SPELLING = "\\u001B";
     private static final String ASCII_ESCAPE_WIDTH = "ZZZZZZ";
+    private static final String CONCAT_SEPARATOR = " + ";
+    private static final String STRING_FIELD_END = "\"; }";
 
     private static final FormatterConfig CONFIG = FormatterConfig.builder()
             .indentSize(2)
@@ -89,7 +91,7 @@ class SurrogateCharLiteralReproducerTest {
         for (int repeats : new int[] {1, 30}) {
             boolean wrapped = repeats > 1;
             for (String keyword : List.of("class", "cl\\u0061ss")) {
-                String input = keyword + " T { String value = \"" + (WORD_PREFIX + spelling).repeat(repeats) + "\"; }";
+                String input = keyword + " T { String value = \"" + (WORD_PREFIX + spelling).repeat(repeats) + STRING_FIELD_END;
                 String expected = (WORD_PREFIX + value).repeat(repeats);
                 for (boolean singlePass : new boolean[] {false, true}) {
                     Formatter formatter = new Formatter(CONFIG, singlePass);
@@ -217,7 +219,7 @@ class SurrogateCharLiteralReproducerTest {
             for (boolean singlePass : new boolean[] {false, true}) {
                 Formatter formatter = new Formatter(CONFIG, singlePass);
                 String input = "class T { char c = '" + spelling + "'; String s = \""
-                        + (WORD_PREFIX + spelling).repeat(30) + "\"; }";
+                        + (WORD_PREFIX + spelling).repeat(30) + STRING_FIELD_END;
                 String output = formatter.format(input);
                 String saved = encodeAsUtf8(output);
                 assertThat(output).doesNotContain(value);
@@ -235,7 +237,124 @@ class SurrogateCharLiteralReproducerTest {
 
     static Stream<Integer> controlCharacters() {
         return Stream.concat(IntStream.rangeClosed(0, 31)
-                .filter(value -> value != 10 && value != 13).boxed(), Stream.of(127));
+                .filter(value -> value != 10 && value != 13).boxed(), IntStream.rangeClosed(127, 159).boxed());
+    }
+
+    @Test
+    void fittingOctalControlLiteralsKeepTheirSourceWidth() {
+        Formatter formatter = new Formatter(FormatterConfig.builder().lineLength(40).build());
+        for (String input : List.of(
+                "class T { String s = \"xxxxxxxxxxxxxxxxxx\\200\"; }",
+                "class T { void m() { assert ok : \"xxxxxxxxxxxxx\\200\"; } }")) {
+            String output = formatter.format(input);
+            assertThat(output).contains(input.contains("assert")
+                    ? "        assert ok : \"xxxxxxxxxxxxx\\200\";"
+                    : "    String s = \"xxxxxxxxxxxxxxxxxx\\200\";");
+            assertThat(output.lines()).allSatisfy(line -> assertThat(line.length()).isLessThanOrEqualTo(40));
+            assertThat(formatter.format(output)).isEqualTo(output);
+        }
+    }
+
+    @Test
+    void consecutiveC1ControlsKeepTheirValuesAndEscapeWidths() throws CharacterCodingException {
+        String value = "\u0080\u0085\u0090\u009F".repeat(20);
+        Formatter formatter = new Formatter(CONFIG);
+        String output = formatter.format("class T { String s = \"" + value + STRING_FIELD_END);
+        assertThat(output).contains("\\u0080", "\\u0085", "\\u0090", "\\u009F");
+        assertThat(output.lines()).allSatisfy(line -> assertThat(line.length()).isLessThanOrEqualTo(60));
+        assertThat(parseSaved(encodeAsUtf8(output)).findAll(StringLiteralExpr.class).stream()
+                .map(StringLiteralExpr::asString).collect(joining())).isEqualTo(value);
+        assertThat(formatter.format(output)).isEqualTo(output);
+    }
+
+    @Test
+    void retainedOctalConcatPiecesUseTheirSourceWidths() {
+        for (String spelling : List.of("\\200", "\\0", "\\33", "\\177")) {
+            String input = "class T { String s = \"" + spelling.repeat(5) + "\" + \"x\"; }";
+            for (int width = 40; width <= 80; width++) {
+                Formatter formatter = new Formatter(FormatterConfig.builder().lineLength(width).build());
+                String output = formatter.format(input);
+                String sameWidth = "Z".repeat(spelling.length());
+                assertThat(output.replace(spelling, sameWidth))
+                        .as("Retained spelling %s at width %s", spelling, width)
+                        .isEqualTo(formatter.format(input.replace(spelling, sameWidth)));
+                assertThat(formatter.format(output)).isEqualTo(output);
+            }
+        }
+    }
+
+    @Test
+    void ordinaryConcatKeepsItsFirstOperandBesideTheInitializer() {
+        Formatter formatter = new Formatter(FormatterConfig.builder().lineLength(40).build());
+        String expression = String.join(CONCAT_SEPARATOR, Collections.nCopies(8, "\"x\""));
+        String output = formatter.format("class T { String s = " + expression + "; }");
+        assertThat(output).contains("String s = \"x\"");
+        assertThat(formatter.format(output)).isEqualTo(output);
+    }
+
+    @Test
+    void printableEscapesKeepTheExistingInitializerLayout() {
+        FormatterConfig config = FormatterConfig.builder().lineLength(40).build();
+        for (String spelling : List.of("\\101", "\\40", "\\'", "\\s")) {
+            String content = spelling.repeat(28 / spelling.length());
+            String input = "class T { String s = \"" + content + STRING_FIELD_END;
+            String once = new Formatter(config, true).format(input);
+            assertThat(once).contains("    String s = \"");
+            assertThat(parseSaved(once).findAll(StringLiteralExpr.class).stream()
+                    .map(StringLiteralExpr::asString).collect(joining())).isEqualTo(content.translateEscapes());
+            Formatter formatter = new Formatter(config);
+            String stable = formatter.format(input);
+            assertThat(formatter.format(stable)).isEqualTo(stable);
+            if (spelling.equals("\\101")) {
+                assertThat(stable).isEqualTo(once);
+            }
+        }
+    }
+
+    @Test
+    void printableOctalConcatKeepsItsExistingRechunkDecision() {
+        FormatterConfig config = FormatterConfig.builder().lineLength(140).build();
+        String expression = String.join(CONCAT_SEPARATOR, Collections.nCopies(128, "\"\\101\""));
+        String once = new Formatter(config, true).format("class T { T a = " + expression + "; }");
+        assertThat(parseSaved(once).findAll(StringLiteralExpr.class)).hasSize(128);
+        assertThat(once).contains("\\101");
+        assertThat(new Formatter(config).format(once)).isEqualTo(once);
+    }
+
+    @ParameterizedTest(name = PARAMETER_CASE_NAME)
+    @MethodSource("concatControlCases")
+    void concatControlsRetainOrRechunkTheirSpellings(
+            String expression, int width, String expected, boolean rechunked) throws CharacterCodingException {
+        for (boolean singlePass : new boolean[] {false, true}) {
+            Formatter formatter = new Formatter(FormatterConfig.builder().lineLength(width).build(), singlePass);
+            String output = formatter.format("class T { String s = " + expression + "; }");
+            assertThat(output).contains(rechunked ? "\\u0080" : "\\200");
+            assertThat(output.lines()).allSatisfy(line -> assertThat(line.length()).isLessThanOrEqualTo(width));
+            assertThat(parseSaved(encodeAsUtf8(output)).findAll(StringLiteralExpr.class).stream()
+                    .map(StringLiteralExpr::asString).collect(joining())).isEqualTo(expected);
+            if (expression.contains("/* retained */")) {
+                assertThat(output).containsOnlyOnce("/* retained */");
+            }
+            if (!singlePass) {
+                assertThat(formatter.format(output)).isEqualTo(output);
+            }
+        }
+    }
+
+    static Stream<Arguments> concatControlCases() {
+        String spelling = "\\200\\200\\200";
+        String piece = "\"" + spelling + "\"";
+        String chain = String.join(CONCAT_SEPARATOR, Collections.nCopies(128, piece));
+        String value = spelling.translateEscapes();
+        String slashSpelling = "\\200\\\\";
+        return Stream.of(
+                Arguments.of(String.join(CONCAT_SEPARATOR, Collections.nCopies(127, piece)), 2200, value.repeat(127), false),
+                Arguments.of(chain, 2200, value.repeat(128), true),
+                Arguments.of("(" + chain + ")", 2200, value.repeat(128), false),
+                Arguments.of(String.join(CONCAT_SEPARATOR, Collections.nCopies(128, "\"" + slashSpelling + "\"")),
+                        900, slashSpelling.translateEscapes().repeat(128), false),
+                Arguments.of(piece + " /* retained */ + " + String.join(CONCAT_SEPARATOR, Collections.nCopies(127, piece)),
+                        2200, value.repeat(128), false));
     }
 
     @ParameterizedTest(name = PARAMETER_CASE_NAME)
@@ -247,9 +366,14 @@ class SurrogateCharLiteralReproducerTest {
             Formatter formatter = new Formatter(CONFIG, singlePass);
             String output = formatter.format(input);
             String saved = encodeAsUtf8(output);
-            assertThat(parseSaved(saved).findFirst(TextBlockLiteralExpr.class).orElseThrow().asString())
+            // JavaParser's asString treats C1 NEL as a line break; use the JDK's text-block processing.
+            assertThat(parseSaved(saved).findFirst(TextBlockLiteralExpr.class).orElseThrow()
+                    .getValue().stripIndent().translateEscapes())
                     .isEqualTo(expected + "\n");
-            assertThat(output).doesNotContain("\0", "\u001B", "\u007F");
+            assertThat(output).doesNotContain("\0", "\u001B", "\u007F", "\u0080", "\u0085", "\u0090", "\u009F");
+            if (expected.indexOf('\u00A0') >= 0) {
+                assertThat(output).contains(expected);
+            }
             if (!singlePass) {
                 assertThat(formatter.format(output)).isEqualTo(output);
             }
@@ -260,8 +384,12 @@ class SurrogateCharLiteralReproducerTest {
         String isolated = Character.toString(0xD801);
         return Stream.of(
                 Arguments.of(isolated, isolated), Arguments.of("\\uD801", isolated),
-                Arguments.of("é😀", "é😀"), Arguments.of("\\0\\033\\177", "\0\u001B\u007F"),
+                Arguments.of("é😀\u00A0", "é😀\u00A0"), Arguments.of("\\0\\033\\177", "\0\u001B\u007F"),
                 Arguments.of("\0\u001B\u007F", "\0\u001B\u007F"),
+                Arguments.of("\\u0080\\u0090\\u009F", "\u0080\u0090\u009F"),
+                Arguments.of("\u0080\u0090\u009F", "\u0080\u0090\u009F"),
+                Arguments.of("\\u0085", "\u0085"),
+                Arguments.of("\u0085", "\u0085"),
                 Arguments.of("\ttext\t\n    indented\n\t", "\ttext\n  indented\n"),
                 Arguments.of("\\\\" + isolated, "\\" + isolated));
     }
@@ -280,7 +408,7 @@ class SurrogateCharLiteralReproducerTest {
 
     @Test
     void arraysMeasureExpandedShortStringSpellings() throws CharacterCodingException {
-        for (String value : List.of("\0", "\u001B", Character.toString(0xD801))) {
+        for (String value : List.of("\0", "\u001B", "\u0080", "\u009F", Character.toString(0xD801))) {
             String values = String.join(", ", Collections.nCopies(10, "\"" + value + "\""));
             String input = "class T { String[] v = {" + values + "}; }";
             for (WrapStyle style : WrapStyle.values()) {
