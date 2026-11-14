@@ -11,6 +11,12 @@ This file manages the repository ruleset only. The one-approval, code-owner, and
 requirements are configured separately through classic branch protection and are not changed by the
 apply script.
 
+The `maintainer-approval` context is an exception to "contexts must match job names": it is a check
+run published through the dedicated publisher GitHub App by
+[`.github/workflows/maintainer-approval.yml`](../workflows/maintainer-approval.yml), not a job. Its
+required entry must set `integration_id` to the publisher app's id so same-named GitHub Actions jobs
+cannot satisfy it. See [`.github/maintainer-check/README.md`](../maintainer-check/README.md).
+
 Apply the checked-in configuration after editing it:
 
 ```bash

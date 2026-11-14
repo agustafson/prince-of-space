@@ -1,0 +1,87 @@
+name: Maintainer approval
+
+# Trusted publisher of the protected `maintainer-approval` check. This workflow
+# runs the base-branch version of itself (pull_request_target / pull_request_review
+# always run the default-branch workflow file), never checks out or executes pull
+# request code, and holds no permissions beyond a read-only job token. The private
+# key lives only in the `maintainer-check` environment. See
+# .github/maintainer-check/README.md before editing, and TDR-031.
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+  workflow_dispatch:
+    inputs:
+      pull-request:
+        description: 'Pull request number to evaluate'
+        required: true
+        type: number
+
+permissions: {}
+
+concurrency:
+  group: maintainer-approval-${{ github.event.pull_request.number || inputs['pull-request'] }}
+  cancel-in-progress: true
+
+jobs:
+  # The job name intentionally differs from the published check name
+  # (`maintainer-approval`, created through the dedicated app). A same-named job
+  # in a contributor workflow would run under the shared GitHub Actions identity
+  # and must never satisfy the app-bound required check.
+  maintainer-approval-publisher:
+    name: maintainer-approval-publisher
+    runs-on: ubuntu-latest
+    environment: maintainer-check
+    permissions:
+      # Read-only job token: pull request metadata and the trusted base checkout.
+      pull-requests: read
+      contents: read
+    steps:
+      - name: Resolve the target pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs['pull-request'] }}
+        run: |
+          gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}" > "$RUNNER_TEMP/pr.json"
+          gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}/reviews?per_page=100" > "$RUNNER_TEMP/reviews.json"
+
+      - name: Check publisher configuration
+        id: config
+        env:
+          APP_ID: ${{ vars.MAINTAINER_CHECK_APP_ID }}
+        run: |
+          if [ -z "$APP_ID" ]; then
+            echo "::warning::MAINTAINER_CHECK_APP_ID is not set; the maintainer-approval check is not configured. See .github/maintainer-check/README.md"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Pinned to the base revision: never the pull request's merge ref, so the
+      # predicate code that runs here is maintainer-controlled.
+      - name: Check out the trusted base revision
+        if: steps.config.outputs.configured == 'true'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+
+      - name: Mint the publisher app token
+        if: steps.config.outputs.configured == 'true'
+        uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          app-id: ${{ vars.MAINTAINER_CHECK_APP_ID }}
+          private-key: ${{ secrets.MAINTAINER_CHECK_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-checks: write
+
+      - name: Evaluate the maintainer policy and publish the check
+        if: steps.config.outputs.configured == 'true'
+        env:
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_JSON: ${{ runner.temp }}/pr.json
+          REVIEWS_JSON: ${{ runner.temp }}/reviews.json
+        run: node scripts/maintainer-check/publish.mjs
