@@ -36,7 +36,10 @@ jobs:
   # Unprivileged resolution only: no environment, no secrets, no checkout.
   # The collector's artifact is extracted into an isolated temporary
   # directory, never the workspace, so no artifact-supplied file can reach a
-  # trusted checkout; only the validated integer is used.
+  # trusted checkout; only the validated integer is used. The scheduled
+  # listing is trusted here (it comes from this default-branch job's own API
+  # read) and carries each pull request's head sha, so a later read failure
+  # can still invalidate that known head.
   resolve:
     name: maintainer-approval-resolve
     runs-on: ubuntu-latest
@@ -44,7 +47,7 @@ jobs:
     # nothing here, and the scheduled reconciliation closes that gap.
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     outputs:
-      numbers: ${{ steps.numbers.outputs.numbers }}
+      targets: ${{ steps.targets.outputs.targets }}
     permissions:
       pull-requests: read
       actions: read
@@ -59,7 +62,7 @@ jobs:
           path: ${{ runner.temp }}/collector-record
 
       - name: List the pull requests to publish
-        id: numbers
+        id: targets
         env:
           GH_TOKEN: ${{ github.token }}
           DISPATCH_PR: ${{ inputs['pull-request'] }}
@@ -71,19 +74,30 @@ jobs:
               case "$number" in
                 ''|*[!0-9]*) echo "Invalid pull request number: '$number'" >&2; exit 1 ;;
               esac
-              numbers="[$number]"
+              # Head sha unknown until the detail read; an untrusted artifact
+              # must never supply one.
+              targets="[{\"number\":$number,\"head\":\"\"}]"
               ;;
             workflow_dispatch)
-              numbers="[${DISPATCH_PR}]"
+              targets="[{\"number\":${DISPATCH_PR},\"head\":\"\"}]"
               ;;
             *)
-              # Scheduled sweep: every open pull request, bounded at 100.
-              numbers="$(gh api --paginate --slurp \
+              # Scheduled sweep: every open pull request with its head sha.
+              # No silent truncation — a sweep that cannot cover every open
+              # pull request is marked unsuccessful instead of dropping
+              # targets. GitHub caps a matrix at 256 jobs, so anything over
+              # 250 fails this job visibly rather than starving the rest.
+              targets="$(gh api --paginate --slurp \
                 "repos/${{ github.repository }}/pulls?state=open&per_page=100" \
-                | jq -c '[.[][] | .number] | sort | .[:100]')"
+                | jq -c '[.[][] | {number: .number, head: .head.sha}] | sort_by(.number)')"
+              count="$(jq length <<<"$targets")"
+              if [ "$count" -gt 250 ]; then
+                echo "::error::${count} open pull requests exceed the sweep's matrix capacity (250); the sweep is incomplete and marked unsuccessful. Dispatch per pull request or split the sweep."
+                exit 1
+              fi
               ;;
           esac
-          echo "numbers=$numbers" >> "$GITHUB_OUTPUT"
+          echo "targets=$targets" >> "$GITHUB_OUTPUT"
 
   # One shared publication job across every entry path — collector events,
   # dispatch reruns and the scheduled sweep — keyed by pull request number, so
@@ -94,13 +108,12 @@ jobs:
   publish:
     name: maintainer-approval-publisher
     needs: resolve
-    if: ${{ needs.resolve.outputs.numbers != '' && needs.resolve.outputs.numbers != '[]' }}
+    if: ${{ needs.resolve.outputs.targets != '' && needs.resolve.outputs.targets != '[]' }}
     runs-on: ubuntu-latest
     environment: maintainer-check
     strategy:
       fail-fast: false
-      matrix:
-        number: ${{ fromJSON(needs.resolve.outputs.numbers) }}
+      matrix: ${{ fromJSON(needs.resolve.outputs.targets) }}
     concurrency:
       group: maintainer-approval-publish-${{ matrix.number }}
       cancel-in-progress: false
@@ -110,15 +123,22 @@ jobs:
       pull-requests: read
       contents: read
     steps:
-      - name: Fetch the pull request
+      - name: Fetch the pull request details
+        id: pr
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh api "repos/${{ github.repository }}/pulls/${{ matrix.number }}" > "$RUNNER_TEMP/pr.json"
+          if gh api "repos/${{ github.repository }}/pulls/${{ matrix.number }}" > "$RUNNER_TEMP/pr.json"; then
+            echo "unreadable=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Could not read pull request ${{ matrix.number }}; publishing a fail-closed result where a trusted head is known"
+            echo "unreadable=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Fetch every review page
         id: reviews
+        if: steps.pr.outputs.unreadable == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -177,10 +197,20 @@ jobs:
           PR_JSON: ${{ runner.temp }}/pr.json
           REVIEWS_JSON: ${{ runner.temp }}/reviews.json
           REVIEWS_UNREADABLE: ${{ steps.reviews.outputs.unreadable }}
+          # Trusted head sha from the scheduled listing, when the detail read
+          # failed; empty for event and dispatch targets.
+          PR_DETAIL_UNREADABLE_HEAD: ${{ matrix.head }}
         run: |
           set -euo pipefail
+          if [ "${{ steps.pr.outputs.unreadable }}" = "true" ]; then
+            if [ -n "$PR_DETAIL_UNREADABLE_HEAD" ]; then
+              node scripts/maintainer-check/publish.mjs
+            fi
+            echo "::error::Pull request ${{ matrix.number }} could not be read; this evaluation is unsuccessful"
+            exit 1
+          fi
           node scripts/maintainer-check/publish.mjs
           if [ "${{ steps.reviews.outputs.unreadable }}" = "true" ]; then
-            echo "::error::Review evidence could not be read for pull request ${{ matrix.number }}; this sweep is unsuccessful"
+            echo "::error::Review evidence could not be read for pull request ${{ matrix.number }}; this evaluation is unsuccessful"
             exit 1
           fi

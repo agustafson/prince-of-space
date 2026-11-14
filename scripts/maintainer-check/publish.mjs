@@ -18,22 +18,47 @@ if (!repository || !token || !prPath || !reviewsPath) {
   process.exit(2);
 }
 
-const pullRequest = JSON.parse(await readFile(prPath, 'utf8'));
-// When any review page could not be read, no approval can be verified: publish
-// a fail-closed failure for the known head instead of trusting partial data.
-const result =
-  process.env.REVIEWS_UNREADABLE === 'true'
-    ? {
-        conclusion: 'failure',
-        title: 'Review evidence unavailable',
-        summary:
-          'Not every review page could be read, so no maintainer approval can be verified. ' +
-          'This result is fail-closed and is refreshed by the next evaluation.',
-      }
-    : evaluateMaintainerApproval({
-        pullRequest,
-        reviews: flattenReviewPages(JSON.parse(await readFile(reviewsPath, 'utf8'))),
-      });
+const failClosed = (title, summary) => ({
+  conclusion: 'failure',
+  title,
+  summary: `${summary} This result is fail-closed and is refreshed by the next evaluation.`,
+});
+
+let pullRequest = null;
+let headSha;
+let result;
+
+// When the pull request details could not be read but the trusted scheduled
+// listing supplied this pull request's head sha, invalidate that known head
+// instead of leaving an earlier published success standing.
+const detailUnreadableHead = process.env.PR_DETAIL_UNREADABLE_HEAD ?? '';
+if (detailUnreadableHead !== '') {
+  if (!/^[0-9a-f]{40,64}$/.test(detailUnreadableHead)) {
+    console.error(`Invalid trusted head sha: '${detailUnreadableHead}'`);
+    process.exit(2);
+  }
+  headSha = detailUnreadableHead;
+  result = failClosed(
+    'Pull request details unavailable',
+    'The pull request details could not be read, so no maintainer approval can be verified.',
+  );
+} else {
+  pullRequest = JSON.parse(await readFile(prPath, 'utf8'));
+  headSha = pullRequest.head.sha;
+  // When any review page could not be read, no approval can be verified:
+  // publish a fail-closed failure for the known head instead of trusting
+  // partial data.
+  result =
+    process.env.REVIEWS_UNREADABLE === 'true'
+      ? failClosed(
+          'Review evidence unavailable',
+          'Not every review page could be read, so no maintainer approval can be verified.',
+        )
+      : evaluateMaintainerApproval({
+          pullRequest,
+          reviews: flattenReviewPages(JSON.parse(await readFile(reviewsPath, 'utf8'))),
+        });
+}
 
 const runUrl =
   process.env.GITHUB_SERVER_URL && process.env.GITHUB_RUN_ID
@@ -50,7 +75,7 @@ const response = await fetch(`https://api.github.com/repos/${repository}/check-r
   },
   body: JSON.stringify({
     name: CHECK_NAME,
-    head_sha: pullRequest.head.sha,
+    head_sha: headSha,
     status: 'completed',
     conclusion: result.conclusion,
     output: { title: result.title, summary: result.summary },
@@ -64,6 +89,4 @@ if (!response.ok) {
 }
 
 const check = await response.json();
-console.log(
-  `Published '${CHECK_NAME}' with conclusion ${result.conclusion} on ${pullRequest.head.sha} (check run ${check.id}).`,
-);
+console.log(`Published '${CHECK_NAME}' with conclusion ${result.conclusion} on ${headSha} (check run ${check.id}).`);

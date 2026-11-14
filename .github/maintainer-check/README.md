@@ -102,18 +102,24 @@ Within the publisher:
 **A failed or modified collector cannot leave a stale success standing.** A pull
 request can make its own collector fail, stay silent on a dismissal, or never run
 at all. The publisher therefore also reconciles on a schedule from the default
-branch: it re-lists every open pull request and re-publishes each check, with each
-pull request isolated in its own job so one failure never skips the others, and
-any failed read or publication marks the sweep unsuccessful. A pull request whose
-review evidence cannot be read gets a fail-closed failure result for its known
-head, never silence.
+branch: it lists every open pull request — with no silent truncation, so no pull
+request is starved; if more than 250 are open, beyond what one matrix can carry,
+the sweep is marked unsuccessful instead of dropping targets — and re-publishes
+each check, with each pull request isolated in its own job so one failure never
+skips the others and any failed read or publication marks the sweep unsuccessful.
+A pull request whose review evidence cannot be read gets a fail-closed failure
+result for its known head, never silence; if even the pull request details cannot
+be read, the head sha the trusted listing already supplied is invalidated the
+same way.
 
 Schedules carry no deadline. GitHub may delay or drop scheduled runs, and in a
 project like this one it disables schedules after 60 days without repository
 activity, so a withdrawn approval takes effect on the next collector event or on
-the next successful sweep — never by a fixed time. Repository activity re-enables
-a disabled schedule, and a maintainer can refresh one pull request at any moment
-with a manual dispatch.
+the next successful sweep — never by a fixed time. A disabled schedule is
+re-enabled explicitly: enable the Maintainer approval workflow again in the
+repository's Actions tab (or through the documented cron-edit route) — ordinary
+repository activity does not reliably re-enable it. A maintainer can refresh one
+pull request at any moment with a manual dispatch.
 
 **The environment is the credential boundary for the key.** Environment secrets are
 available to *any* job that references the environment — including a
