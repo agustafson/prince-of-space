@@ -13,8 +13,10 @@
 //     user id ("maintainer-authored").
 //   * Otherwise it passes once a selected maintainer has approved it: an APPROVED
 //     review by one of those accounts. Each reviewer's chronologically latest
-//     review decides; a later CHANGES_REQUESTED or DISMISSED review overrides
-//     that reviewer's earlier approval.
+//     deciding review governs; a later CHANGES_REQUESTED or DISMISSED review
+//     overrides that reviewer's earlier approval, while comment-only
+//     (COMMENTED) reviews never change a reviewer's decision, so a follow-up
+//     comment preserves an existing approval (the captain's selected rule).
 //   * Bot accounts (user.type === "Bot", which covers GitHub App bots such as
 //     dependabot[bot], coderabbitai[bot] and github-actions[bot]) never satisfy
 //     the policy, as author or as approver. Automated dependency and maintenance
@@ -61,12 +63,18 @@ export function flattenReviewPages(rawReviews) {
   return rawReviews;
 }
 
-function latestReviewPerReviewer(reviews) {
+function latestDecidingReviewPerReviewer(reviews) {
   const latest = new Map();
   const ordered = [...reviews].sort((a, b) =>
     String(a.submitted_at ?? '').localeCompare(String(b.submitted_at ?? '')),
   );
   for (const review of ordered) {
+    // Comment-only reviews never change a reviewer's decision: skipping them
+    // keeps an earlier approval alive through later comments while a later
+    // CHANGES_REQUESTED or DISMISSED review still overrides it.
+    if (review.state === 'COMMENTED') {
+      continue;
+    }
     const login = review.user?.login;
     if (login) {
       latest.set(login, review);
@@ -98,7 +106,7 @@ export function evaluateMaintainerApproval({ pullRequest, reviews = [] }) {
 
   const approvals = [];
   const notCounted = [];
-  for (const review of latestReviewPerReviewer(reviews).values()) {
+  for (const review of latestDecidingReviewPerReviewer(reviews).values()) {
     if (review.state !== 'APPROVED') {
       continue;
     }
@@ -114,7 +122,7 @@ export function evaluateMaintainerApproval({ pullRequest, reviews = [] }) {
     return {
       conclusion: 'success',
       title: 'Maintainer-approved',
-      summary: `Approved by maintainer ${approvals.map((login) => `@${login}`).join(', ')} (each reviewer's latest review decides).`,
+      summary: `Approved by maintainer ${approvals.map((login) => `@${login}`).join(', ')} (each reviewer's latest deciding review governs; comment-only reviews do not change it).`,
     };
   }
 

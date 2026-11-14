@@ -141,6 +141,56 @@ test('each reviewer decides by their latest review only', () => {
   assert.equal(dismissed.conclusion, 'failure');
 });
 
+test('a later comment-only review preserves an earlier approval', () => {
+  const result = evaluateMaintainerApproval({
+    pullRequest: pr(),
+    reviews: [
+      review({ author: AGUSTAFSON, submittedAt: '2026-01-01T00:00:00Z' }),
+      review({ author: AGUSTAFSON, state: 'COMMENTED', submittedAt: '2026-01-02T00:00:00Z' }),
+    ],
+  });
+  assert.equal(result.conclusion, 'success');
+  assert.match(result.title, /Maintainer-approved/);
+});
+
+test('a comment-only review never changes a reviewer decision by itself', () => {
+  const onlyComments = evaluateMaintainerApproval({
+    pullRequest: pr(),
+    reviews: [review({ author: BRIC3, state: 'COMMENTED' })],
+  });
+  assert.equal(onlyComments.conclusion, 'failure');
+
+  const commentAfterBlock = evaluateMaintainerApproval({
+    pullRequest: pr(),
+    reviews: [
+      review({ author: AGUSTAFSON, state: 'CHANGES_REQUESTED', submittedAt: '2026-01-01T00:00:00Z' }),
+      review({ author: AGUSTAFSON, state: 'COMMENTED', submittedAt: '2026-01-02T00:00:00Z' }),
+    ],
+  });
+  assert.equal(commentAfterBlock.conclusion, 'failure');
+
+  const approvalAfterComment = evaluateMaintainerApproval({
+    pullRequest: pr(),
+    reviews: [
+      review({ author: AGUSTAFSON, state: 'COMMENTED', submittedAt: '2026-01-01T00:00:00Z' }),
+      review({ author: AGUSTAFSON, submittedAt: '2026-01-02T00:00:00Z' }),
+    ],
+  });
+  assert.equal(approvalAfterComment.conclusion, 'success');
+});
+
+test('a dismissal still revokes an approval even with later comments', () => {
+  const result = evaluateMaintainerApproval({
+    pullRequest: pr(),
+    reviews: [
+      review({ author: AGUSTAFSON, submittedAt: '2026-01-01T00:00:00Z' }),
+      review({ author: AGUSTAFSON, state: 'DISMISSED', submittedAt: '2026-01-02T00:00:00Z' }),
+      review({ author: AGUSTAFSON, state: 'COMMENTED', submittedAt: '2026-01-03T00:00:00Z' }),
+    ],
+  });
+  assert.equal(result.conclusion, 'failure');
+});
+
 test('a second maintainer can still approve after another blocks', () => {
   const result = evaluateMaintainerApproval({
     pullRequest: pr(),

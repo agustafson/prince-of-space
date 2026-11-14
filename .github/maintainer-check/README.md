@@ -149,8 +149,10 @@ run by the `Maintainer check predicate` CI job):
 - Maintainer-authored: the author is one of the selected maintainer accounts,
   `agustafson` and `bric3`, matched by their stable numeric GitHub user ids.
 - Otherwise maintainer-approved: an `APPROVED` review by one of those accounts;
-  each reviewer's latest review decides (a later `CHANGES_REQUESTED` or `DISMISSED`
-  overrides their approval).
+  each reviewer's latest deciding review governs — a later `CHANGES_REQUESTED` or
+  `DISMISSED` overrides their approval, while comment-only (`COMMENTED`) reviews
+  never change a reviewer's decision, so a follow-up comment preserves an
+  existing approval.
 - Bot accounts never count, as author or approver.
 - Drafts publish `neutral` until marked ready.
 
