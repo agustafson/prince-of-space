@@ -8,9 +8,13 @@ import com.github.javaparser.Problem;
 import com.github.javaparser.Providers;
 import com.github.javaparser.UnicodeEscapeProcessingProvider;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.CharLiteralExpr;
+import com.github.javaparser.ast.expr.LambdaExpr;
 import com.github.javaparser.ast.expr.TextBlockLiteralExpr;
+import com.github.javaparser.ast.validator.ProblemReporter;
+import com.github.javaparser.ast.validator.language_level_validations.chunks.VarValidator;
 import io.princeofspace.BenchDiagnostics;
 import io.princeofspace.model.FormatResult;
 import io.princeofspace.model.FormatterConfig;
@@ -43,9 +47,11 @@ import java.util.Set;
 public final class FormattingEngine {
 
     private static final Logger LOG = System.getLogger(FormattingEngine.class.getName());
+    private static final int LAMBDA_VAR_RELEASE = 11;
 
     private final int maxConvergencePasses;
     private final boolean fastSinglePass;
+    private final boolean supportsLambdaVar;
     private final JavaParser parser;
     private final PrettyPrinter prettyPrinter;
 
@@ -81,6 +87,7 @@ public final class FormattingEngine {
     FormattingEngine(FormatterConfig config, int maxConvergencePasses, boolean fastSinglePass) {
         this.maxConvergencePasses = Math.max(0, maxConvergencePasses);
         this.fastSinglePass = fastSinglePass;
+        this.supportsLambdaVar = config.javaLanguageLevel().level() >= LAMBDA_VAR_RELEASE;
         ParserConfiguration parserConfig = new ParserConfiguration()
                 .setLanguageLevel(JavaParserLanguageLevels.toLanguageLevel(config.javaLanguageLevel()));
         this.parser = new JavaParser(parserConfig);
@@ -197,6 +204,9 @@ public final class FormattingEngine {
                         new UnicodeEscapeProcessingProvider(Providers.provider(sourceCode)))
                 : parser.parse(sourceCode);
         long tAfterParse = System.nanoTime();
+        if (!result.isSuccessful() && supportsLambdaVar) {
+            removeSpuriousLambdaVarProblems(result);
+        }
         if (!result.isSuccessful()) {
             if (BenchDiagnostics.isEnabled()) {
                 BenchDiagnostics.recordSinglePassPhases(tAfterParse - t0, 0, 0);
@@ -213,6 +223,29 @@ public final class FormattingEngine {
                             }
                             return new FormatResult.EmptyCompilationUnit();
                         });
+    }
+
+    private static void removeSpuriousLambdaVarProblems(ParseResult<CompilationUnit> result) {
+        if (result.getResult().isEmpty()) {
+            return;
+        }
+        VarValidator validator = new VarValidator(true);
+        ProblemReporter spuriousProblemRemover = new ProblemReporter(expected -> result.getProblems().stream()
+                .filter(problem -> expected.getLocation().isPresent()
+                        && problem.getLocation().equals(expected.getLocation())
+                        && problem.getMessage().equals(expected.getMessage()))
+                .findFirst()
+                .ifPresent(result.getProblems()::remove));
+        for (LambdaExpr lambda : result.getResult().orElseThrow().findAll(LambdaExpr.class)) {
+            if (!lambda.getParameters().stream()
+                    .allMatch(parameter -> parameter.getType().isVarType() && !parameter.isVarArgs())) {
+                continue;
+            }
+            // JavaParser's VarValidator can mistake a lambda parameter for its enclosing field.
+            for (Parameter parameter : lambda.getParameters()) {
+                validator.accept(parameter.getType().asVarType(), spuriousProblemRemover);
+            }
+        }
     }
 
     private FormatResult printAfterTransform(CompilationUnit cu, long t0, long tAfterParse) {

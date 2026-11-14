@@ -117,6 +117,8 @@ For wrapped argument/parameter-like lists:
 - Preserve comment semantics and placement intent.
 - Keep single-line block comments beside values and identifiers between their original neighboring tokens. For example, `null /* serviceName */,` labels that value; moving the comment past the comma associates it with the next argument. The same intent applies before a semicolon or identifier.
 - Preserve type-use annotation semantics and declaration annotation correctness.
+- Emit each annotation once and preserve repeated annotations. Source line breaks, indentation and
+  placement between method modifiers must preserve the annotated declaration or type.
 - Formatting must not change program meaning.
 
 ## Change Control
