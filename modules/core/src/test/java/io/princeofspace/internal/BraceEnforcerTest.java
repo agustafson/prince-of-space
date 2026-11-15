@@ -4,6 +4,8 @@ import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.stmt.BlockStmt;
+import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.printer.DefaultPrettyPrinter;
 import org.junit.jupiter.api.Test;
 
@@ -17,6 +19,49 @@ class BraceEnforcerTest {
         CompilationUnit cu = parser.parse(source).getResult().orElseThrow();
         new BraceEnforcer().visit(cu, null);
         return new DefaultPrettyPrinter().print(cu);
+    }
+
+    @Test
+    void wrappedBodiesRetainTheirParentsChildrenAndOwnedComments() {
+        String source = """
+                class T {
+                    void f() {
+                        if (ready) /* repeated */ first();
+                        else /* repeated */ second();
+                        for (;;) /* repeated */ third();
+                        for (Object value : values) /* repeated */ fourth();
+                        while (ready) /* repeated */ fifth();
+                        do /* repeated */ sixth(); while (ready);
+                    }
+                }
+                """;
+        var unit = new JavaParser().parse(source).getResult().orElseThrow();
+        var bodies = unit.findAll(ExpressionStmt.class);
+        var comments = unit.getAllContainedComments();
+        var ownedComments = bodies.stream().map(body -> body.getComment().orElseThrow()).toList();
+        var commentOwners = ownedComments.stream().map(comment -> comment.getCommentedNode().orElseThrow()).toList();
+        assertThat(bodies).hasSize(6);
+        assertThat(comments).hasSize(6);
+
+        new BraceEnforcer().visit(unit, null);
+
+        var retainedComments = unit.getAllContainedComments();
+        assertThat(retainedComments).hasSize(comments.size());
+        for (int i = 0; i < comments.size(); i++) {
+            assertThat(retainedComments.get(i)).isSameAs(comments.get(i));
+        }
+        assertThat(unit.findAll(ExpressionStmt.class)).hasSize(bodies.size());
+        for (int i = 0; i < bodies.size(); i++) {
+            ExpressionStmt body = bodies.get(i);
+            assertThat(body.getComment()).containsSame(ownedComments.get(i));
+            assertThat(ownedComments.get(i).getCommentedNode()).containsSame(commentOwners.get(i));
+            BlockStmt block = (BlockStmt) body.getParentNode().orElseThrow();
+            assertThat(block.getStatement(0)).isSameAs(body);
+            assertThat(block.getChildNodes()).hasSize(1);
+            assertThat(block.getChildNodes().get(0)).isSameAs(body);
+            assertThat(block.getRange()).isEqualTo(body.getRange());
+            assertThat(unit.findAll(ExpressionStmt.class)).anySatisfy(found -> assertThat(found).isSameAs(body));
+        }
     }
 
     // ── if / else ────────────────────────────────────────────────────────────

@@ -8,11 +8,15 @@ import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.comments.BlockComment;
+import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.ArrayInitializerExpr;
+import com.github.javaparser.ast.expr.BinaryExpr;
 import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.MemberValuePair;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.expr.SimpleName;
+import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
 import com.github.javaparser.ast.nodeTypes.NodeWithArguments;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.ast.stmt.ReturnStmt;
@@ -23,6 +27,7 @@ import com.github.javaparser.utils.PositionUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -97,7 +102,7 @@ final class InlineBlockComments {
                     .ifPresent(c -> node.removeComment());
             for (var orphan : new ArrayList<>(node.getOrphanComments())) {
                 if (orphan.getBegin().map(detached::contains).orElse(false)) {
-                    orphan.remove();
+                    CommentUtils.removeOrphanCommentByIdentity(node, orphan);
                 }
             }
         });
@@ -121,8 +126,21 @@ final class InlineBlockComments {
             return false;
         }
         return parent instanceof NodeWithArguments<?> || parent instanceof ArrayInitializerExpr
+                || parent instanceof BinaryExpr
+                || parent instanceof MemberValuePair || parent instanceof SingleMemberAnnotationExpr
                 || parent instanceof VariableDeclarator || parent instanceof ExpressionStmt
                 || parent instanceof ReturnStmt || parent instanceof ThrowStmt;
+    }
+
+    static void addRetainedWidths(Node node, Position leftEnd, List<Comment> comments) {
+        for (Comment comment : comments) {
+            if (comment instanceof BlockComment
+                    && comment.getBegin().orElseThrow().line == leftEnd.line
+                    && comment.getEnd().orElseThrow().line == leftEnd.line) {
+                addWidth(node, comment.getHeader().length() + comment.getContent().length()
+                        + comment.getFooter().length() + 1);
+            }
+        }
     }
 
     private static void addWidth(Node node, int width) {

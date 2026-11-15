@@ -10,6 +10,8 @@
 
 Scenarios **1–20** are valid on Java 8 and appear in every tree.
 
+**Scenario 8** includes a short ternary with a comment inside its condition's call and a wrapped ternary with comments after `?` and `:`. The comments retain their call or branch association (Rule 10, TDR-031).
+
 **Scenario 9** covers binary-operator wrapping, including a wrapped multiplication with a trailing line comment that must be preserved exactly once and converge to a fixed point.
 
 Scenarios **21–25** (records, sealed types, pattern `instanceof`, switch expressions, text blocks) require **Java 17** semantics. They appear in `java17`, `java21`, and `java25`, and are **omitted** from `java8` (the `java8` file jumps from scenario 20 to **31** so later scenario numbers stay aligned).
@@ -31,6 +33,8 @@ Scenarios **31–44** are shared control-flow and wrapping cases; they appear in
 **Scenario 56** (wrapped method call with comments interleaved between arguments and before the closing parenthesis) appears in **all** four trees. It covers comment ordering and closing-delimiter preservation in argument lists, distinct line and block comments on a chained call and its argument, and trailing line and block comments after a sole argument in a method chain.
 
 **Scenario 57** (annotation array with mixed comments between elements and before the closing brace) appears in **all** four trees. It covers comment ordering and closing-delimiter preservation in annotation values.
+
+Scenarios **56 and 57** also cover distinct comments with identical text at adjacent argument and annotation-element boundaries. Scenario 56 retains a mixed block/line suffix after its return statement; Scenario 57 retains comments between stacked annotations (Rule 10, TDR-031).
 
 **Scenario 58** (nested array initializers with line and block comments) appears in **all** four trees. It includes an empty row whose comments must stay inside its braces. Tab-indentation regressions also verify that following members retain their indentation.
 

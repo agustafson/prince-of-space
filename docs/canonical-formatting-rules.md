@@ -115,7 +115,9 @@ For wrapped argument/parameter-like lists:
 ### Rule 10: Comments and annotation safety
 
 - Preserve comment semantics and placement intent.
+- Emit each source comment once, in source order, on the first pass and after convergence. Preserve distinct comments with identical text. Comments inside argument lists stay at their argument boundary. A lone trailing line comment may lead its own statement or declaration when this does not cross other comments; mixed suffix groups retain their source order and association.
 - Keep single-line block comments beside values and identifiers between their original neighboring tokens. For example, `null /* serviceName */,` labels that value; moving the comment past the comma associates it with the next argument. The same intent applies before a semicolon or identifier.
+- Keep comments around `?`, `:` and the closing `)` of an `if` condition in their source token gap. Binary comments stay at the same operand boundary; wrapped layouts may print an operand's leading line comment before its operator. Nested receiver chains must not absorb those comments.
 - Preserve type-use annotation semantics and declaration annotation correctness.
 - Emit each annotation once and preserve repeated annotations. Source line breaks, indentation and
   placement between method modifiers must preserve the annotated declaration or type.

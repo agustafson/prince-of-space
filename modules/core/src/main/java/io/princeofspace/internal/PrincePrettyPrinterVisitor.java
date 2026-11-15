@@ -1,6 +1,9 @@
 package io.princeofspace.internal;
 
+import com.github.javaparser.JavaToken;
+import com.github.javaparser.Position;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.BodyDeclaration;
@@ -13,8 +16,10 @@ import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.comments.BlockComment;
 import com.github.javaparser.ast.comments.Comment;
+import com.github.javaparser.ast.comments.LineComment;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.ArrayInitializerExpr;
+import com.github.javaparser.ast.expr.AssignExpr;
 import com.github.javaparser.ast.expr.BinaryExpr;
 import com.github.javaparser.ast.expr.ConditionalExpr;
 import com.github.javaparser.ast.expr.EnclosedExpr;
@@ -23,18 +28,22 @@ import com.github.javaparser.ast.expr.LambdaExpr;
 import com.github.javaparser.ast.expr.MemberValuePair;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.NormalAnnotationExpr;
+import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.expr.SimpleName;
 import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.expr.SwitchExpr;
 import com.github.javaparser.ast.expr.TextBlockLiteralExpr;
+import com.github.javaparser.ast.nodeTypes.NodeWithArguments;
 import com.github.javaparser.ast.nodeTypes.NodeWithVariables;
 import com.github.javaparser.ast.stmt.AssertStmt;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.CatchClause;
+import com.github.javaparser.ast.stmt.ExplicitConstructorInvocationStmt;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.ast.stmt.ForEachStmt;
 import com.github.javaparser.ast.stmt.ForStmt;
+import com.github.javaparser.ast.stmt.IfStmt;
 import com.github.javaparser.ast.stmt.ReturnStmt;
 import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.stmt.SwitchEntry;
@@ -55,6 +64,7 @@ import io.princeofspace.model.WrapStyle;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -160,6 +170,14 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     @Override
     public void visit(CompilationUnit n, Void arg) {
+        CommentUtils.collectStatementSemicolonComments(n);
+        CommentUtils.normaliseInitializerPrefixCommentOwners(n);
+        CommentUtils.normaliseAnonymousBodyCommentOwners(n);
+        CommentUtils.normaliseCallCommentOwners(n);
+        CommentUtils.normaliseAnnotationCommentOwners(n);
+        CommentUtils.normaliseFinalSwitchEntryComments(n);
+        CommentUtils.normaliseEnclosedExpressionSuffixComments(n);
+        CommentUtils.normaliseOperatorCommentOwners(n);
         inlineBlockComments.collect(n);
         super.visit(n, arg);
     }
@@ -173,34 +191,202 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     @Override
     public void visit(ExpressionStmt n, Void arg) {
-        printOrphanCommentsBeforeThisChildNode(n);
-        printComment(n.getComment(), arg);
+        List<Comment> trailing = prepareSemicolonSuffix(n, arg);
         ctx.accept(n.getExpression(), arg);
+        printStatementEndingComments(n);
         printer.print(";");
+        printTrailingComments(trailing);
     }
 
     @Override
     public void visit(ReturnStmt n, Void arg) {
-        printOrphanCommentsBeforeThisChildNode(n);
-        printComment(n.getComment(), arg);
+        List<Comment> trailing = prepareSemicolonSuffix(n, arg);
         printer.print("return");
         n.getExpression().ifPresent(expression -> {
             printer.print(" ");
             ctx.accept(expression, arg);
         });
+        printStatementEndingComments(n);
         printer.print(";");
+        printTrailingComments(trailing);
     }
 
     @Override
     public void visit(ThrowStmt n, Void arg) {
-        printOrphanCommentsBeforeThisChildNode(n);
-        printComment(n.getComment(), arg);
+        List<Comment> trailing = prepareSemicolonSuffix(n, arg);
         printer.print("throw ");
         ctx.accept(n.getExpression(), arg);
+        printStatementEndingComments(n);
         printer.print(";");
+        printTrailingComments(trailing);
+    }
+
+    @Override
+    public void visit(ExplicitConstructorInvocationStmt n, Void arg) {
+        List<Comment> trailing = prepareSemicolonSuffix(n, arg);
+        super.visit(n, arg);
+        printTrailingComments(trailing);
+    }
+
+    private List<Comment> prepareSemicolonSuffix(Node node, Void arg) {
+        List<Comment> trailing = CommentUtils.takeTrailingComments(node);
+        printOrphanCommentsBeforeThisChildNode(node);
+        printComment(node.getComment(), arg);
+        node.removeComment();
+        boolean arrow = node.getParentNode().orElse(null) instanceof SwitchEntry entry
+                && entry.getType() != SwitchEntry.Type.STATEMENT_GROUP;
+        if (arrow || CommentUtils.hasCommentInside(node) || trailing.stream().anyMatch(BlockComment.class::isInstance)) {
+            return trailing;
+        }
+        for (Comment comment : trailing) {
+            printComment(Optional.of(comment), arg);
+        }
+        return List.of();
+    }
+
+    private void printStatementEndingComments(Node statement) {
+        if (!statement.getOrphanComments().isEmpty()) {
+            printer.println();
+            printOrphanCommentsEnding(statement);
+        }
+        printCapturedStatementEndingComments(statement);
+    }
+
+    private void printCapturedStatementEndingComments(Node node) {
+        List<Comment> ending = CommentUtils.takeStatementEndingComments(node);
+        if (!ending.isEmpty()) {
+            Position leftEnd = CommentUtils.previousCodeToken(ending.get(0).getTokenRange().orElseThrow().getBegin())
+                    .orElseThrow().getRange().orElseThrow().end;
+            printOperatorComments(ending, leftEnd);
+        }
+    }
+
+    @Override
+    public void visit(FieldDeclaration n, Void arg) {
+        List<Comment> trailing = CommentUtils.takeTrailingComments(n);
+        boolean leading = trailing.size() == 1 && trailing.get(0) instanceof LineComment
+                && !CommentUtils.hasCommentInside(n) && n.getComment().isEmpty();
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        n.removeComment();
+        if (leading) {
+            for (Comment comment : trailing) {
+                printComment(Optional.of(comment), arg);
+            }
+        }
+        super.visit(n, arg);
+        if (!leading) {
+            printTrailingComments(trailing);
+        }
+    }
+
+    private void printTrailingComments(List<Comment> comments) {
+        if (getOption(ConfigOption.PRINT_COMMENTS).isEmpty()) {
+            return;
+        }
+        for (Comment comment : comments) {
+            printer.print(" ");
+            printer.print(comment.getHeader());
+            printer.print(comment instanceof LineComment
+                    ? comment.getContent().stripTrailing() : comment.getContent());
+            printer.print(comment.getFooter());
+        }
+    }
+
+    void doPrintInlineComment(Comment comment) {
+        printTrailingComments(List.of(comment));
+    }
+
+    /** Prints a source gap after its left token, retaining line-comment attachment. */
+    boolean printOperatorComments(List<Comment> comments, Position leftEnd) {
+        return printOperatorComments(comments, leftEnd, true);
+    }
+
+    private boolean printOperatorComments(List<Comment> comments, Position leftEnd, boolean continueExpression) {
+        if (comments.isEmpty() || getOption(ConfigOption.PRINT_COMMENTS).isEmpty()) {
+            return false;
+        }
+        boolean endedLine = false;
+        for (Comment comment : comments) {
+            boolean ownLine = comment.getBegin().orElseThrow().line > leftEnd.line;
+            if (ownLine || endedLine) {
+                if (!endedLine) {
+                    printer.println();
+                }
+                ctx.printCont();
+                printer.print(comment.getHeader());
+            } else {
+                printer.print(" " + comment.getHeader());
+            }
+            printer.print(comment instanceof LineComment
+                    ? comment.getContent().stripTrailing() : comment.getContent());
+            printer.print(comment.getFooter());
+            endedLine = comment instanceof LineComment;
+            if (endedLine) {
+                printer.println();
+            }
+            leftEnd = comment.getEnd().orElseThrow();
+        }
+        if (endedLine && continueExpression) {
+            ctx.printCont();
+        }
+        return endedLine;
+    }
+
+    @Override
+    public void visit(MemberValuePair n, Void arg) {
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        n.getName().accept(this, arg);
+        printer.print(" = ");
+        ctx.accept(n.getValue(), arg);
     }
 
     // ── bridge methods for LayoutContext ───────────────────────────────────────
+    void printExpressionBoundaryComments(Node node, Void arg) {
+        printExpressionBoundaryComments(CommentUtils.takeExpressionBoundaryComments(node), arg);
+    }
+
+    private void printExpressionBoundaryComments(List<Comment> comments, Void arg) {
+        if (comments.isEmpty()) {
+            return;
+        }
+        boolean atContinuation = continuationLineStartLine == printer.getCursor().line
+                && continuationLineStartColumn == printer.getCursor().column;
+        if (printer.getCursor().column > 0 && !atContinuation) {
+            printer.println();
+        }
+        for (Comment comment : comments) {
+            if (!atContinuation) {
+                ctx.printCont();
+            }
+            printComment(Optional.of(comment), arg);
+            atContinuation = false;
+        }
+        ctx.printCont();
+    }
+
+    @Override
+    public void visit(AssignExpr n, Void arg) {
+        List<Comment> boundary = CommentUtils.takeExpressionBoundaryComments(n.getValue());
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        ctx.accept(n.getTarget(), arg);
+        boolean spaced = getOption(ConfigOption.SPACE_AROUND_OPERATORS).isPresent();
+        if (spaced) {
+            printer.print(" ");
+        }
+        printer.print(n.getOperator().asString());
+        if (boundary.isEmpty()) {
+            if (spaced) {
+                printer.print(" ");
+            }
+        } else {
+            printExpressionBoundaryComments(boundary, arg);
+        }
+        ctx.accept(n.getValue(), arg);
+    }
+
     // DefaultPrettyPrinterVisitor keeps useful helpers (modifiers, type args, arguments) as protected;
     // delegates in other packages cannot call them, so we re-expose a minimal surface here.
 
@@ -250,8 +436,67 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printModifiers((NodeList<com.github.javaparser.ast.Modifier>) modifiers);
     }
 
-    void doPrintMemberAnnotations(NodeList<AnnotationExpr> annotations, Void arg) {
-        printMemberAnnotations(annotations, arg);
+    void doPrintMemberAnnotations(Collection<AnnotationExpr> annotations, Void arg) {
+        for (AnnotationExpr annotation : annotations) {
+            ctx.accept(annotation, arg);
+            if (ctx.column() > 0) {
+                printer.println();
+            }
+        }
+    }
+
+    @Override
+    protected void printMemberAnnotations(NodeList<AnnotationExpr> annotations, Void arg) {
+        doPrintMemberAnnotations(annotations, arg);
+    }
+
+    @Override
+    protected void printAnnotations(NodeList<AnnotationExpr> annotations, boolean prefixWithSpace, Void arg) {
+        if (annotations.isEmpty()) {
+            return;
+        }
+        if (prefixWithSpace) {
+            printer.print(" ");
+        }
+        for (AnnotationExpr annotation : annotations) {
+            ctx.accept(annotation, arg);
+            if (ctx.column() == 0) {
+                ctx.printCont();
+            } else {
+                printer.print(" ");
+            }
+        }
+    }
+
+    void printAnnotationSuffixComments(AnnotationExpr annotation, Void arg) {
+        for (Comment comment : CommentUtils.takeAnnotationSuffixComments(annotation)) {
+            boolean inline = comment.getRange().isPresent() && annotation.getEnd().isPresent()
+                    && comment.getRange().orElseThrow().begin.line == annotation.getEnd().orElseThrow().line
+                    && comment.getRange().orElseThrow().begin.line == comment.getRange().orElseThrow().end.line
+                    && ctx.column() > 0;
+            if (inline) {
+                doPrintInlineComment(comment);
+                if (comment instanceof LineComment) {
+                    printer.println();
+                }
+            } else {
+                if (ctx.column() > 0) {
+                    printer.println();
+                }
+                printComment(Optional.of(comment), arg);
+            }
+        }
+    }
+
+    @Override
+    protected void printModifiers(NodeList<Modifier> modifiers) {
+        if (!modifiers.isEmpty()) {
+            for (Comment comment : CommentUtils.takeCommentsBeforeModifier(modifiers.get(0))) {
+                printComment(Optional.of(comment), null);
+            }
+            printOrphanCommentsBeforeThisChildNode(modifiers.get(0));
+        }
+        super.printModifiers(modifiers);
     }
 
     void doPrintAnnotations(NodeList<AnnotationExpr> annotations, boolean lineBreaks, Void arg) {
@@ -316,7 +561,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             Node c = everything.get(everything.size() - commentsAtEnd + i);
             c.accept(this, null);
             if (c instanceof Comment comment && comment.isOrphan()) {
-                comment.remove();
+                CommentUtils.removeOrphanCommentByIdentity(node, comment);
             }
         }
     }
@@ -329,7 +574,18 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
      */
     void defaultVisit(Node node, Void arg) {
         if (node instanceof BinaryExpr n) {
-            super.visit(n, arg);
+            printOrphanCommentsBeforeThisChildNode(n);
+            printComment(n.getComment(), arg);
+            ctx.accept(n.getLeft(), arg);
+            boolean spaced = getOption(ConfigOption.SPACE_AROUND_OPERATORS).isPresent();
+            if (spaced) {
+                printer.print(" ");
+            }
+            printer.print(n.getOperator().asString());
+            if (spaced) {
+                printer.print(" ");
+            }
+            ctx.accept(n.getRight(), arg);
         } else if (node instanceof MethodCallExpr n) {
             super.visit(n, arg);
         } else {
@@ -410,7 +666,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 ctx.printCont();
             }
             if (c.isOrphan()) {
-                c.remove();
+                CommentUtils.removeOrphanCommentByIdentity(parent, c);
             }
         }
     }
@@ -467,6 +723,13 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             prev = member;
         }
         printer.println();
+        members.getParentNode().filter(ObjectCreationExpr.class::isInstance)
+                .map(ObjectCreationExpr.class::cast)
+                .ifPresent(creation -> {
+                    for (Comment comment : CommentUtils.takeAnonymousBodyEndingComments(creation)) {
+                        printComment(Optional.of(comment), arg);
+                    }
+                });
     }
 
     @Override
@@ -508,6 +771,30 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         printOrphanCommentsEnding(n);
         printer.unindent();
         printer.print("}");
+    }
+
+    @Override
+    public void visit(IfStmt n, Void arg) {
+        List<Comment> suffix = CommentUtils.takeOperatorSuffix(n);
+        if (suffix.isEmpty()) {
+            super.visit(n, arg);
+            return;
+        }
+        printOrphanCommentsBeforeThisChildNode(n);
+        printComment(n.getComment(), arg);
+        printer.print("if (");
+        ctx.accept(n.getCondition(), arg);
+        printer.print(")");
+        Position closer = CommentUtils.nextCodeToken(n.getCondition().getTokenRange().orElseThrow().getEnd())
+                .flatMap(JavaToken::getRange).map(range -> range.end).orElseThrow();
+        if (!printOperatorComments(suffix, closer, false)) {
+            printer.print(" ");
+        }
+        n.getThenStmt().accept(this, arg);
+        n.getElseStmt().ifPresent(statement -> {
+            printer.print(" else ");
+            statement.accept(this, arg);
+        });
     }
 
     @Override
@@ -796,14 +1083,14 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         if (CommentUtils.hasLeadingLineOrBlockComment(n.getMemberValue())) {
             printer.println();
             ctx.printCont();
-            n.getMemberValue().accept(this, arg);
+            ctx.accept(n.getMemberValue(), arg);
             printer.println();
             ctx.printCont();
-        } else if (annotationValuesNeedWrap(NodeList.nodeList(n.getMemberValue()))) {
-            printWrappedAnnotationValues(NodeList.nodeList(n.getMemberValue()), arg);
+        } else if (annotationValuesNeedWrap(List.of(n.getMemberValue()))) {
+            printWrappedAnnotationValues(List.of(n.getMemberValue()), arg);
             return;
         } else {
-            n.getMemberValue().accept(this, arg);
+            ctx.accept(n.getMemberValue(), arg);
         }
         printer.print(")");
     }
@@ -859,7 +1146,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     // R4: an annotation's value list is wrapped at its own delimiters before any string literal inside it
     // is split into '+'-joined chunks. A lone array-initializer or nested-annotation value keeps hugging
     // the opening parenthesis, as it does for its own wrapped layout.
-    private boolean annotationValuesNeedWrap(NodeList<? extends Node> values) {
+    private boolean annotationValuesNeedWrap(List<? extends Node> values) {
         if (values.size() == SINGLE_ITEM_COUNT && hugsAnnotationParen(values.get(0))) {
             return false;
         }
@@ -878,7 +1165,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
 
     // R5: wide packs values greedily; balanced/narrow put one value per continuation line. R8: ')' placement
     // follows closingParenOnNewLine like other wrapped delimited lists.
-    private void printWrappedAnnotationValues(NodeList<? extends Node> values, Void arg) {
+    private void printWrappedAnnotationValues(List<? extends Node> values, Void arg) {
         boolean wide = fmt.wrapStyle() == WrapStyle.WIDE;
         try (LayoutContext.SilentCloseable ignored = ctx.wrappedDelimitedListScope(true)) {
             startWrappedAnnotationValueLine();
@@ -904,7 +1191,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                         startWrappedAnnotationValueLine();
                     }
                 }
-                value.accept(this, arg);
+                ctx.accept(value, arg);
             }
         }
         if (fmt.closingParenOnNewLine()) {
@@ -938,6 +1225,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     // (same left-edge visibility as binary chains). R3 uses printCont for then/else continuations.
     @Override
     public void visit(ConditionalExpr n, Void arg) {
+        CommentUtils.ConditionalComments comments = CommentUtils.takeConditionalComments(n);
         printOrphanCommentsBeforeThisChildNode(n);
         printComment(n.getComment(), arg);
         int flat =
@@ -947,23 +1235,34 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                         + WidthMeasurer.flatWidth(n.getThenExpr(), fmt)
                         + TERNARY_OPERATOR_WIDTH
                         + WidthMeasurer.flatWidth(n.getElseExpr(), fmt);
-        if (flat <= fmt.lineLength()) {
-            n.getCondition().accept(this, arg);
+        if (comments.isEmpty() && flat <= fmt.lineLength()) {
+            ctx.accept(n.getCondition(), arg);
             printer.print(" ? ");
-            n.getThenExpr().accept(this, arg);
+            ctx.accept(n.getThenExpr(), arg);
             printer.print(" : ");
-            n.getElseExpr().accept(this, arg);
+            ctx.accept(n.getElseExpr(), arg);
             return;
         }
-        n.getCondition().accept(this, arg);
-        printer.println();
-        ctx.printCont();
-        printer.print("? ");
-        n.getThenExpr().accept(this, arg);
-        printer.println();
-        ctx.printCont();
-        printer.print(": ");
-        n.getElseExpr().accept(this, arg);
+        ctx.accept(n.getCondition(), arg);
+        printConditionalOperator("?", comments.beforeQuestion, n.getCondition(), comments.afterQuestion, n.getThenExpr(), arg);
+        printConditionalOperator(":", comments.beforeColon, n.getThenExpr(), comments.afterColon, n.getElseExpr(), arg);
+    }
+
+    private void printConditionalOperator(String operator, List<Comment> before, Expression left,
+            List<Comment> after, Expression right, Void arg) {
+        if (!printOperatorComments(before, left.getEnd().orElseThrow())) {
+            printer.println();
+            ctx.printCont();
+        }
+        printer.print(operator);
+        Position operatorEnd = right.getTokenRange()
+                .flatMap(range -> CommentUtils.previousCodeToken(range.getBegin()))
+                .flatMap(JavaToken::getRange)
+                .map(range -> range.end).orElseThrow();
+        if (!printOperatorComments(after, operatorEnd)) {
+            printer.print(" ");
+        }
+        ctx.accept(right, arg);
     }
 
     @Override
@@ -984,22 +1283,17 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         boolean trailingLambda = false;
         boolean applyWrappedListIndent = false;
         boolean endingCommentEndedLine = false;
-        Optional<Comment> trailingArgumentComment = Optional.empty();
         @Nullable MethodCallExpr methodCall =
                 args.getParentNode()
                         .filter(MethodCallExpr.class::isInstance)
                         .map(MethodCallExpr.class::cast)
                         .orElse(null);
+        @Nullable Node argumentOwner = args.getParentNode().filter(NodeWithArguments.class::isInstance).orElse(null);
         try {
             if (methodCall != null) {
                 inlineBlockComments.printEmptyArguments(methodCall, printer);
             }
             if (!isNullOrEmpty(args)) {
-                Expression lastArgument = args.get(args.size() - 1);
-                if (methodCall != null && CommentUtils.hasTrailingLineOrBlockComment(lastArgument)) {
-                    trailingArgumentComment = lastArgument.getComment();
-                    CommentUtils.removeMirroredCommentOwners(methodCall, trailingArgumentComment.orElseThrow());
-                }
                 wrapped = argumentListFormatter.argsNeedWrap(args);
                 trailingLambda = wrapped && argumentListFormatter.shouldUseTrailingLambdaLayout(args);
                 if (trailingLambda) {
@@ -1032,15 +1326,14 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
                 if (!isNullOrEmpty(args) && !trailingLambda) {
                     argumentListFormatter.printCommaSeparatedExprs(args, arg);
                 }
-                if (trailingArgumentComment.isPresent()
-                        || (methodCall != null && !methodCall.getOrphanComments().isEmpty())) {
+                List<Comment> ending = argumentOwner == null ? List.of() : CommentUtils.takeEndingArgumentComments(argumentOwner);
+                if (!ending.isEmpty()) {
                     if (printer.getCursor().column > 0) {
                         printer.println();
                     }
                     int lineBeforeComments = printer.getCursor().line;
-                    printComment(trailingArgumentComment, arg);
-                    if (methodCall != null) {
-                        printOrphanCommentsEnding(methodCall);
+                    for (Comment comment : ending) {
+                        printComment(Optional.of(comment), arg);
                     }
                     endingCommentEndedLine = printer.getCursor().line > lineBeforeComments;
                 }
@@ -1155,6 +1448,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             }
             ctx.accept(init, arg);
         }
+        printCapturedStatementEndingComments(n);
     }
 
     private void printExtraArrayDimensionsAfterDeclaratorName(VariableDeclarator n, Void arg) {
@@ -1183,7 +1477,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
     }
 
     private boolean initializerBreaksAfterEquals(Expression init) {
-        if (CommentUtils.hasLeadingLineOrBlockComment(init)) {
+        if (CommentUtils.hasLeadingLineOrBlockComment(init) || CommentUtils.initializerPrefixBreaksLine(init)) {
             return true;
         }
         boolean inlineWouldOverflow =
@@ -1406,6 +1700,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
         NodeList<Statement> stmts = entry.getStatements();
         if (stmts == null || stmts.isEmpty()) {
             printer.println();
+            printer.indent();
+            printOrphanCommentsEnding(entry);
+            printer.unindent();
             return;
         }
         boolean inlineArrow = !colonStyle
@@ -1415,6 +1712,9 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             printer.print(" ");
             stmts.get(0).accept(this, arg);
             printer.println();
+            printer.indent();
+            printOrphanCommentsEnding(entry);
+            printer.unindent();
             return;
         }
         printer.println();
@@ -1423,6 +1723,7 @@ final class PrincePrettyPrinterVisitor extends DefaultPrettyPrinterVisitor {
             s.accept(this, arg);
             printer.println();
         }
+        printOrphanCommentsEnding(entry);
         printer.unindent();
     }
 

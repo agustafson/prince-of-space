@@ -147,7 +147,7 @@ final class MethodChainFormatter {
     void printChainInline(Expression base, List<MethodCallExpr> calls, Void arg) {
         ctx.accept(base, arg);
         for (MethodCallExpr mc : calls) {
-            ctx.print(".");
+            ctx.printChainDot(mc);
             ctx.printTypeArgs(mc, arg);
             ctx.printMethodName(mc.getName());
             ctx.printArguments(mc.getArguments(), arg);
@@ -206,9 +206,9 @@ final class MethodChainFormatter {
 
         if (inlineSingleCall) {
             MethodCallExpr only = calls.get(0);
-            ctx.print(".");
+            ctx.printChainDot(only);
             ctx.printTypeArgs(only, arg);
-            ctx.accept(only.getName(), arg);
+            ctx.printMethodName(only.getName());
             ctx.printArguments(only.getArguments(), arg);
             return;
         }
@@ -227,7 +227,6 @@ final class MethodChainFormatter {
             }
             Optional<Comment> hoistedComment = hoistedArgumentComments.get(i);
             ctx.printOrphanCommentsBeforeThisChildNode(mc);
-            ctx.printOrphanCommentsBeforeThisChildNode(mc);
             ctx.printOrphanCommentsBeforeThisChildNode(mc.getName());
             if (CommentUtils.hasLineOrBlockComment(mc)) {
                 ctx.printComment(mc.getComment(), arg);
@@ -236,7 +235,7 @@ final class MethodChainFormatter {
             } else if (hoistedComment.isPresent()) {
                 ctx.printComment(hoistedComment, arg);
             }
-            ctx.print(".");
+            ctx.printChainDot(mc);
             ctx.printTypeArgs(mc, arg);
             ctx.printMethodName(mc.getName());
             if (CommentUtils.hasBlockLambdaArgument(mc.getArguments())) {

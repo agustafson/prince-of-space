@@ -1,6 +1,5 @@
 package io.princeofspace.internal;
 
-import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.DoStmt;
 import com.github.javaparser.ast.stmt.ForEachStmt;
@@ -10,6 +9,8 @@ import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.stmt.WhileStmt;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
+
+import java.util.function.Consumer;
 
 /**
  * Adds explicit braces to braceless control-flow bodies.
@@ -21,10 +22,12 @@ import com.github.javaparser.ast.visitor.Visitable;
 final class BraceEnforcer extends ModifierVisitor<Void> {
 
     /** Wrap a single statement in a block; copy source range when present so comment/range heuristics keep context. */
-    private static BlockStmt wrapWithBlockPreservingRange(Statement stmt) {
-        BlockStmt block = new BlockStmt(NodeList.nodeList(stmt));
+    private static void wrapWithBlockPreservingRange(Statement stmt, Consumer<BlockStmt> attachBlock) {
+        BlockStmt block = new BlockStmt();
         stmt.getRange().ifPresent(block::setRange);
-        return block;
+        // JavaParser's setter detaches the old body, so attach the block before reparenting it.
+        attachBlock.accept(block);
+        block.addStatement(stmt);
     }
 
     @Override
@@ -33,14 +36,14 @@ final class BraceEnforcer extends ModifierVisitor<Void> {
 
         Statement then = n.getThenStmt();
         if (!(then instanceof BlockStmt)) {
-            n.setThenStmt(wrapWithBlockPreservingRange(then));
+            wrapWithBlockPreservingRange(then, n::setThenStmt);
         }
 
         n.getElseStmt().ifPresent(elseStmt -> {
             // else-if: the IfStmt itself is never wrapped; its body will have been handled
             // by the recursive visit above. Only bare else branches need wrapping.
             if (!(elseStmt instanceof BlockStmt) && !(elseStmt instanceof IfStmt)) {
-                n.setElseStmt(wrapWithBlockPreservingRange(elseStmt));
+                wrapWithBlockPreservingRange(elseStmt, n::setElseStmt);
             }
         });
 
@@ -52,7 +55,7 @@ final class BraceEnforcer extends ModifierVisitor<Void> {
         super.visit(n, arg);
         Statement body = n.getBody();
         if (!(body instanceof BlockStmt)) {
-            n.setBody(wrapWithBlockPreservingRange(body));
+            wrapWithBlockPreservingRange(body, n::setBody);
         }
         return n;
     }
@@ -62,7 +65,7 @@ final class BraceEnforcer extends ModifierVisitor<Void> {
         super.visit(n, arg);
         Statement body = n.getBody();
         if (!(body instanceof BlockStmt)) {
-            n.setBody(wrapWithBlockPreservingRange(body));
+            wrapWithBlockPreservingRange(body, n::setBody);
         }
         return n;
     }
@@ -72,7 +75,7 @@ final class BraceEnforcer extends ModifierVisitor<Void> {
         super.visit(n, arg);
         Statement body = n.getBody();
         if (!(body instanceof BlockStmt)) {
-            n.setBody(wrapWithBlockPreservingRange(body));
+            wrapWithBlockPreservingRange(body, n::setBody);
         }
         return n;
     }
@@ -82,7 +85,7 @@ final class BraceEnforcer extends ModifierVisitor<Void> {
         super.visit(n, arg);
         Statement body = n.getBody();
         if (!(body instanceof BlockStmt)) {
-            n.setBody(wrapWithBlockPreservingRange(body));
+            wrapWithBlockPreservingRange(body, n::setBody);
         }
         return n;
     }

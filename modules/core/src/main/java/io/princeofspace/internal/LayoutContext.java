@@ -1,5 +1,6 @@
 package io.princeofspace.internal;
 
+import com.github.javaparser.Position;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.BodyDeclaration;
@@ -7,12 +8,15 @@ import com.github.javaparser.ast.comments.BlockComment;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.SimpleName;
 import com.github.javaparser.ast.nodeTypes.NodeWithTypeArguments;
 import com.github.javaparser.printer.SourcePrinter;
 import io.princeofspace.model.FormatterConfig;
 import io.princeofspace.model.IndentStyle;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -184,16 +188,41 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
 
     /** Delegates node formatting back through the visitor. */
     void accept(Node node, Void arg) {
+        visitor.printExpressionBoundaryComments(node, arg);
         visitor.inlineBlockComments.printBefore(node, printer);
         node.accept(visitor, arg);
         visitor.inlineBlockComments.printAfter(node, printer);
+        if (node instanceof AnnotationExpr annotation) {
+            visitor.printAnnotationSuffixComments(annotation, arg);
+        }
     }
 
     /** Prints a method name while retaining an inline comment before the identifier. */
     void printMethodName(SimpleName name) {
+        List<Comment> prefix = CommentUtils.takeSelectorPrefix(name);
+        if (!prefix.isEmpty()) {
+            Position left = CommentUtils.previousCodeToken(name.getTokenRange().orElseThrow().getBegin())
+                    .orElseThrow().getRange().orElseThrow().end;
+            visitor.printOperatorComments(prefix, left);
+        }
         visitor.inlineBlockComments.printBefore(name, printer);
         print(name.asString());
         visitor.inlineBlockComments.printAfter(name, printer);
+        visitor.printOperatorComments(CommentUtils.takeSelectorSuffix(name), name.getEnd().orElseThrow());
+    }
+
+    void printChainDot(MethodCallExpr call) {
+        for (Comment comment : CommentUtils.takeChainDotPrefix(call)) {
+            printComment(Optional.of(comment), null);
+        }
+        print(".");
+        List<Comment> suffix = CommentUtils.takeChainDotSuffix(call);
+        if (!suffix.isEmpty()) {
+            Position dotEnd = CommentUtils.nextCodeToken(call.getScope().orElseThrow()
+                            .getTokenRange().orElseThrow().getEnd())
+                    .orElseThrow().getRange().orElseThrow().end;
+            visitor.printOperatorComments(suffix, dotEnd);
+        }
     }
 
     /**
@@ -211,6 +240,14 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
     /** Emits a node-associated comment using visitor rules. */
     void printComment(Optional<Comment> comment, Void arg) {
         visitor.doPrintComment(comment, arg);
+    }
+
+    void printInlineComment(Comment comment) {
+        visitor.doPrintInlineComment(comment);
+    }
+
+    boolean printOperatorComments(List<Comment> comments, Position leftEnd) {
+        return visitor.printOperatorComments(comments, leftEnd);
     }
 
     /** Emits orphan comments that appear before a given child node. */
@@ -270,7 +307,7 @@ record LayoutContext(FormatterConfig fmt, SourcePrinter printer, PrincePrettyPri
     }
 
     /** Delegates member-annotation printing to visitor inherited helper. */
-    void printMemberAnnotations(NodeList<AnnotationExpr> annotations, Void arg) {
+    void printMemberAnnotations(Collection<AnnotationExpr> annotations, Void arg) {
         visitor.doPrintMemberAnnotations(annotations, arg);
     }
 
