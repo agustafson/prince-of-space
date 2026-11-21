@@ -177,7 +177,7 @@ jobs:
       - name: Infer next release version with Nyx
         if: ${{ inputs.release_version == '' }}
         id: nyx
-        uses: mooltiverse/nyx@3.1.7
+        uses: mooltiverse/nyx@3.2.0
         with:
           command: infer
           configurationFile: .nyx.yml
@@ -215,7 +215,7 @@ jobs:
           echo "Releasing: $VERSION"
 
       - name: Generate changelog with Nyx
-        uses: mooltiverse/nyx@3.1.7
+        uses: mooltiverse/nyx@3.2.0
         with:
           command: make
           configurationFile: .nyx.yml
